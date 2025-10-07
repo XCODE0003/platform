@@ -7,9 +7,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Filament\Models\Contracts\HasName;
 
-class User extends Authenticatable
+
+class User extends Authenticatable implements FilamentUser, HasName
 {
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+    public function getFilamentName(): string
+    {
+        return $this->email;
+    }
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
@@ -19,9 +32,11 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+
         'email',
         'password',
+        'google_2fa_enabled',
+        'google_2fa_secret',
     ];
 
     /**
@@ -45,5 +60,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function DepositWallets()
+    {
+        return $this->hasMany(DepositAddress::class);
+    }
+    public function wallets()
+    {
+        return $this->hasMany(UserWallet::class);
     }
 }

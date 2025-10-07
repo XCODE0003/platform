@@ -1,0 +1,159 @@
+<?php
+
+namespace App\Http\Controllers\User;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class TradeController extends Controller
+{
+    /**
+     * Display the trading page.
+     */
+    public function show(Request $request): Response
+    {
+        $user = $request->user();
+
+        return Inertia::render('User/Trade', [
+            'tradingPairs' => $this->getTradingPairs(),
+            'userBalances' => $this->getUserBalances($user),
+            'openOrders' => $this->getOpenOrders($user),
+            'tradeHistory' => $this->getTradeHistory($user),
+            'recentTrades' => $this->getRecentTrades(),
+            'orderBook' => $this->getOrderBook(),
+        ]);
+    }
+
+    /**
+     * Create a new order.
+     */
+    public function createOrder(Request $request)
+    {
+        $request->validate([
+            'pair' => ['required', 'string'],
+            'side' => ['required', 'in:buy,sell'],
+            'type' => ['required', 'in:market,limit'],
+            'amount' => ['required', 'numeric', 'min:0.00000001'],
+            'price' => ['nullable', 'numeric', 'min:0.00000001'],
+        ]);
+
+        // Здесь должна быть логика создания ордера
+
+        return back()->with('success', 'Order created successfully');
+    }
+
+    /**
+     * Cancel an order.
+     */
+    public function cancelOrder(Request $request, $orderId)
+    {
+        $user = $request->user();
+
+        // Здесь должна быть логика отмены ордера
+
+        return back()->with('success', 'Order cancelled successfully');
+    }
+
+    /**
+     * Get available trading pairs.
+     */
+    private function getTradingPairs(): array
+    {
+        return [
+            ['symbol' => 'BTCUSDT', 'name' => 'BTC/USDT', 'price' => '43250.00'],
+            ['symbol' => 'ETHUSDT', 'name' => 'ETH/USDT', 'price' => '2580.00'],
+            ['symbol' => 'ADAUSDT', 'name' => 'ADA/USDT', 'price' => '0.45'],
+        ];
+    }
+
+    /**
+     * Get user balances.
+     */
+    private function getUserBalances($user): array
+    {
+        // Получаем балансы пользователя
+        $wallets = $user->wallets()->with('currency')->get();
+
+        return $wallets->map(function ($wallet) {
+            return [
+                'currency' => $wallet->currency->name,
+                'symbol' => $wallet->currency->code,
+                'balance' => $wallet->balance,
+                'available' => $wallet->balance - $wallet->pending_balance,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get user's open orders.
+     */
+    private function getOpenOrders($user): array
+    {
+        // Здесь должна быть логика получения открытых ордеров
+        return [
+            [
+                'id' => 1,
+                'date' => '2025-01-06 13:43:57',
+                'pair' => 'BTC/USDT',
+                'type' => 'Limit',
+                'side' => 'Buy',
+                'price' => '26481.13',
+                'quantity' => '0.685630',
+                'total' => '18156.16',
+            ],
+        ];
+    }
+
+    /**
+     * Get user's trade history.
+     */
+    private function getTradeHistory($user): array
+    {
+        // Здесь должна быть логика получения истории торгов
+        return [
+            [
+                'date' => '2025-01-06 13:43:57',
+                'pair' => 'BTC/USDT',
+                'type' => 'Limit',
+                'side' => 'Buy',
+                'price' => '26481.13',
+                'quantity' => '0.685630',
+                'total' => '18156.16',
+                'status' => 'Completed',
+            ],
+        ];
+    }
+
+    /**
+     * Get recent trades for the current pair.
+     */
+    private function getRecentTrades(): array
+    {
+        // Здесь должна быть логика получения недавних сделок
+        return [
+            [
+                'price' => '31113.04',
+                'quantity' => '0.229460',
+                'time' => '15:23:57',
+                'side' => 'buy',
+            ],
+        ];
+    }
+
+    /**
+     * Get order book data.
+     */
+    private function getOrderBook(): array
+    {
+        return [
+            'bids' => [
+                ['price' => '31113.04', 'quantity' => '0.229460', 'total' => '7135.50'],
+            ],
+            'asks' => [
+                ['price' => '31120.00', 'quantity' => '0.150000', 'total' => '4668.00'],
+            ],
+        ];
+    }
+}

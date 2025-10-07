@@ -1,106 +1,140 @@
 <script setup>
+import { useModalStore } from '@/stores/modal.js';
+import { useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { VueFinalModal } from 'vue-final-modal';
 
+const modal = useModalStore();
+const { props } = usePage();
+
+const isOpen = computed({
+    get: () => modal.isOpen('stacking'),
+    set: (v) => (v ? modal.open('stacking') : modal.close('stacking')),
+});
+
+const currencies = computed(() => props.currencies || []);
+const selectedCurrency = ref(null);
+
+const form = useForm({
+    currency_id: '',
+    amount: '',
+    duration: '30', // days
+});
+
+function selectCurrency(currency) {
+    selectedCurrency.value = currency;
+    form.currency_id = currency.id;
+}
+
+function submitStaking() {
+    form.post('/account/staking', {
+        onSuccess: () => {
+            isOpen.value = false;
+            form.reset();
+            selectedCurrency.value = null;
+        },
+    });
+}
 </script>
 
 <template>
-  <div class="modal" id="stacking">
-    <form id="stackingForm">
-      <button class="closemodal clear" data-izimodal-close="">
-        <img src="/images/modal_close.svg" alt=""/>
-      </button>
-
-      <p class="text_16 _115 color-gray2 pb10">Input cryptocurrency</p>
-      <div class="stacking-container  pb20">
-        <div class="stacking-input_label">
-          <div class="itc-select" id="select-9">
-            <button
-                type="button"
-                class="itc-select__toggle stacking"
-                name="cryptocurrency"
-                value=""
-                data-select="toggle"
-                data-index="-1">
-              Choose
+    <VueFinalModal
+        v-model="isOpen"
+        overlay-transition="vfm-fade"
+        content-transition="vfm-fade"
+        click-to-close
+        esc-to-close
+        background="non-interactive"
+        lock-scroll
+        class="flex items-center justify-center"
+        content-class="max-w-xl mx-4 p-4 bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-lg"
+    >
+        <div class="modal show">
+            <button class="closemodal clear" @click="isOpen = false">
+                <img src="/images/modal_close.svg" alt="" />
             </button>
-            <div class="itc-select__dropdown">
-              <div class="search">
-                <input type="text" placeholder="Search"/>
-              </div>
-              <ul class="itc-select__options">
-                @yield("selectCoin")
-              </ul>
-            </div>
-          </div>
-          <input
-              oninput="validateInput(this); calculateStaking(this)"
-              type="text"
-              id="amountStaking"
-              name="amount"
-              class="clear text_18 stacking-input"
-              placeholder="0.00001"
-          />
-          <button oninput="selectMaxStakingOrder()" class="btn_max">Max</button>
+            <h2 class="h1_25 pb15">Staking</h2>
+            <p class="text_18 pb25">
+                Earn rewards by staking your cryptocurrency
+            </p>
+
+            <form @submit.prevent="submitStaking">
+                <div class="pb20">
+                    <p class="text_16 _115 color-gray2 pb10">
+                        Select cryptocurrency
+                    </p>
+                    <select
+                        v-model="selectedCurrency"
+                        @change="selectCurrency(selectedCurrency)"
+                        class="input"
+                        :class="{ error: form.errors.currency_id }"
+                    >
+                        <option value="">Choose cryptocurrency</option>
+                        <option
+                            v-for="currency in currencies"
+                            :key="currency.id"
+                            :value="currency"
+                        >
+                            {{ currency.currency.name }} ({{
+                                currency.balance
+                            }})
+                        </option>
+                    </select>
+                    <div
+                        v-if="form.errors.currency_id"
+                        class="error-message text-red"
+                    >
+                        {{ form.errors.currency_id }}
+                    </div>
+                </div>
+
+                <div class="pb20" v-if="selectedCurrency">
+                    <p class="text_16 _115 color-gray2 pb10">
+                        Amount {{ selectedCurrency.currency.name }}
+                    </p>
+                    <input
+                        type="number"
+                        step="0.00000001"
+                        v-model="form.amount"
+                        class="input"
+                        :class="{ error: form.errors.amount }"
+                        placeholder="0.00000000"
+                    />
+                    <div
+                        v-if="form.errors.amount"
+                        class="error-message text-red"
+                    >
+                        {{ form.errors.amount }}
+                    </div>
+                    <p class="text_small_12 color-gray2 pt5">
+                        Available: {{ selectedCurrency.balance }}
+                        {{ selectedCurrency.currency.name }}
+                    </p>
+                </div>
+
+                <div class="pb20" v-if="selectedCurrency">
+                    <p class="text_16 _115 color-gray2 pb10">
+                        Staking duration
+                    </p>
+                    <select v-model="form.duration" class="input">
+                        <option value="30">30 days (5% APY)</option>
+                        <option value="60">60 days (7% APY)</option>
+                        <option value="90">90 days (10% APY)</option>
+                    </select>
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn btn_action btn_16 color-dark"
+                    :disabled="
+                        !selectedCurrency || !form.amount || form.processing
+                    "
+                >
+                    {{ form.processing ? 'Processing...' : 'Start Staking' }}
+                </button>
+            </form>
         </div>
-
-      </div>
-      <p class="text_16 _115 color-gray2 pb10">
-        Select stake days (from 7 to 365)
-      </p>
-      <div class="stacking-days pb25">
-        <ul class="flex gap6">
-          <li>
-            <input id="day7"  value="7"  checked type="radio"
-                   class="hide"/>
-            <label for="day7"  class="stacking-day">7</label>
-          </li>
-          <li>
-            <input id="day14"  value="14"  type="radio"
-                   class="hide"/>
-            <label for="day14"  class="stacking-day">14</label>
-          </li>
-          <li>
-            <input id="day30"  value="30"  type="radio"
-                   class="hide"/>
-            <label for="day30"  class="stacking-day">30</label>
-          </li>
-          <li>
-            <input id="day60"  value="60"  type="radio"
-                   class="hide"/>
-            <label for="day60"  class="stacking-day">60</label>
-          </li>
-          <li>
-            <input id="day90"  value="90"  type="radio"
-                   class="hide"/>
-            <label for="day90"  class="stacking-day">90</label>
-          </li>
-          <li>
-            <input id="day120"  value="120"  type="radio"
-                   class="hide"/>
-            <label for="day120"  class="stacking-day">120</label>
-          </li>
-          <li>
-            <input id="day365"  value="365"  type="radio"
-                   class="hide"/>
-            <label for="day365"  class="stacking-day">365</label>
-          </li>
-
-        </ul>
-      </div>
-      <div class="stacking-info flex-between pb20">
-        <span class="text_small_14 color-gray2">You will receive</span>
-        <span class="text_small_14" id="receiveStacking"></span>
-      </div>
-
-      <!-- disabled class="process" -->
-      <button
-          type="submit"
-          class="btn btn_action btn_16 color-dark trigger-stacking">
-        Go stake
-      </button>
-    </form>
-  </div>
+    </VueFinalModal>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

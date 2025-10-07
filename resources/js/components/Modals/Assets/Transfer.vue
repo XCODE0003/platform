@@ -1,198 +1,151 @@
 <script setup>
+import { useModalStore } from '@/stores/modal.js';
+import { useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { VueFinalModal } from 'vue-final-modal';
 
+const modal = useModalStore();
+const { props } = usePage();
+
+const isOpen = computed({
+    get: () => modal.isOpen('transfer'),
+    set: (v) => (v ? modal.open('transfer') : modal.close('transfer')),
+});
+
+const currencies = computed(() => props.currencies || []);
+const selectedCurrency = ref(null);
+const transferType = ref('balance-to-spot'); // 'balance-to-spot' or 'spot-to-balance'
+
+const form = useForm({
+    currency_id: '',
+    amount: '',
+    type: 'balance-to-spot',
+});
+
+function selectCurrency(currency) {
+    selectedCurrency.value = currency;
+    form.currency_id = currency.id;
+}
+
+function setTransferType(type) {
+    transferType.value = type;
+    form.type = type;
+}
+
+function submitTransfer() {
+    form.post('/account/transfer', {
+        onSuccess: () => {
+            isOpen.value = false;
+            form.reset();
+            selectedCurrency.value = null;
+        },
+    });
+}
 </script>
 
 <template>
-  <div class="modal" id="transfer">
-    <button class="closemodal clear" data-izimodal-close="">
-      <img src="/images/modal_close.svg" alt=""/>
-    </button>
-    <h2 class="h1_25 pb25">Transfer cryptocurrency</h2>
-    <div id="tabs">
-      <ul class="tabs-nav flex gap6 pb20">
-        <li>
-          <a href="#tab-1" class="text_small_14 assets-menu_btn">From balance to spot</a>
-        </li>
-        <li>
-          <a href="#tab-2" class="text_small_14 assets-menu_btn"
-          >From spot to balance</a
-          >
-        </li>
-        <li>
-          <a href="#tab-3" class="text_small_14 assets-menu_btn">To another user</a>
-        </li>
-      </ul>
-      <div class="tabs-items">
+    <VueFinalModal
+        v-model="isOpen"
+        overlay-transition="vfm-fade"
+        content-transition="vfm-fade"
+        click-to-close
+        esc-to-close
+        background="non-interactive"
+        lock-scroll
+        class="flex items-center justify-center"
+        content-class="max-w-xl mx-4 p-4 bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-lg"
+    >
+        <div class="modal show">
+            <button class="closemodal clear" @click="isOpen = false">
+                <img src="/images/modal_close.svg" alt="" />
+            </button>
+            <h2 class="h1_25 pb25">Transfer cryptocurrency</h2>
 
-        <div class="tabs-item" id="tab-1">
-          <form id="transferBalanceToSpot">
-            <div class="transfer-container fail pb20">
-
-              <div class="transfer-input_label">
-                <div class="itc-select" id="select-6">
-                  <button
-                      type="button"
-                      class="itc-select__toggle transfer"
-                      name="cryptocurrency"
-                      value=""
-                      data-select="toggle"
-                      data-index="-1"
-                  >
-                    Choose
-                  </button>
-                  <div class="itc-select__dropdown">
-                    <div class="search">
-                      <input type="text" placeholder="Search"/>
-                    </div>
-                    <ul class="itc-select__options">
-                      @yield("selectCoin")
-                    </ul>
-                  </div>
-                </div>
-                <input
-                    type="text"
-                    class="clear convert-input text_18 "
-                    oninput="validateInput(this)"
-                    id="TransferToSpotInput"
-                    placeholder="0.00001"
-                    name="amount"
-                />
-                <button type="button" class="btn_max" onclick="selectMaxTransferToSpot()">Max</button>
-              </div>
-
-            </div>
-            <div class="transfer-info flex-between pb20">
-                <span class="text_small_14 color-gray2"
-                >You receive on spot balance</span
+            <div class="tabs-nav gap6 pb20 flex">
+                <button
+                    type="button"
+                    @click="setTransferType('balance-to-spot')"
+                    :class="{ active: transferType === 'balance-to-spot' }"
+                    class="text_small_14 assets-menu_btn"
                 >
-              <span class="text_small_14" id="balanceCoinTransferToSpot"></span>
-            </div>
-            <button
-                type="submit"
-                class="btn btn_action btn_16 color-dark trigger-transfer"
-            >
-              Transfer
-            </button>
-          </form>
-        </div>
-
-        <div class="tabs-item" id="tab-2">
-          <form id="transferSpotToBalance">
-
-
-            <div class="transfer-container fail pb20">
-              <div class="transfer-input_label">
-                <div class="itc-select" id="select-7">
-                  <button
-                      type="button"
-                      class="itc-select__toggle transfer"
-                      name="cryptocurrency"
-
-                      value=""
-                      data-select="toggle"
-                      data-index="-1"
-                  >
-                    Choose
-                  </button>
-                  <div class="itc-select__dropdown">
-                    <div class="search">
-                      <input type="text" placeholder="Search"/>
-                    </div>
-                    <ul class="itc-select__options">
-                      @yield("selectCoin")
-                    </ul>
-                  </div>
-                </div>
-                <input
-                    type="text"
-                    class="clear convert-input text_18 "
-                    name="amount"
-                    id="inputSpotToBalance"
-                    oninput="validateInput(this)"
-                    placeholder="0.00001"
-                />
-                <button type="button" onclick="selectMaxTransferBalanceToSpot()" class="btn_max">Max
+                    From balance to spot
                 </button>
-              </div>
-
+                <button
+                    type="button"
+                    @click="setTransferType('spot-to-balance')"
+                    :class="{ active: transferType === 'spot-to-balance' }"
+                    class="text_small_14 assets-menu_btn"
+                >
+                    From spot to balance
+                </button>
             </div>
-            <div class="transfer-info flex-between pb20">
-              <span class="text_small_14 color-gray2">You receive on available balance</span>
-              <span class="text_small_14" id="balanceSpot"></span>
-            </div>
-            <button
-                type="submit"
-                class="btn btn_action btn_16 color-dark trigger-transfer">
-              Transfer
-            </button>
-          </form>
-        </div>
 
-        <div class="tabs-item" id="tab-3">
-          <form id="transferToAnotherUser">
-            <div class="transfer-container ">
-              <div class="transfer-input_label ">
-                <div class="itc-select" id="select-8">
-                  <button
-                      type="button"
-                      class="itc-select__toggle transfer"
-                      name="cryptocurrency"
-                      value=""
-                      data-select="toggle"
-                      data-index="-1">
-                    Choose
-                  </button>
-                  <div class="itc-select__dropdown">
-                    <div class="search">
-                      <input type="text" placeholder="Search"/>
+            <form @submit.prevent="submitTransfer">
+                <div class="pb20">
+                    <p class="text_16 _115 color-gray2 pb10">
+                        Select cryptocurrency
+                    </p>
+                    <select
+                        v-model="selectedCurrency"
+                        @change="selectCurrency(selectedCurrency)"
+                        class="input"
+                        :class="{ error: form.errors.currency_id }"
+                    >
+                        <option value="">Choose cryptocurrency</option>
+                        <option
+                            v-for="currency in currencies"
+                            :key="currency.id"
+                            :value="currency"
+                        >
+                            {{ currency.currency.name }} ({{
+                                currency.balance
+                            }})
+                        </option>
+                    </select>
+                    <div
+                        v-if="form.errors.currency_id"
+                        class="error-message text-red"
+                    >
+                        {{ form.errors.currency_id }}
                     </div>
-                    <ul class="itc-select__options">
-                      @yield("selectCoin")
-                    </ul>
-                  </div>
                 </div>
-                <input
-                    type="text"
-                    oninput="validateInput(this)"
-                    class="clear convert-input text_18 "
-                    name="amount"
-                    id="TransferAmountToUser"
-                    placeholder="0.00001"
-                />
-                <button type="button" onclick="selectMaxTransferToUser()" class="btn_max">Max</button>
-              </div>
 
-            </div>
-            <div class="pb10 pt10">
-              <label class="form-item ">
-                <input
-                    required=""
-                    class="input"
-                    type="email"
-                    name="email"
-                    placeholder="Email@email.com"/>
+                <div class="pb20" v-if="selectedCurrency">
+                    <p class="text_16 _115 color-gray2 pb10">
+                        Amount {{ selectedCurrency.currency.name }}
+                    </p>
+                    <input
+                        type="number"
+                        step="0.00000001"
+                        v-model="form.amount"
+                        class="input"
+                        :class="{ error: form.errors.amount }"
+                        placeholder="0.00000000"
+                    />
+                    <div
+                        v-if="form.errors.amount"
+                        class="error-message text-red"
+                    >
+                        {{ form.errors.amount }}
+                    </div>
+                    <p class="text_small_12 color-gray2 pt5">
+                        Available: {{ selectedCurrency.balance }}
+                        {{ selectedCurrency.currency.name }}
+                    </p>
+                </div>
 
-              </label>
-            </div>
-            <div class="transfer-info flex-between pb20">
-              <span class="text_small_14 color-gray2">You will send to another user</span>
-              <span class="text_small_14" id="balanceToAnotherUser"></span>
-            </div>
-
-            <button
-                type="submit"
-                class="btn btn_action btn_16 color-dark trigger-transfer">
-              Transfer
-            </button>
-          </form>
+                <button
+                    type="submit"
+                    class="btn btn_action btn_16 color-dark"
+                    :disabled="
+                        !selectedCurrency || !form.amount || form.processing
+                    "
+                >
+                    {{ form.processing ? 'Transferring...' : 'Transfer' }}
+                </button>
+            </form>
         </div>
-      </div>
-    </div>
-
-
-  </div>
+    </VueFinalModal>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
