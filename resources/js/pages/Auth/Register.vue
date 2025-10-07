@@ -1,6 +1,6 @@
 <script setup>
 import MainLayout from '@/layouts/MainLayout.vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     email: '',
@@ -26,21 +26,21 @@ function submit() {
                     <div class="login-content">
                         <div class="login-title">
                             <h2 class="h2_40 pb20">Create an account</h2>
-                            <RouterLink
-                                to="/Login"
+                            <Link
+                                :href="route('login')"
                                 class="link_15"
                                 href="/login"
                                 style="text-decoration: none"
                             >
                                 Already have an account?
-                                <RouterLink
-                                    to="/login"
+                                <Link
+                                    :href="route('login')"
                                     class="btn btn_sign"
                                     style="background: var(--Blue, #c4e9fc)"
                                 >
                                     Log in
-                                </RouterLink>
-                            </RouterLink>
+                                </Link>
+                            </Link>
                         </div>
                         <form class="login-block" @submit.prevent="submit">
                             <label class="form-item">

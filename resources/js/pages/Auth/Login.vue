@@ -1,6 +1,6 @@
 <script setup>
 import MainLayout from '@/layouts/MainLayout.vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     email: '',
@@ -32,13 +32,13 @@ function submit() {
                                 style="text-decoration: none"
                             >
                                 Don't have an account?
-                                <RouterLink
-                                    to="/register"
+                                <Link
+                                    :href="route('register')"
                                     class="btn btn_sign"
                                     style="background: var(--Blue, #c4e9fc)"
                                 >
                                     Register
-                                </RouterLink>
+                                </Link>
                             </a>
                         </div>
                         <form class="login-block" @submit.prevent="submit">
