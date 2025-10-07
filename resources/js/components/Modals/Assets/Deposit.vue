@@ -96,7 +96,7 @@ function selectCurrency(currency) {
                                     Minimum deposit:
                                     {{
                                         selectedCurrency.currency
-                                            .min_deposit_amount || '0.001'
+                                            ?.min_deposit_amount || '0.001'
                                     }}
                                     {{ selectedCurrency.currency.symbol }}
                                 </p>
