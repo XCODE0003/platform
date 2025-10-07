@@ -41,7 +41,7 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
     @vite(['resources/js/app.js'])
-    <!-- @vite(['resources/js/app.js', "resources/js/pages/{$page['component']}.vue"]) -->
+
     @inertiaHead
 </head>
 
