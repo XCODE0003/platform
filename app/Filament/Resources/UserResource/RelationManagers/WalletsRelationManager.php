@@ -66,8 +66,16 @@ class WalletsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('usd_value')
                     ->label('USD Value')
                     ->getStateUsing(function ($record) {
-                        $total = bcadd($record->balance, $record->pending_balance, 8);
-                        $rate = $record->currency->exchange_rate ?? 1;
+                        $total = bcadd((string) $record->balance, (string) $record->pending_balance, 8);
+
+                        // Приводим курс к строке с корректным форматом для bc* функций
+                        $rate = $record->currency->exchange_rate ?? '1';
+                        // Убираем возможные нечисловые символы и приводим к строке с точкой
+                        $rate = preg_replace('/[^0-9\.\-]/', '', (string) $rate);
+                        if ($rate === '' || !is_numeric($rate)) {
+                            $rate = '1';
+                        }
+
                         return bcmul($total, $rate, 2);
                     })
                     ->money('USD')
