@@ -98,7 +98,7 @@ function selectCurrency(currency) {
                                         selectedCurrency.currency
                                             ?.min_deposit_amount || '0.001'
                                     }}
-                                    {{ selectedCurrency.currency.symbol }}
+                                    {{ selectedCurrency.currency?.symbol }}
                                 </p>
                             </div>
                             <div class="deposit-address pb20">
