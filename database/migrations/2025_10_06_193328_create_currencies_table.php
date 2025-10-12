@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('icon');
             $table->string('network');
             $table->string('exchange_rate');
-            $table->string('status')->default('active');
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->boolean('is_deposit')->default(false);
             $table->string('min_deposit_amount')->default(0);
             $table->string('address_regex')->nullable();

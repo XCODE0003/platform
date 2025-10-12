@@ -1,18 +1,25 @@
 <script setup>
 import MainLayout from '@/layouts/MainLayout.vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 
+import { computed, watch } from 'vue';
+import { useToast } from '@/composables/useToast';
+import { disabledButton, watchErrors, fieldNamesPresets } from '@/utils/system';
+const page = usePage();
+const { showError, showSuccess } = useToast();
 const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
     terms: false,
 });
+const errors = computed(() => page.props.errors);
+watchErrors(errors, showError, fieldNamesPresets.auth);
 
 function submit() {
     form.post('/register', {
         onSuccess: () => {
-            router.visit('/');
+            showSuccess('Account created successfully!', 'Welcome!');
         },
     });
 }
@@ -27,14 +34,13 @@ function submit() {
                         <div class="login-title">
                             <h2 class="h2_40 pb20">Create an account</h2>
                             <Link
-                                :href="route('login')"
-                                class="link_15"
                                 href="/login"
+                                class="link_15"
                                 style="text-decoration: none"
                             >
                                 Already have an account?
                                 <Link
-                                    :href="route('login')"
+                                    href="/login"
                                     class="btn btn_sign"
                                     style="background: var(--Blue, #c4e9fc)"
                                 >
@@ -48,6 +54,7 @@ function submit() {
                                     required
                                     :class="{
                                         input: true,
+                                        'input-wrong': errors.email,
                                     }"
                                     type="email"
                                     name="email"
@@ -60,6 +67,7 @@ function submit() {
                                     required
                                     :class="{
                                         input: true,
+                                        'input-wrong': errors.password,
                                     }"
                                     type="password"
                                     name="password"
@@ -78,6 +86,7 @@ function submit() {
                                     placeholder="Confirm password"
                                     :class="{
                                         input: true,
+                                        'input-wrong': errors.password_confirmation,
                                     }"
                                 />
                             </label>
@@ -109,11 +118,12 @@ function submit() {
                             <button
                                 class="submit btn btn_16 color-white"
                                 type="submit"
+                                :disabled="form.processing || disabledButton(form.data(), ['email', 'password', 'password_confirmation', 'terms'])"
                             >
-                                Sign up
+                            {{ form.processing ? 'Creating...' : 'Sign up' }}
                             </button>
                             <span class="text-red2 d-none">
-                                {{ er }}
+                                {{ errors }}
                             </span>
                         </form>
                     </div>

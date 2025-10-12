@@ -3,9 +3,14 @@ import { useModalStore } from '@/stores/modal.js';
 import { useForm } from '@inertiajs/vue3';
 import { computed, defineEmits, defineProps, watchEffect } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
-
+import { usePage } from '@inertiajs/vue3';
+import { useToast } from '@/composables/useToast.js';
+const { showError } = useToast();
+import { watchErrors, fieldNamesPresets, disabledButton } from '@/utils/system.js';
+const page = usePage();
 const modal = useModalStore();
-
+const errors = computed(() => page.props.errors);
+watchErrors(errors, showError, fieldNamesPresets.kyc);
 const isOpen = computed({
     get: () => modal.isOpen('verify'),
     set: (v) => (v ? modal.open('verify') : modal.close('verify')),
@@ -25,13 +30,13 @@ const form = useForm({
     first_name: '',
     last_name: '',
     phone: '',
-    dateOfBrith: '',
+    date_of_birth: '',
     country: '',
     city: '',
     address: '',
     zip_code: '',
     kyc_documents: [],
-    kyc_status: 0,
+    status: props.kycData.status ?? 0,
     error_message: '',
 });
 
@@ -41,12 +46,12 @@ watchEffect(() => {
         form.first_name = props.kycData.first_name ?? form.first_name;
         form.last_name = props.kycData.last_name ?? form.last_name;
         form.phone = props.kycData.phone ?? form.phone;
-        form.dateOfBrith = props.kycData.dateOfBrith ?? form.dateOfBrith;
+        form.date_of_birth = props.kycData.date_of_birth ?? form.date_of_birth;
         form.country = props.kycData.country ?? form.country;
         form.city = props.kycData.city ?? form.city;
         form.address = props.kycData.address ?? form.address;
         form.zip_code = props.kycData.zip_code ?? form.zip_code;
-        form.kyc_status = props.kycData.kyc_status ?? form.kyc_status;
+        form.status = props.kycData.status ?? form.status;
         form.error_message = props.kycData.error_message ?? form.error_message;
     }
 });
@@ -55,7 +60,7 @@ function submitKyc() {
     form.post('/kyc', {
         preserveScroll: true,
         onSuccess: () => {
-            form.kyc_status = 1;
+            form.status = 'pending';
             updateModel({ ...form.data() });
             isOpen.value = false;
         },
@@ -88,7 +93,7 @@ function submitKyc() {
             <form
                 @submit.prevent="submitKyc"
                 style="max-height: 300px; overflow: auto"
-                class="flex-column flex"
+                class="flex-column flex hide-scroll"
             >
                 <select
                     v-model="form.sex"
@@ -101,82 +106,88 @@ function submitKyc() {
                 </select>
                 <input
                     type="text"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
                     v-model="form.first_name"
-                    :class="{ 'input-wrong': form.errors.first_name }"
+                    :class="{ 'input-wrong': errors.first_name }"
                     name="first_name"
                     class="input mb10"
                     placeholder="First name"
                     required
                 />
                 <div
-                    v-if="form.errors.first_name"
+                    v-if="errors.first_name"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.first_name }}
+                    {{ errors.first_name }}
                 </div>
                 <input
                     type="text"
                     v-model="form.last_name"
-                    :class="{ 'input-wrong': form.errors.last_name }"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                    :class="{ 'input-wrong': errors.last_name }"
                     name="last_name"
                     class="input mb10"
                     placeholder="Last name"
                     required
                 />
                 <div
-                    v-if="form.errors.last_name"
+                    v-if="errors.last_name"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.last_name }}
+                    {{ errors.last_name }}
                 </div>
                 <input
                     type="text"
                     v-model="form.phone"
-                    :class="{ 'input-wrong': form.errors.phone }"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                        :class="{ 'input-wrong': errors.phone }"
                     name="phone"
                     class="input mb10"
                     placeholder="Phone number"
                     required
                 />
                 <div
-                    v-if="form.errors.phone"
+                    v-if="errors.phone"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.phone }}
+                    {{ errors.phone }}
                 </div>
                 <input
                     type="text"
-                    v-model="form.dateOfBrith"
-                    :class="{ 'input-wrong': form.errors.dateOfBrith }"
+                    v-model="form.date_of_birth"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                    :class="{ 'input-wrong': errors.date_of_birth }"
                     name="dateOfBrith"
                     class="input mb10"
                     placeholder="DD.MM.YYYY"
                     required
                 />
                 <div
-                    v-if="form.errors.dateOfBrith"
+                    v-if="errors.date_of_birth"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.dateOfBrith }}
+                    {{ errors.date_of_birth }}
                 </div>
                 <input
                     type="text"
                     v-model="form.country"
-                    :class="{ 'input-wrong': form.errors.country }"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                    :class="{ 'input-wrong': errors.country }"
                     class="input mb10"
                     name="country"
                     placeholder="Country"
                     required
                 />
                 <div
-                    v-if="form.errors.country"
+                    v-if="errors.country"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.country }}
+                    {{ errors.country }}
                 </div>
                 <input
                     v-model="form.city"
-                    :class="{ 'input-wrong': form.errors.city }"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                    :class="{ 'input-wrong': errors.city }"
                     type="text"
                     name="city"
                     class="input mb10"
@@ -184,70 +195,62 @@ function submitKyc() {
                     required
                 />
                 <div
-                    v-if="form.errors.city"
+                        v-if="errors.city"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.city }}
+                    {{ errors.city }}
                 </div>
                 <input
                     type="text"
                     v-model="form.address"
-                    :class="{ 'input-wrong': form.errors.address }"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                    :class="{ 'input-wrong': errors.address }"
                     name="address"
                     class="input mb10"
                     placeholder="Street address, house"
                     required
                 />
                 <div
-                    v-if="form.errors.address"
+                    v-if="errors.address"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.address }}
+                    {{ errors.address }}
                 </div>
                 <input
                     type="text"
                     class="input mb25"
-                    :class="{ 'input-wrong': form.errors.zip_code }"
+                    :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
+                        :class="{ 'input-wrong': errors.zip_code }"
                     placeholder="ZIP code"
                     v-model="form.zip_code"
                     required
                     name="zip_code"
                 />
                 <div
-                    v-if="form.errors.zip_code"
+                    v-if="errors.zip_code"
                     class="error-message text-red mb10"
                 >
-                    {{ form.errors.zip_code }}
+                    {{ errors.zip_code }}
                 </div>
                 <button
                     type="submit"
-                    :class="{
-                        'd-none':
-                            form.kyc_status === 1 || form.kyc_status === 3,
-                    }"
+                    v-if="kycData.status !== 'approved' && kycData.status !== 'pending'"
+
                     :disabled="
-                        !form.sex ||
-                        !form.first_name ||
-                        !form.last_name ||
-                        !form.phone ||
-                        !form.dateOfBrith ||
-                        !form.country ||
-                        !form.city ||
-                        !form.address ||
-                        !form.zip_code ||
-                        form.processing
-                    "
+                        form.processing || disabledButton(form.data(), ['sex', 'first_name', 'last_name', 'phone', 'date_of_birth', 'country', 'city', 'address', 'zip_code'])"
                     class="btn btn_action btn_16 color-dark"
                 >
                     {{
                         form.processing
                             ? 'Submitting...'
-                            : form.kyc_status === 2
+                            : form.status === 'rejected'
                               ? 'Resend application'
                               : 'Send kyc application'
                     }}
                 </button>
             </form>
+
+
         </div>
     </VueFinalModal>
 </template>

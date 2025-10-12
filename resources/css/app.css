@@ -1,4 +1,5 @@
 @import './lib/reset.css';
+@import 'tailwindcss';
 
 @font-face {
     font-family: 'SF Pro Display';
@@ -1950,8 +1951,21 @@ section.trade {
 /* input:invalid {
   outline: red solid 1px;
 } */
+.hide-scroll::-webkit-scrollbar {
+    display: none;
+}
+.input.error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 1px #ef4444 !important;
+}
+.hide-scroll::-webkit-scrollbar-track {
+    display: none;
+}
 
-input.submit {
+.hide-scroll::-webkit-scrollbar-thumb {
+    display: none;
+}
+button.submit {
     border-radius: 300px;
     background: var(--Blue_4, #4781DA);
     padding: 15px;
@@ -2113,9 +2127,10 @@ section.referral p {
     color: var(--Green_2)
 }
 
-.toast {
-    border-radius: 5px;
-    background: var(--Dark, #344955);
+.iziToast  {
+    border-radius: 8px  !important;
+    overflow: hidden !important;
+    background: var(--Dark, #344955) !important;
 }
 
 .iziToast {
@@ -2130,7 +2145,7 @@ section.referral p {
     font-weight: 400;
     line-height: 100%;
     float: left;
-    color: var(--White, #FFF);
+    color: var(--White, #FFF) !important;
     white-space: normal;
 }
 

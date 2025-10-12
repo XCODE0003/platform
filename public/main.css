@@ -2022,7 +2022,7 @@ section.trade {
   outline: red solid 1px;
 } */
 
-input.submit {
+button.submit {
     border-radius: 300px;
     background: var(--Blue_4, #4781DA);
     padding: 15px;

@@ -5,56 +5,84 @@ import ChangePassword from '@/components/Modals/Account/changePassword.vue';
 import Kyc from '@/components/Modals/Account/kyc.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
 import { useModalStore } from '@/stores/modal.js';
-
+import { randomUUID } from '@/utils/system';
+import QRCode from "qrcode";
 import { router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { useUserStore } from '@/stores/userStore.js';
+const userStore = useUserStore();
 
-// Получаем данные через props от контроллера
-const { props } = usePage();
-const user = computed(() => props.user);
+const props = defineProps({
+    qrText: String,
+    kycData: Object,
+})
+const user = computed(() => usePage().props.auth.user);
+const qrCode = ref('');
 const kycData = computed(
-    () =>
-        props.kycData || {
+    () =>  props.kycData ||
+       {
             sex: '',
             first_name: '',
             last_name: '',
             phone: '',
-            dateOfBrith: '',
+            date_of_birth: '',
             country: '',
             city: '',
             address: '',
             zip_code: '',
-            kyc_documents: [],
-            kyc_status: 0,
+            status: 'start',
             error_message: '',
-        },
+
+    },
 );
+const generateQRCode = async () => {
 
-// Реактивные данные для обновления UI
+    try {
+        const qrDataURL = await QRCode.toDataURL(props.qrText, {
+            width: 160,
+            margin: 0,
+            color: {
+                dark: '#212E5A',
+                light: '#E8EDFF'
+            },
+            errorCorrectionLevel: 'M'
+        });
+        qrCode.value = qrDataURL;
+    } catch (error) {
+        console.error('Ошибка генерации QR-кода:', error);
+    } finally {
+
+    }
+};
+
+onMounted(() => {
+    generateQRCode();
+});
+
 const Email = ref(user.value.email);
-const is_2fa = ref(user.value.is_2fa);
-const kycModel = ref({ ...kycData.value });
+const is_2fa = computed(() => userStore.user?.google_2fa_enabled);
 
-// Функции обновления данных
+
+
 function updateModel(newData) {
-    kycModel.value = newData;
-    // Обновляем страницу для получения свежих данных
+    kycData.value = newData;
+
     router.reload({ only: ['kycData'] });
 }
 
 function updateEmail(email) {
     Email.value = email;
-    // Обновляем страницу для получения свежих данных пользователя
+
     router.reload({ only: ['user'] });
 }
 
 function UpdateInfo2fa(value) {
     is_2fa.value = value;
-    // Обновляем страницу для получения свежих данных пользователя
     router.reload({ only: ['user'] });
 }
 
 const modal = useModalStore();
+
 </script>
 
 <template>
@@ -68,6 +96,7 @@ const modal = useModalStore();
                                 <div class="account-name">
                                     <h1 class="h1_25" id="account-name">
                                         Account
+
                                     </h1>
                                     <svg
                                         width="18"
@@ -86,7 +115,7 @@ const modal = useModalStore();
                                     <div class="info-block">
                                         <span class="title">UID</span>
                                         <span class="context" id="uid">{{
-                                            user.uuid
+                                           randomUUID( user.id)
                                         }}</span>
                                     </div>
                                     <div class="info-block">
@@ -116,6 +145,7 @@ const modal = useModalStore();
                                 </div>
                             </div>
                         </div>
+
                         <div class="account-block account-settings">
                             <div class="line">
                                 <div class="title text_17">
@@ -133,13 +163,14 @@ const modal = useModalStore();
                                     </svg>
                                     E-mail
                                 </div>
+
                                 <div class="content">
                                     <input
                                         type="text"
                                         id="account-email"
                                         readonly
                                         class="clear account-email text_17"
-                                        :value="Email"
+                                        :value="user.email"
                                     />
                                     <button
                                         id="toggleButton"
@@ -168,14 +199,14 @@ const modal = useModalStore();
                                         </svg>
                                     </button>
                                 </div>
-                                <div class="action">
+                                <!-- <div class="action">
                                     <button
                                         @click="modal.open('changeMail')"
                                         class="btn small_btn btn_16"
                                     >
                                         Change
                                     </button>
-                                </div>
+                                </div> -->
                             </div>
                             <div class="line">
                                 <div class="title text_17">
@@ -265,12 +296,12 @@ const modal = useModalStore();
                                 <div class="content">
                                     <p
                                         v-if="
-                                            kycModel.kyc_status === 2 &&
-                                            kycModel.error_message
+                                            kycData.status === 'rejected' &&
+                                            kycData.error_message
                                         "
                                         class="text-red2"
                                     >
-                                        {{ kycModel.error_message }}
+                                        {{ kycData.error_message }}
                                     </p>
                                 </div>
                                 <div class="action">
@@ -278,21 +309,23 @@ const modal = useModalStore();
                                         class="btn small_btn btn_16"
                                         :class="{
                                             bg_success:
-                                                kycModel.kyc_status === 3,
+                                            kycData.status === 3,
                                             bg_danger:
-                                                kycModel.kyc_status === 2,
+                                            kycData.status === 2,
                                         }"
                                         @click="modal.open('verify')"
                                     >
+
                                         {{
-                                            kycModel.kyc_status === 0
+                                            kycData.status === 'start'
                                                 ? 'Send kyc application'
-                                                : kycModel.kyc_status === 1
+                                                : kycData.status === 'pending'
                                                   ? 'View application'
-                                                  : kycModel.kyc_status === 2
+                                                  : kycData.status === 'rejected'
                                                     ? 'Resend application'
                                                     : 'KYC verification completed'
                                         }}
+
                                     </button>
                                 </div>
                             </div>
@@ -303,8 +336,8 @@ const modal = useModalStore();
 
             <ChangeEmail @update:updateEmail="updateEmail" />
             <ChangePassword />
-            <Change2FA @update:UpdateInfo2fa="UpdateInfo2fa" />
-            <Kyc :kycData="kycModel" @update:modelValue="updateModel" />
+            <Change2FA :qr="qrCode" @update:UpdateInfo2fa="UpdateInfo2fa" />
+            <Kyc :kycData="kycData" @update:modelValue="updateModel" />
         </main>
     </MainLayout>
 </template>

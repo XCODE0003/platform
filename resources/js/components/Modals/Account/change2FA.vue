@@ -1,37 +1,44 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, defineProps } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
-
+import { useUserStore } from '@/stores/userStore.js';
+const userStore = useUserStore();
+const is_2fa = computed(() => userStore.user.google_2fa_enabled);
+const ga2fa = ref({ code: '' });
 const modal = useModalStore();
-
+const props = defineProps({
+    qr: String,
+});
+const qrCode = computed(() => {
+    return props.qr;
+});
 const isOpen = computed({
     get: () => modal.isOpen('change2fa'),
     set: (v) => (v ? modal.open('change2fa') : modal.close('change2fa')),
 });
+const enable2fa = async () => {
+    const response = await userStore.toggle2FA(ga2fa.value.code);
+    if (response.success) {
+        userStore.user.google_2fa_enabled = response.is_2fa;
+        is_2fa.value = response.is_2fa;
+        isOpen.value = false;
+    }
+};
+const disable2fa = async () => {
+    const response = await userStore.toggle2FA(ga2fa.value.code);
+    if (response.success) {
+        userStore.user.google_2fa_enabled = response.is_2fa;
+        is_2fa.value = response.is_2fa;
+        isOpen.value = false;
+    }
+};
 
-const is_2fa = ref(false);
-const ga2fa = ref({ qr: '/images/qrsample.svg', code: '' });
 
-onMounted(async () => {
-    // TODO: fetch QR code from backend when ready
-});
 
-async function enable2fa() {
-    is_2fa.value = true;
-    UpdateInfo2fa(is_2fa.value);
-}
 
-const emits = defineEmits(['update:UpdateInfo2fa']);
 
-function UpdateInfo2fa(value) {
-    emits('update:UpdateInfo2fa', value);
-}
 
-async function disable2fa() {
-    is_2fa.value = false;
-    UpdateInfo2fa(is_2fa.value);
-}
 </script>
 
 <template>
@@ -64,7 +71,7 @@ async function disable2fa() {
                         </p>
                     </div>
                     <div class="qr">
-                        <img width="100px" :src="ga2fa.qr" alt="" />
+                        <img width="100px" :src="qrCode" alt="" />
                     </div>
                 </div>
                 <form @submit.prevent="enable2fa">

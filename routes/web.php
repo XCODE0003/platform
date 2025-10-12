@@ -11,9 +11,7 @@ Route::get('/', function () {
 })->name('home');
 Route::middleware('auth')->group(function () {
 
-    Route::get('/trade', function () {
-        return Inertia::render('User/Trade');
-    })->name('trade');
+    Route::get('/trade', [App\Http\Controllers\User\TradeController::class, 'show'])->name('trade');
     Route::get('/assets', function () {
         $user = Auth::user();
         $currencies = $user->wallets->load('currency');
@@ -71,3 +69,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__ . '/auth.php';
+require __DIR__ . '/settings.php';

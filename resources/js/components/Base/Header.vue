@@ -2,6 +2,14 @@
 import {ref, watchEffect} from "vue";
 import { usePage } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
+import { useUserStore } from '@/stores/userStore.js';
+import { computed } from 'vue';
+const userStore = useUserStore();
+
+const user = computed(() => usePage().props.auth.user);
+userStore.setUser(user.value);
+
+
 const page = usePage();
 
 const isAuth = ref(page.props.auth.user);
@@ -57,7 +65,7 @@ const isAuth = ref(page.props.auth.user);
             <div class="dropdown">
 
               <Link href="/account" class="link_12 settings">Settings</Link>
-              <button @click="user.logout()"  class="link_12 pointer">Log out</button>
+              <Link href="/logout"  class="link_12 pointer">Log out</Link>
             </div>
           </div>
         </div>

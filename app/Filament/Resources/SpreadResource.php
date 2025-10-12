@@ -19,7 +19,7 @@ class SpreadResource extends Resource
 {
     protected static ?string $model = Spread::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+    protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
     public static function form(Form $form): Form
     {

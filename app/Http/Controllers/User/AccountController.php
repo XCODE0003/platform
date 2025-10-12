@@ -5,8 +5,11 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Http\Requests\KycRequest;
 use Inertia\Response;
-
+use RobThree\Auth\TwoFactorAuth;
+use RobThree\Auth\Providers\Qr\QRServerProvider;
+use App\Models\KycUser;
 class AccountController extends Controller
 {
     /**
@@ -15,20 +18,14 @@ class AccountController extends Controller
     public function show(Request $request): Response
     {
         $user = $request->user();
+        $tfa = new TwoFactorAuth(new QRServerProvider(), config('app.name'));
+        $label = $user->email;
+        $qrText = $tfa->getQRText($label, $user->google_2fa_secret);
 
-        // Получаем KYC данные пользователя (если есть модель KYC)
-        $kycData = $this->getKycData($user);
+        $kycData = KycUser::where('user_id', $user->id)->first();
 
         return Inertia::render('User/Account', [
-            'user' => [
-                'id' => $user->id,
-                'uuid' => $user->uuid ?? $user->id,
-                'email' => $user->email,
-                'is_2fa' => $user->two_factor_secret !== null,
-                'timezone' => $user->timezone ?? 'UTC',
-                'email_verified_at' => $user->email_verified_at,
-                'created_at' => $user->created_at,
-            ],
+            'qrText' => $qrText,
             'kycData' => $kycData,
         ]);
     }
@@ -86,42 +83,7 @@ class AccountController extends Controller
         return back()->with('success', 'Password successfully changed');
     }
 
-    /**
-     * Enable 2FA.
-     */
-    public function enable2FA(Request $request)
-    {
-        $request->validate([
-            'code' => ['required', 'string', 'min:6'],
-        ]);
 
-        // Здесь должна быть логика проверки кода 2FA
-        // Например, проверка кода из Google Authenticator
-
-        $user = $request->user();
-        $user->two_factor_secret = 'sample_secret'; // Замените на реальный секрет
-        $user->save();
-
-        return back()->with('success', '2FA successfully enabled');
-    }
-
-    /**
-     * Disable 2FA.
-     */
-    public function disable2FA(Request $request)
-    {
-        $request->validate([
-            'code' => ['required', 'string', 'min:6'],
-        ]);
-
-        // Здесь должна быть логика проверки кода 2FA
-
-        $user = $request->user();
-        $user->two_factor_secret = null;
-        $user->save();
-
-        return back()->with('success', '2FA successfully disabled');
-    }
 
     /**
      * Activate promocode.
@@ -167,28 +129,48 @@ class AccountController extends Controller
         return back()->with('success', 'Withdrawal request submitted successfully');
     }
 
+    public function store(KycRequest $request)
+    {
+        $user = $request->user();
+        $kycData = KycUser::where('user_id', $user->id)->first();
+
+        if (!$kycData) {
+            $kycData = new KycUser();
+            $kycData->user_id = $user->id;
+            $kycData->status = 'pending';
+        }
+
+        $kycData->fill($request->all());
+        $kycData->status = 'pending';
+        $kycData->save();
+
+        return redirect()->intended(route('account', absolute: false));
+    }
+    public function Toggle2FA(Request $request)
+    {
+        $user = $request->user();
+        $tfa = new TwoFactorAuth(new QRServerProvider(), config('app.name'));
+        $verify = $tfa->verifyCode($user->google_2fa_secret, $request->code);
+        if(!$verify){
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Code is incorrect',
+            ], 400);
+        }
+
+        $user->google_2fa_enabled = !$user->google_2fa_enabled;
+        $user->save();
+        return response()->json([
+            'success' => true,
+            'data' => null,
+            'is_2fa' => $user->google_2fa_enabled,
+            'message' => '2FA successfully updated',
+        ], 200);
+    }
+
     /**
      * Get KYC data for the user.
      */
-    private function getKycData($user): array
-    {
-        // Если у вас есть модель KYC, замените на реальную логику
-        // Например: $kyc = $user->kyc;
 
-        // Пока возвращаем пустые данные
-        return [
-            'sex' => '',
-            'first_name' => '',
-            'last_name' => '',
-            'phone' => '',
-            'dateOfBrith' => '',
-            'country' => '',
-            'city' => '',
-            'address' => '',
-            'zip_code' => '',
-            'kyc_documents' => [],
-            'kyc_status' => 0, // 0 - не подан, 1 - на рассмотрении, 2 - отклонен, 3 - одобрен
-            'error_message' => '',
-        ];
-    }
 }

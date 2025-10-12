@@ -7,6 +7,7 @@ use App\Jobs\GenerateWalletAddress;
 use App\Models\Currency;
 use App\Http\Service\User\CreateWallets;
 use App\Models\User;
+use App\Http\Service\G2FA\GoogleCreateSecret;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,14 +35,14 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
-
+        $secret = (new GoogleCreateSecret())->createSecret();
         $user = User::create([
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'google_2fa_secret' => $secret,
         ]);
         (new CreateWallets())->createWallets($user);
         event(new Registered($user));

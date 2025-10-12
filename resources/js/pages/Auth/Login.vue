@@ -1,18 +1,29 @@
 <script setup>
 import MainLayout from '@/layouts/MainLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-
+import { useToast } from '@/composables/useToast';
+import { disabledButton, watchErrors, fieldNamesPresets } from '@/utils/system';
+import { computed, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+const page = usePage();
+const { showSuccess, showError } = useToast();
 const form = useForm({
     email: '',
     password: '',
     remember: false,
     code: '',
 });
+const errors = computed(() => page.props.errors);
+watchErrors(errors, showError, fieldNamesPresets.auth);
+
 
 function submit() {
     form.post('/login', {
         onSuccess: () => {
-            router.visit('/');
+            showSuccess('Login successful!');
+        },
+        onError: () => {
+
         },
     });
 }
@@ -26,20 +37,19 @@ function submit() {
                     <div class="login-content">
                         <div class="login-title">
                             <h2 class="h2_40 pb20">Login to your account</h2>
-                            <a
+                            <Link
                                 class="link_15"
-                                href="/signup"
+                                href="/register"
                                 style="text-decoration: none"
                             >
                                 Don't have an account?
-                                <Link
-                                    :href="route('register')"
+                                <button
                                     class="btn btn_sign"
                                     style="background: var(--Blue, #c4e9fc)"
                                 >
                                     Register
-                                </Link>
-                            </a>
+                                </button>
+                            </Link>
                         </div>
                         <form class="login-block" @submit.prevent="submit">
                             <label class="form-item wrong">
@@ -50,6 +60,9 @@ function submit() {
                                     name="email"
                                     v-model="form.email"
                                     placeholder="Email@email.com"
+                                    :class="{
+                                        'input-wrong': errors.email,
+                                    }"
                                 />
                             </label>
 
@@ -60,14 +73,20 @@ function submit() {
                                     name="password"
                                     v-model="form.password"
                                     placeholder="Password"
+                                    :class="{
+                                        'input-wrong': errors.password,
+                                    }"
                                 />
                             </label>
-                            <label class="form-item">
+                            <label v-if="errors.code" class="form-item">
                                 <input
                                     class="input"
                                     type="text"
                                     v-model="form.code"
                                     placeholder="Enter code from google authenticator"
+                                    :class="{
+                                        'input-wrong': errors.code,
+                                    }"
                                 />
                             </label>
                             <div
@@ -83,6 +102,9 @@ function submit() {
                                         name="remember"
                                         class="checkbox"
                                         v-model="form.remember"
+                                        :class="{
+                                            'input-wrong': errors.remember,
+                                        }"
                                     />
                                     <label
                                         for="remember"
@@ -100,6 +122,7 @@ function submit() {
                             <button
                                 class="submit btn btn_16 color-white"
                                 type="submit"
+                                :disabled="form.processing || disabledButton(form.data(), ['email', 'password'])"
                             >
                                 Log in
                             </button>

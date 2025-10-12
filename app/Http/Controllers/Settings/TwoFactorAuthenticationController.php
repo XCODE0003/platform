@@ -9,7 +9,8 @@ use Illuminate\Routing\Controllers\Middleware;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
-
+use RobThree\Auth\TwoFactorAuth;
+use RobThree\Auth\Providers\Qr\QRServerProvider;
 class TwoFactorAuthenticationController extends Controller implements HasMiddleware
 {
     /**
@@ -25,13 +26,5 @@ class TwoFactorAuthenticationController extends Controller implements HasMiddlew
     /**
      * Show the user's two-factor authentication settings page.
      */
-    public function show(TwoFactorAuthenticationRequest $request): Response
-    {
-        $request->ensureStateIsValid();
 
-        return Inertia::render('settings/TwoFactor', [
-            'twoFactorEnabled' => $request->user()->hasEnabledTwoFactorAuthentication(),
-            'requiresConfirmation' => Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm'),
-        ]);
-    }
 }

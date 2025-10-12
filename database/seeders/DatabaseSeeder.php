@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
 
 
         $this->call(CurrenciesSeeder::class);
+        $this->call(GroupPairSeeder::class);
     }
 }

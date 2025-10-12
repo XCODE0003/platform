@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-
+use App\Models\Pair;
+use App\Models\GroupPair;
 class TradeController extends Controller
 {
     /**
@@ -16,13 +17,52 @@ class TradeController extends Controller
     {
         $user = $request->user();
 
+        // Получаем активные группы с их парами и валютами
+        $groups = GroupPair::where('is_active', true)
+            ->with([
+                'pairs' => function ($query) {
+                    $query->where('is_active', true)
+                        ->with(['currencyIn', 'currencyOut']);
+                }
+            ])
+            ->get();
+
+        // Формируем структуру: Группа -> pairs -> pair -> currency_out -> currency
+        $tradingPairs = $groups->map(function ($group) {
+            return [
+                'id' => $group->id,
+                'name' => $group->name,
+                'is_active' => $group->is_active,
+                'pairs' => $group->pairs->map(function ($pair) {
+                    return [
+                        'id' => $pair->id,
+                        'is_active' => $pair->is_active,
+                        'currency_in' => [
+                            'id' => $pair->currencyIn->id,
+                            'name' => $pair->currencyIn->name,
+                            'symbol' => $pair->currencyIn->symbol,
+                            'code' => $pair->currencyIn->code,
+                            'icon' => $pair->currencyIn->icon,
+                        ],
+                        'currency_out' => [
+                            'id' => $pair->currencyOut->id,
+                            'name' => $pair->currencyOut->name,
+                            'symbol' => $pair->currencyOut->symbol,
+                            'code' => $pair->currencyOut->code,
+                            'icon' => $pair->currencyOut->icon,
+                        ],
+                    ];
+                })->values()->all()
+            ];
+        })->values()->all();
+
         return Inertia::render('User/Trade', [
-            'tradingPairs' => $this->getTradingPairs(),
-            'userBalances' => $this->getUserBalances($user),
-            'openOrders' => $this->getOpenOrders($user),
-            'tradeHistory' => $this->getTradeHistory($user),
-            'recentTrades' => $this->getRecentTrades(),
-            'orderBook' => $this->getOrderBook(),
+            'tradingPairs' => $tradingPairs,
+            // 'userBalances' => $this->getUserBalances($user),
+            // 'openOrders' => $this->getOpenOrders($user),
+            // 'tradeHistory' => $this->getTradeHistory($user),
+            // 'recentTrades' => $this->getRecentTrades(),
+            // 'orderBook' => $this->getOrderBook(),
         ]);
     }
 

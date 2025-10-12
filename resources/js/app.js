@@ -7,6 +7,8 @@ import { createPinia } from 'pinia';
 import { createApp, h } from 'vue';
 import { createVfm } from 'vue-final-modal';
 import 'vue-final-modal/style.css';
+import iziToast from 'izitoast';
+import '../css/lib/iziToast.css';
 // import Vue3Toastify from "vue3-toastify";
 // import VueApexCharts from "vue3-apexcharts";
 
@@ -14,7 +16,9 @@ import 'vue-final-modal/style.css';
 // import { vTippy } from './directives/tippy';
 
 // Глобальный флаг для отслеживания первой загрузки
+
 window.isFirstPageLoad = true;
+window.iziToast = iziToast;
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

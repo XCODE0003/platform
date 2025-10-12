@@ -1,24 +1,40 @@
 <script setup>
 import MainLayout from '@/layouts/MainLayout.vue';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed, defineProps } from 'vue';
+import { useModalStore } from '@/stores/modal.js';
+import SelectPairModal from '@/components/Modals/Trade/SelectPairModal.vue';
+import { useTradeStore } from '@/stores/tradeStore.js';
+import { storeToRefs } from 'pinia'; // добавьте этот импорт
+import { watch } from 'vue';
+const props = defineProps({
+    tradingPairs: Array,
+});
 
-const pair = ref('BTC_USDT');
+const tradeStore = useTradeStore();
+const { selectedPair, tradingPairs } = storeToRefs(tradeStore); // используйте storeToRefs
 
-// Состояние табов
+onMounted(() => {
+    tradeStore.setTradingPairs(props.tradingPairs);
+
+    tradeStore.setSelectedPair(tradingPairs.value[0].pairs[0]);
+});
+watch(selectedPair, () => {
+    loadTradingViewScript();
+    console.log(selectedPair.value.currency_in?.code + selectedPair.value.currency_out?.code)
+});
+
+const modal = useModalStore();
+const pair = ref('_ETH');
+
+
 const activeHistoryTab = ref('openOrders'); // 'openOrders' | 'tradeHistory'
 const activeRightTab = ref('recentTrades'); // 'recentTrades' | 'orderBook'
 const activeOrderTab = ref('buy'); // 'buy' | 'sell'
 const activeOrderType = ref('market'); // 'market' | 'limit'
 
-// Торговые пары
-const tradingPairs = ref([
-    { symbol: 'BTCUSDT', name: 'BTC/USDT', price: '43250.00' },
-    { symbol: 'ETHUSDT', name: 'ETH/USDT', price: '2580.00' },
-    { symbol: 'ADAUSDT', name: 'ADA/USDT', price: '0.45' },
-    { symbol: 'LTCUSDT', name: 'LTC/USDT', price: '105.50' },
-]);
 
-// Функции переключения табов
+
+
 function switchHistoryTab(tab) {
     activeHistoryTab.value = tab;
 
@@ -96,9 +112,11 @@ function switchOrderTab(tab) {
     }
 }
 
-function changePair(newPair) {
-    pair.value = newPair;
-    loadTradingViewScript();
+function handleSelectPair(pair) {
+    selectedPair.value = pair;
+
+
+
 }
 
 // Инициализация табов
@@ -123,7 +141,7 @@ function loadTradingViewScript() {
     // Configuration object
     const config = {
         autosize: true,
-        symbol: pair.value.replace('_', ''),
+        symbol: selectedPair.value.currency_in?.code + selectedPair.value.currency_out?.code,
         interval: 'M',
         timezone: 'Etc/UTC',
         theme: 'dark',
@@ -164,27 +182,9 @@ onMounted(() => {
                         <div class="trade-left">
                             <div class="pair-head">
                                 <div class="left">
-                                    <select
-                                        @change="
-                                            changePair($event.target.value)
-                                        "
-                                        v-model="pair"
-                                        class="itc-select"
-                                        id="select-1"
-                                    >
-                                        <option
-                                            v-for="pairOption in tradingPairs"
-                                            :key="pairOption.symbol"
-                                            :value="
-                                                pairOption.symbol.replace(
-                                                    'USDT',
-                                                    '_USDT',
-                                                )
-                                            "
-                                        >
-                                            {{ pairOption.name }}
-                                        </option>
-                                    </select>
+                                    <button class="btn btn_start_2 !bg-[#1D323E] !p-2 !rounded-lg !min-w-[100px]" @click="modal.open('selectPair')">
+                                        {{ selectedPair ? selectedPair?.currency_in?.symbol + '/' + selectedPair?.currency_out?.symbol : 'Select pair' }}
+                                    </button>
                                     <div class="pair-price">
                                         <span
                                             class="title text_small_14 color-gray2"
@@ -288,7 +288,7 @@ onMounted(() => {
                                     </div>
                                     <div class="tabs__content tabs__content-1">
                                         <div
-                                            class="tabs__content-item tabs__content-item-1 openOrders"
+                                            class="tabs__content-item tabs__content-item-1 hide-scroll openOrders"
                                         >
                                             <div class="grid-head">
                                                 <div>Date, time</div>
@@ -304,7 +304,7 @@ onMounted(() => {
                                                 class="overflow"
                                                 id="openOrders"
                                             >
-                                                <div class="grid-line">
+                                                <div v-for="value in 10" class="grid-line active">
                                                     <div>
                                                         05/21/23, 13:43:57
                                                     </div>
@@ -315,178 +315,11 @@ onMounted(() => {
                                                     <div>0.685630</div>
                                                     <div>18,156.16</div>
                                                 </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>18,156.16</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>
-                                                        <button
-                                                            class="clear cancel-btn"
-                                                        >
-                                                            <img
-                                                                src="/images/cancel-icon.svg"
-                                                                alt="x"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </div>
+
                                             </div>
                                         </div>
                                         <div
-                                            class="tabs__content-item tabs__content-item-1"
+                                            class="tabs__content-item hide-scroll tabs__content-item-1"
                                         >
                                             <div class="grid-head">
                                                 <div>Date, time</div>
@@ -502,7 +335,7 @@ onMounted(() => {
                                                 class="overflow"
                                                 id="closedOrders"
                                             >
-                                                <div class="grid-line">
+                                                <div v-for="value in 10" class="grid-line active">
                                                     <div>
                                                         05/21/23, 13:43:57
                                                     </div>
@@ -514,90 +347,7 @@ onMounted(() => {
                                                     <div>18,156.16</div>
                                                     <div>Completed</div>
                                                 </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>18,156.16</div>
-                                                    <div>Closed</div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>Closed</div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>Closed</div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>Closed</div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>Closed</div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>Closed</div>
-                                                </div>
-                                                <div class="grid-line">
-                                                    <div>
-                                                        05/21/23, 13:43:57
-                                                    </div>
-                                                    <div>BTC/USDT</div>
-                                                    <div>Limit</div>
-                                                    <div>Buy</div>
-                                                    <div>26,481.13</div>
-                                                    <div>0.685630</div>
-                                                    <div>200,6808624</div>
-                                                    <div>Closed</div>
-                                                </div>
+
                                             </div>
                                         </div>
                                     </div>
@@ -643,9 +393,7 @@ onMounted(() => {
                                                 <div>Total (USDT)</div>
                                             </div>
                                             <div id="OrderBookBuy">
-                                                <div
-                                                    class="grid-line green create"
-                                                >
+                                                <div v-for="value in 5" class=" active grid-line green create">
                                                     <div
                                                         class="bg"
                                                         style="width: 80%"
@@ -660,74 +408,7 @@ onMounted(() => {
                                                         15:23:57
                                                     </div>
                                                 </div>
-                                                <div
-                                                    class="grid-line green create"
-                                                >
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-green2">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="grid-line green create"
-                                                >
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-green2">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="grid-line green create"
-                                                >
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-green2">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="grid-line gree create"
-                                                >
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-green2">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
+
                                             </div>
                                             <div class="grid-separator">
                                                 <span
@@ -737,10 +418,8 @@ onMounted(() => {
                                                 </span>
                                             </div>
                                             <div id="OrderBookSell">
-                                                <div
-                                                    class="grid-line create red"
-                                                ></div>
-                                                <div class="grid-line red">
+
+                                                <div v-for="value in 5" class=" active grid-line red">
                                                     <div
                                                         class="bg"
                                                         style="width: 80%"
@@ -755,51 +434,7 @@ onMounted(() => {
                                                         15:23:57
                                                     </div>
                                                 </div>
-                                                <div class="grid-line red">
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-red">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line red">
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-red">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
-                                                <div class="grid-line red">
-                                                    <div
-                                                        class="bg"
-                                                        style="width: 80%"
-                                                    ></div>
-                                                    <div class="color-red">
-                                                        31,113.04
-                                                    </div>
-                                                    <div class="color-white">
-                                                        0.229460
-                                                    </div>
-                                                    <div class="color-gray2">
-                                                        15:23:57
-                                                    </div>
-                                                </div>
+
                                             </div>
                                         </div>
                                     </div>
@@ -1030,6 +665,7 @@ onMounted(() => {
                 </div>
             </section>
         </main>
+        <SelectPairModal  />
     </MainLayout>
 </template>
 
