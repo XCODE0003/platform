@@ -1,0 +1,198 @@
+{
+    "goal": "Единый модуль провайдеров данных (крипто/металлы/акции/фиат) с валидацией символов и привязкой к парам из БД",
+    "scope": ["crypto", "metal", "stock", "forex", "fiat"],
+    "phase_order": [
+      "db_schema",
+      "config",
+      "providers",
+      "seeders",
+      "proxy_api",
+      "validation_pipeline",
+      "admin_ui",
+      "frontend_integration",
+      "testing",
+      "rollout"
+    ],
+    "db_schema": {
+      "migrations": [
+        {
+          "file": "2025_xx_xx_add_asset_class_to_pairs.php",
+          "changes": {
+            "table": "pairs",
+            "add_columns": [
+              { "name": "asset_class", "type": "enum", "values": ["crypto","metal","stock","forex","fiat"] },
+              { "name": "default_source", "type": "string", "nullable": true }
+            ],
+            "notes": "asset_class классифицирует инструмент; default_source — код провайдера по умолчанию"
+          }
+        },
+        {
+          "file": "2025_xx_xx_create_pair_sources_table.php",
+          "create_table": "pair_sources",
+          "columns": [
+            { "name": "id", "type": "bigIncrements" },
+            { "name": "pair_id", "type": "bigInteger", "index": true },
+            { "name": "provider", "type": "string", "index": true },
+            { "name": "provider_symbol", "type": "string" },
+            { "name": "priority", "type": "integer", "default": 1 },
+            { "name": "status", "type": "enum", "values": ["pending","valid","invalid"], "default": "pending" },
+            { "name": "validated_at", "type": "timestamp", "nullable": true },
+            { "name": "created_at", "type": "timestamp" },
+            { "name": "updated_at", "type": "timestamp" }
+          ],
+          "constraints": [
+            "unique(pair_id, provider)",
+            "foreign(pair_id) -> pairs(id) on delete cascade"
+          ]
+        },
+        {
+          "file": "2025_xx_xx_create_data_providers_table.php",
+          "create_table": "data_providers",
+          "columns": [
+            { "name": "id", "type": "bigIncrements" },
+            { "name": "code", "type": "string", "unique": true },
+            { "name": "name", "type": "string" },
+            { "name": "asset_classes", "type": "json" },
+            { "name": "base_url", "type": "string", "nullable": true },
+            { "name": "enabled", "type": "boolean", "default": true },
+            { "name": "created_at", "type": "timestamp" },
+            { "name": "updated_at", "type": "timestamp" }
+          ]
+        }
+      ],
+      "models": [
+        { "name": "Pair", "updates": ["hasMany PairSource", "fillable: asset_class, default_source"] },
+        { "name": "PairSource", "relations": ["belongsTo Pair"] },
+        { "name": "DataProvider" }
+      ]
+    },
+    "config": {
+      "file": "config/marketdata.php",
+      "content": {
+        "providers": {
+          "binance": { "class": "App\\Services\\MarketData\\Providers\\BinanceSource", "supports": ["crypto"] },
+          "twelvedata": { "class": "App\\Services\\MarketData\\Providers\\TwelveDataSource", "supports": ["stock","forex","metal","fiat"] },
+          "finnhub": { "class": "App\\Services\\MarketData\\Providers\\FinnhubSource", "supports": ["stock","forex","metal"] },
+          "exchangeratehost": { "class": "App\\Services\\MarketData\\Providers\\FxRatesSource", "supports": ["forex","fiat"] }
+        }
+      },
+      "env": [
+        "BINANCE_VERIFY_SSL=false (локалка)",
+        "TWELVEDATA_API_KEY=...",
+        "FINNHUB_API_KEY=..."
+      ]
+    },
+    "providers": {
+      "interface": "App\\Services\\MarketData\\MarketDataSource",
+      "interface_methods": ["supports(assetClass)", "search(query)", "validate(symbol)", "getBars(symbol, resolution, from, to)", "subscribe(symbol, resolution, onData)"],
+      "adapters": [
+        "App\\Services\\MarketData\\Providers\\BinanceSource (crypto)",
+        "App\\Services\\MarketData\\Providers\\TwelveDataSource (stocks/forex/metal)",
+        "App\\Services\\MarketData\\Providers\\FinnhubSource (stocks/forex/metal)",
+        "App\\Services\\MarketData\\Providers\\FxRatesSource (forex/fiat для кроссов)"
+      ],
+      "symbol_rules": {
+        "binance": ["normalize: remove slash", "try flip base/quote if direct not exists"],
+        "twelve/finnhub": ["use ISO tickers: AAPL, XAUUSD, EURUSD", "exchange suffix при необходимости"],
+        "fx_cross": ["XAU/USDT = XAU/USD * USD/USDT при отсутствии прямой пары"]
+      }
+    },
+    "seeders": {
+      "files": [
+        {
+          "file": "database/seeders/DataProvidersSeeder.php",
+          "seed": [
+            { "code": "binance", "name": "Binance", "asset_classes": ["crypto"] },
+            { "code": "twelvedata", "name": "TwelveData", "asset_classes": ["stock","forex","metal","fiat"] },
+            { "code": "finnhub", "name": "Finnhub", "asset_classes": ["stock","forex","metal"] },
+            { "code": "exchangeratehost", "name": "ExchangeRate Host", "asset_classes": ["forex","fiat"] }
+          ]
+        }
+      ],
+      "optional_catalog": {
+        "tables": ["instruments_catalog (provider, symbol, description, asset_class)"],
+        "sync_commands": ["artisan market:sync-catalog --provider=..."],
+        "use": "для оффлайн-автокомплита и выбора валидных символов"
+      }
+    },
+    "proxy_api": {
+      "controllers": [
+        "BinanceProxyController (уже есть)",
+        "TwelveDataProxyController",
+        "FinnhubProxyController",
+        "FxRatesProxyController"
+      ],
+      "routes": [
+        "/api/twelvedata/*",
+        "/api/finnhub/*",
+        "/api/fx/*",
+        "короткие алиасы для ручной проверки под auth"
+      ],
+      "notes": ["в локалке verify=false, таймауты, JSON-ошибки 502 при падении апстрима"]
+    },
+    "validation_pipeline": {
+      "job": "ValidatePairSources",
+      "input": "pair_id",
+      "logic": [
+        "для каждого pair_source: adapters[provider].validate(provider_symbol)",
+        "update status/validated_at",
+        "если есть хотя бы один valid ⇒ pairs.is_active=true (или включить по политике)",
+        "если все invalid ⇒ оставить выключенной и пометить invalid"
+      ],
+      "triggers": ["после сохранения в админке", "команда artisan для массовой валидации", "периодический recheck"]
+    },
+    "admin_ui": {
+      "pair_resource": {
+        "fields": ["asset_class (select)", "default_source (select из data_providers)"],
+        "relations": [
+          {
+            "name": "pair_sources",
+            "fields": ["provider (select)", "provider_symbol (text or autocomplete)", "priority (int)", "status (readonly)"],
+            "actions": ["Validate (action -> dispatch job)"]
+          }
+        ],
+        "guard": ["нельзя активировать пару если нет ни одного valid источника (server rule)"]
+      }
+    },
+    "frontend_integration": {
+      "chart": {
+        "symbol_resolution": "по выбранной паре → выбрать pair_source по default_source или по priority",
+        "datafeed": "роутит вызовы к нужному proxy по provider",
+        "fallback": "если 1-й источник не отвечает, брать следующий по priority"
+      },
+      "trading": {
+        "same_source": "ордербук/тикеры должны приходить из того же provider, что и чарт (или по отдельной политике)"
+      }
+    },
+    "testing": {
+      "unit": [
+        "symbol normalizer (binance flip etc.)",
+        "adapters.validate() for happy/edge cases"
+      ],
+      "feature": [
+        "создание пары + добавление pair_sources + фон.валидация",
+        "чарт получает бары через proxy по выбранному источнику"
+      ],
+      "manual": [
+        "создать crypto/metal/stock/forex пары, проверить автокомплит/валидацию",
+        "временно отключить 1-й provider и проверить fallback"
+      ]
+    },
+    "rollout": {
+      "steps": [
+        "миграции",
+        "сид провайдеров",
+        "включить proxy-роуты",
+        "обновить Filament формы",
+        "перевести один/два символа на новый стек",
+        "наблюдение за ошибками (502/таймауты)"
+      ],
+      "metrics": ["время ответа proxy", "ошибки upstream", "успешность валидации символов"]
+    },
+    "acceptance_criteria": [
+      "Пара активируется только если есть хотя бы один valid источник",
+      "Чарт рендерится и подгружает историю для каждой активной пары",
+      "Можно создать пары crypto/metal/stock/forex через админку",
+      "Валидация символов работает онлайн (кнопка) и оффлайн (джоб)"
+    ]
+  }

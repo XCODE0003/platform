@@ -6,6 +6,7 @@ import SelectPairModal from '@/components/Modals/Trade/SelectPairModal.vue';
 import { useTradeStore } from '@/stores/tradeStore.js';
 import { storeToRefs } from 'pinia'; // добавьте этот импорт
 import { watch } from 'vue';
+import TvChart from '@/components/TvChart.vue'
 const props = defineProps({
     tradingPairs: Array,
 });
@@ -19,7 +20,6 @@ onMounted(() => {
     tradeStore.setSelectedPair(tradingPairs.value[0].pairs[0]);
 });
 watch(selectedPair, () => {
-    loadTradingViewScript();
     console.log(selectedPair.value.currency_in?.code + selectedPair.value.currency_out?.code)
 });
 
@@ -127,49 +127,13 @@ function initializeTabs() {
     switchOrderTab('buy');
 }
 
-function loadTradingViewScript() {
-    // Удаляем старый скрипт если есть
-    const oldScript = document.querySelector('script[src*="tradingview"]');
-    if (oldScript) oldScript.remove();
-
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src =
-        'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-
-    // Configuration object
-    const config = {
-        autosize: true,
-        symbol: selectedPair.value.currency_in?.code + selectedPair.value.currency_out?.code,
-        interval: 'M',
-        timezone: 'Etc/UTC',
-        theme: 'dark',
-        style: '1',
-        locale: 'en',
-        enable_publishing: false,
-        hide_legend: true,
-        withdateranges: true,
-        hide_side_toolbar: false,
-        save_image: false,
-        backgroundColor: '#061B27',
-        support_host: 'https://www.tradingview.com',
-    };
-
-    script.textContent = JSON.stringify(config);
-
-    const container = document.querySelector(
-        '.tradingview-widget-container__widget',
-    );
-    if (container) {
-        container.innerHTML = '';
-        container.appendChild(script);
-    }
-}
+const tvSymbol = computed(() => {
+    const pair = selectedPair.value
+    return pair ? (`PAIR:${pair.id}`) : 'PAIR:1'
+});
 
 onMounted(() => {
     initializeTabs();
-    loadTradingViewScript();
 });
 </script>
 
@@ -250,21 +214,7 @@ onMounted(() => {
                                 </div>
                             </div>
                             <div class="chart-wrapper">
-                                <!-- TradingView Widget BEGIN -->
-                                <div
-                                    class="tradingview-widget-container"
-                                    style="
-                                        height: 100%;
-                                        width: 100%;
-                                        border-radius: 10px;
-                                    "
-                                >
-                                    <div
-                                        class="tradingview-widget-container__widget"
-                                        style="height: 100%; width: 100%"
-                                    ></div>
-                                </div>
-                                <!-- TradingView Widget END -->
+                                <TvChart :symbol="tvSymbol" :pair="selectedPair" interval="5" theme="dark" />
                             </div>
                             <div class="trade-history">
                                 <div class="tabs tabs-1">

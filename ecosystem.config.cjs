@@ -54,5 +54,23 @@ module.exports = {
             error_file: './storage/logs/schedule-worker-error.log',
             time: true,
         },
+        {
+            name: 'quotes-socket',
+            script: 'node',
+            args: 'sockets/quotes-server.js',
+            cwd: __dirname,
+            interpreter: 'none',
+            instances: 1,
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '512M',
+            env: {
+                NODE_ENV: 'production',
+            },
+            log_file: './storage/logs/quotes-socket.log',
+            out_file: './storage/logs/quotes-socket-out.log',
+            error_file: './storage/logs/quotes-socket-error.log',
+            time: true,
+        },
     ],
 };

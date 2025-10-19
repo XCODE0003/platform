@@ -24,8 +24,6 @@ return new class extends Migration
             $table->string('min_deposit_amount')->default(0);
             $table->string('address_regex')->nullable();
 
-            $table->string('created_by');
-            $table->string('updated_by');
             $table->timestamps();
         });
 

@@ -17,8 +17,7 @@ class Currency extends Model
         'is_deposit',
         'min_deposit_amount',
         'address_regex',
-        'created_by',
-        'updated_by',
+
 
     ];
 }

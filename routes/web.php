@@ -12,6 +12,7 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
 
     Route::get('/trade', [App\Http\Controllers\User\TradeController::class, 'show'])->name('trade');
+    Route::get('/trade-test', [App\Http\Controllers\User\TradeController::class, 'showTest'])->name('trade-test');
     Route::get('/assets', function () {
         $user = Auth::user();
         $currencies = $user->wallets->load('currency');
@@ -66,6 +67,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/about', function () {
         return Inertia::render('App/About');
     })->name('about');
+
+    // Binance proxy (CORS-safe)
+    Route::get('/api/binance/exchangeInfo', [App\Http\Controllers\User\BinanceProxyController::class, 'exchangeInfo'])->name('binance.exchangeInfo');
+    Route::get('/api/binance/klines', [App\Http\Controllers\User\BinanceProxyController::class, 'klines'])->name('binance.klines');
+
+    // Short aliases for manual testing
+    Route::get('/exchangeInfo', [App\Http\Controllers\User\BinanceProxyController::class, 'exchangeInfo']);
+    Route::get('/klines', [App\Http\Controllers\User\BinanceProxyController::class, 'klines']);
+
+    // Unified market data endpoint
+    Route::get('/api/market/pair', [App\Http\Controllers\User\MarketDataController::class, 'pairInfo'])->name('market.pair');
+    Route::get('/api/market/bars', [App\Http\Controllers\User\MarketDataController::class, 'bars'])->name('market.bars');
 });
 
 require __DIR__ . '/auth.php';

@@ -56,7 +56,7 @@ const handleSelectPair = (pair) => {
                       {{ value.name }}
                     </div>
                 </div>
-                <div :class="{ 'grid grid-cols-4 gap-3': selectedGroup !== null && selectedGroup.pairs.length > 0 }" class="flex items-center gap-2">
+                <div :class="{ 'grid grid-cols-4 gap-3': selectedGroup !== null && selectedGroup.pairs.length > 0 }" class=" items-center gap-2">
                     <div v-if="selectedGroup !== null && selectedGroup.pairs.length > 0" v-for="pair in selectedGroup?.pairs" class="bg-[#1D323E] p-2 rounded-lg cursor-pointer hover:bg-[#273D4A] transition-all duration-300 hover:shadow-md hover:!text-white" @click="handleSelectPair(pair)">
                         <div class="flex items-center gap-2 ">
                             <img :src="`/images/coin_icons/${pair.currency_in?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" />

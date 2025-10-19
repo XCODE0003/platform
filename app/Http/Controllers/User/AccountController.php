@@ -10,6 +10,8 @@ use Inertia\Response;
 use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\Providers\Qr\QRServerProvider;
 use App\Models\KycUser;
+use App\Models\Promocode;
+
 class AccountController extends Controller
 {
     /**
@@ -94,8 +96,22 @@ class AccountController extends Controller
             'promocode' => ['required', 'string'],
         ]);
 
-        // Здесь должна быть логика проверки и активации промокода
-        // Например, поиск промокода в базе данных и начисление бонуса
+        $promocode = Promocode::where('code', $request->promocode)->first();
+        if(!$promocode){
+            return back()->with('error', 'Promocode not found');
+        }
+        $user = $request->user();
+        $wallet = $user->wallets()->where('currency_id', $promocode->currency_id)->first();
+        if(!$wallet){
+            return back()->with('error', 'Wallet not found');
+        }
+        $wallet->balance += $promocode->amount;
+        $wallet->save();
+
+        $promocode->save();
+
+
+
 
         return back()->with('success', 'Promocode successfully activated');
     }

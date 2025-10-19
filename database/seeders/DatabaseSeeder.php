@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
 
 
         $this->call(CurrenciesSeeder::class);
+        $this->call(DataProvidersSeeder::class);
         $this->call(GroupPairSeeder::class);
+        $this->call(BinancePairsSeeder::class);
     }
 }

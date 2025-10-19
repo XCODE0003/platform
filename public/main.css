@@ -2398,6 +2398,7 @@ button.clear {
 .chart-wrapper {
     position: relative;
     border-radius: 15px;
+    overflow: hidden;
     border: 1px solid var(--Dark_3, #1D323E);
     /* width: 1234px; */
     height: 521px;
