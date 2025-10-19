@@ -7,12 +7,14 @@ import AssetsTab from '@/components/Tabs/AssetsTab.vue';
 import StackingTab from '@/components/Tabs/StackingTab.vue';
 import TransactionTab from '@/components/Tabs/TransactionTab.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
+import PortfolioTab from '@/components/Tabs/PortfolioTab.vue';
 import { defineProps, ref } from 'vue';
 const selectedTab = ref('AssetsTab');
 const props = defineProps({
-    currencies: Array,
+    portfolioWallets: Array,
     depositWallets: Array,
     totalBalance: Number,
+    bills: Array,
 });
 function changeTab(tab) {
     selectedTab.value = tab;
@@ -36,6 +38,14 @@ function changeTab(tab) {
                                     >Overview</span
                                 >
                                 <span
+                                    @click="changeTab('PortfolioTab')"
+                                    :class="{
+                                        active: selectedTab === 'PortfolioTab',
+                                    }"
+                                    class="tab btn_16 assets-menu_btn"
+                                    >Portfolio</span
+                                >
+                                <span
                                     @click="changeTab('StackingTab')"
                                     :class="{
                                         active: selectedTab === 'StackingTab',
@@ -56,7 +66,7 @@ function changeTab(tab) {
                             <div class="tabs-content">
                                 <AssetsTab
                                     v-if="selectedTab === 'AssetsTab'"
-                                    :currencies="props.currencies"
+                                    :portfolioWallets="props.portfolioWallets"
                                     :totalBalance="props.totalBalance"
                                 />
                                 <StackingTab
@@ -64,6 +74,11 @@ function changeTab(tab) {
                                 />
                                 <TransactionTab
                                     v-if="selectedTab === 'TransactionTab'"
+                                />
+                                <PortfolioTab
+                                    v-if="selectedTab === 'PortfolioTab'"
+                                    :portfolioWallets="props.bills"
+                                    :totalBalance="props.totalBalance"
                                 />
                             </div>
                         </div>

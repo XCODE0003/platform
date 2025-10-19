@@ -14,13 +14,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/trade', [App\Http\Controllers\User\TradeController::class, 'show'])->name('trade');
     Route::get('/assets', function () {
         $user = Auth::user();
-        $currencies = $user->wallets->load('currency');
+        $portfolioWallets = $user->wallets->load('currency');
         $deposit = $user->DepositWallets->load('currency');
         $totalBalance = (new CalculateTotalBalance())->calculate($user);
-
+        $bills = $user->bills;
         return Inertia::render('User/Assets', [
-            'currencies' => $currencies,
+            'portfolioWallets' => $portfolioWallets,
             'depositWallets' => $deposit,
+            'bills' => $bills,
             'totalBalance' => $totalBalance,
         ]);
     })->name('assets');

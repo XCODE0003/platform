@@ -12,7 +12,7 @@ const props = defineProps({
     <div class="tab-item">
         <div class="assets-title-block">
             <div class="assets-title-block_start">
-                <h1 class="h1_25">Assets overview</h1>
+                <h1 class="h1_25">Portfolio</h1>
             </div>
             <ModalButtons />
         </div>
@@ -74,7 +74,7 @@ const props = defineProps({
                 <div>Total balance</div>
             </div>
             <div
-                v-for="bill in props.bills"
+                v-for="wallet in props.portfolioWallets"
                 class="grid-line"
                 data-balance_coin=""
             >
@@ -83,15 +83,15 @@ const props = defineProps({
                         width="30px"
                         :src="
                             '/images/coin_icons/' +
-                            bill.currency.icon.toLowerCase() +
+                            wallet.currency.icon.toLowerCase() +
                             '.svg'
                         "
                         alt=""
                     />
-                    <span>{{ bill.name }}</span>
+                    <span>{{ wallet.currency.name }}</span>
                 </div>
                 <div class="flex-column gap10">
-                    <span class="text_16"> {{ bill.balance }}</span>
+                    <span class="text_16"> {{ wallet.balance }}</span>
                     <span class="text_small_12 color-gray2">
                         ≈
                         {{
