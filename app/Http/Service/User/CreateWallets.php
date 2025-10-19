@@ -5,6 +5,7 @@ namespace App\Http\Service\User;
 use App\Models\User;
 use App\Models\Currency;
 use App\Models\UserWallet;
+use App\Models\Bill;
 use Illuminate\Support\Facades\Auth;
 
 class CreateWallets
@@ -20,6 +21,13 @@ class CreateWallets
                 'pending_balance' => 0,
             ]);
         }
+        Bill::create([
+            'user_id' => $user->id,
+            'currency_id' => Currency::where('symbol', 'USD')->first()->id,
+            'balance' => 0,
+            'name' => 'Main bill',
+        ]);
+
         return true;
     }
 }
