@@ -55,6 +55,24 @@ module.exports = {
             time: true,
         },
         {
+            name: 'binance-loop',
+            script: 'php',
+            args: 'artisan markets:binance-loop --intervals=1m,3m,5m,15m,30m,1h,2h,4h,1d --sleep=60 --throttle-ms=150 --only-active=1',
+            cwd: __dirname,
+            interpreter: 'none',
+            instances: 1,
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '512M',
+            env: {
+                NODE_ENV: 'production',
+            },
+            log_file: './storage/logs/binance-loop.log',
+            out_file: './storage/logs/binance-loop-out.log',
+            error_file: './storage/logs/binance-loop-error.log',
+            time: true,
+        },
+        {
             name: 'quotes-socket',
             script: 'node',
             args: 'sockets/quotes-server.js',
@@ -66,6 +84,7 @@ module.exports = {
             max_memory_restart: '512M',
             env: {
                 NODE_ENV: 'production',
+                QUOTES_SOCKET_PORT: '3100',
             },
             log_file: './storage/logs/quotes-socket.log',
             out_file: './storage/logs/quotes-socket-out.log',
