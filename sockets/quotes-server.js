@@ -14,7 +14,7 @@ const db = await mysql.createPool({
   user: process.env.DB_USERNAME || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_DATABASE || 'platform',
-  port: Number(process.env.DB_PORT || 3306),
+  port: Number(process.env.DB_PORT || 3307),
   waitForConnections: true,
   connectionLimit: 5,
 })

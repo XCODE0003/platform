@@ -42,8 +42,6 @@ class BinancePairsSeeder extends Seeder
                     'is_deposit' => false,
                     'min_deposit_amount' => '0',
                     'address_regex' => '',
-                    'created_by' => 'system',
-                    'updated_by' => 'system',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
@@ -60,8 +58,7 @@ class BinancePairsSeeder extends Seeder
                     'is_deposit' => false,
                     'min_deposit_amount' => '0',
                     'address_regex' => '',
-                    'created_by' => 'system',
-                    'updated_by' => 'system',
+
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]

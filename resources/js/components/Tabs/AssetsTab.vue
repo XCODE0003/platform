@@ -1,11 +1,42 @@
 <script setup>
 import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
 import { calculateInUsd, calculateRate } from '@/utils/rates';
-import { defineProps } from 'vue';
+import { defineProps, ref, watch } from 'vue';
+
 const props = defineProps({
-    portfolioWallets: Array,
-    totalBalance: Number,
+    bills: Array,
+    totalBalanceAssets: Number,
 });
+
+const bills = ref(props.bills);
+const search = ref('');
+const isHiddenZero = ref(false);
+
+// Объединяем логику фильтрации в одну функцию
+function applyFilters() {
+    let filteredBills = props.bills;
+
+    // Применяем фильтр по поиску
+    if (search.value) {
+        filteredBills = filteredBills.filter(bill =>
+            bill.name.toLowerCase().includes(search.value.toLowerCase())
+        );
+    }
+
+    // Применяем фильтр по нулевым балансам
+    if (isHiddenZero.value) {
+        filteredBills = filteredBills.filter(bill => bill.balance > 0);
+    }
+
+    bills.value = filteredBills;
+}
+
+// Следим за изменениями поиска и фильтра нулевых балансов
+watch([search, isHiddenZero], applyFilters);
+
+function toggleZeroBalance(event) {
+    isHiddenZero.value = event.target.checked;
+}
 </script>
 
 <template>
@@ -20,19 +51,8 @@ const props = defineProps({
             <div class="text_17 block">
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
-                <span> {{ props.totalBalance }} USD</span>
-                <span class="color-gray2"
-                    >≈
-                    <span id=""
-                        >{{
-                            calculateInUsd(
-                                props.totalBalance,
-                                props.portfolioWallets[0].currency.exchange_rate,
-                            ).toFixed(4)
-                        }}
-                        BTC</span
-                    ></span
-                >
+                <span> {{ props.totalBalanceAssets }} USD</span>
+
             </div>
             <!-- <div class="text_17 block">
                 <img src="/images/balance_icon-spot.svg" alt="" />
@@ -46,6 +66,7 @@ const props = defineProps({
                 <input
                     type="text"
                     class="clear text_small_14"
+                    v-model="search"
                     placeholder="Search"
                 />
             </label>
@@ -55,7 +76,8 @@ const props = defineProps({
                 <div class="form-check">
                     <input
                         type="checkbox"
-                        onchange="toggleZeroBalance(this)"
+                        :checked="isHiddenZero"
+                        @change="toggleZeroBalance"
                         id="hidezero"
                         class="checkbox"
                     />
@@ -67,19 +89,19 @@ const props = defineProps({
         </div>
         <div class="assets-overview-grid pb60">
             <div class="grid-head text_small_12 color-dark">
-                <div>Coin</div>
+                <div>Name bill</div>
                 <div>Available balance</div>
 
                 <div>On orders</div>
                 <div>Total balance</div>
             </div>
             <div
-                v-for="bill in props.bills"
+                v-for="bill in bills"
                 class="grid-line"
                 data-balance_coin=""
             >
                 <div class="flex-center gap6">
-                    <img
+                    <!-- <img
                         width="30px"
                         :src="
                             '/images/coin_icons/' +
@@ -87,52 +109,21 @@ const props = defineProps({
                             '.svg'
                         "
                         alt=""
-                    />
+                    /> -->
                     <span>{{ bill.name }}</span>
                 </div>
                 <div class="flex-column gap10">
-                    <span class="text_16"> {{ bill.balance }}</span>
-                    <span class="text_small_12 color-gray2">
-                        ≈
-                        {{
-                            calculateRate(
-                                wallet.balance,
-                                wallet.currency.exchange_rate,
-                            )
-                        }}
-                        USD
-                    </span>
+                    <span class="text_16"> {{ bill.balance }} {{ bill.currency.symbol }}</span>
+
                 </div>
 
                 <div class="flex-column gap10">
-                    <span class="text_16">{{ wallet.pending_balance }}</span>
-                    <span class="text_small_12 color-gray2">
-                        ≈
-                        {{
-                            wallet.currency.exchange_rate *
-                            wallet.pending_balance
-                        }}
-                        USD
-                    </span>
+                    <span class="text_16">{{ bill.pending_balance ?? 0 }} {{ bill.currency.symbol }}</span>
+
                 </div>
                 <div class="flex-column gap10">
                     <span class="text_16">
-                        {{
-                            (
-                                parseFloat(wallet.balance) +
-                                parseFloat(wallet.pending_balance)
-                            ).toFixed(2)
-                        }}
-                    </span>
-                    <span class="text_small_12 color-gray2">
-                        ≈
-                        {{
-                            calculateRate(
-                                wallet.balance + wallet.pending_balance,
-                                wallet.currency.exchange_rate,
-                            )
-                        }}
-                        USD
+                        {{ (Number(bill.balance) + Number(bill.pending_balance ?? 0)).toFixed(2) }} {{ bill.currency.symbol }}
                     </span>
                 </div>
             </div>

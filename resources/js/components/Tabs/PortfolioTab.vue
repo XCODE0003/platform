@@ -1,11 +1,35 @@
 <script setup>
 import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
 import { calculateInUsd, calculateRate } from '@/utils/rates';
-import { defineProps } from 'vue';
+import { defineProps, ref, watch } from 'vue';
 const props = defineProps({
     portfolioWallets: Array,
-    totalBalance: Number,
+    totalBalancePortfolio: Number,
 });
+const portfolioWallets = ref(props.portfolioWallets);
+const search = ref('');
+const isHiddenZero = ref(false);
+
+watch(search, searchPortfolioWallets);
+watch(isHiddenZero, (newValue) => {
+    if (newValue) {
+        portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.balance > 0);
+    } else {
+        portfolioWallets.value = props.portfolioWallets;
+    }
+});
+
+function toggleZeroBalance(event) {
+    isHiddenZero.value = event.target.checked;
+}
+function searchPortfolioWallets() {
+    if(isHiddenZero.value) {
+        portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.balance > 0 && wallet.currency.name.toLowerCase().includes(search.value.toLowerCase()));
+    } else {
+        portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.currency.name.toLowerCase().includes(search.value.toLowerCase()));
+    }
+
+}
 </script>
 
 <template>
@@ -20,16 +44,17 @@ const props = defineProps({
             <div class="text_17 block">
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
-                <span> {{ props.totalBalance }} USD</span>
+                <span> {{ props.totalBalancePortfolio }} USD</span>
                 <span class="color-gray2"
                     >≈
                     <span id=""
-                        >{{
+                        >
+                        <!-- {{
                             calculateInUsd(
                                 props.totalBalance,
                                 props.portfolioWallets[0].currency.exchange_rate,
                             ).toFixed(4)
-                        }}
+                        }} -->
                         BTC</span
                     ></span
                 >
@@ -47,6 +72,7 @@ const props = defineProps({
                     type="text"
                     class="clear text_small_14"
                     placeholder="Search"
+                    v-model="search"
                 />
             </label>
         </div>
@@ -55,8 +81,9 @@ const props = defineProps({
                 <div class="form-check">
                     <input
                         type="checkbox"
-                        onchange="toggleZeroBalance(this)"
                         id="hidezero"
+                        :checked="isHiddenZero"
+                        @change="toggleZeroBalance"
                         class="checkbox"
                     />
                     <label for="hidezero" class="text_small_12 color-gray2"
@@ -74,7 +101,7 @@ const props = defineProps({
                 <div>Total balance</div>
             </div>
             <div
-                v-for="wallet in props.portfolioWallets"
+                v-for="wallet in portfolioWallets"
                 class="grid-line"
                 data-balance_coin=""
             >

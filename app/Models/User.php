@@ -62,6 +62,10 @@ class User extends Authenticatable implements FilamentUser, HasName
         ];
     }
 
+    public function bills()
+    {
+        return $this->hasMany(Bill::class);
+    }
     public function DepositWallets()
     {
         return $this->hasMany(DepositAddress::class);

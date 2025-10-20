@@ -17,13 +17,17 @@ Route::middleware('auth')->group(function () {
         $user = Auth::user();
         $portfolioWallets = $user->wallets->load('currency');
         $deposit = $user->DepositWallets->load('currency');
-        $totalBalance = (new CalculateTotalBalance())->calculate($user);
-        $bills = $user->bills;
+        $totalBalancePortfolio = (new CalculateTotalBalance())->calculate($user);
+        $totalBalanceAssets = $user->bills->sum(function($bill) {
+            return $bill->balance + ($bill->pending_balance ?? 0);
+        });
+        $bills = $user->bills->load('currency');
         return Inertia::render('User/Assets', [
             'portfolioWallets' => $portfolioWallets,
             'depositWallets' => $deposit,
             'bills' => $bills,
-            'totalBalance' => $totalBalance,
+            'totalBalanceAssets' => $totalBalanceAssets,
+            'totalBalancePortfolio' => $totalBalancePortfolio,
         ]);
     })->name('assets');
     Route::get('/account', [App\Http\Controllers\User\AccountController::class, 'show'])

@@ -13,7 +13,8 @@ const selectedTab = ref('AssetsTab');
 const props = defineProps({
     portfolioWallets: Array,
     depositWallets: Array,
-    totalBalance: Number,
+    totalBalancePortfolio: Number,
+    totalBalanceAssets: Number,
     bills: Array,
 });
 function changeTab(tab) {
@@ -66,8 +67,8 @@ function changeTab(tab) {
                             <div class="tabs-content">
                                 <AssetsTab
                                     v-if="selectedTab === 'AssetsTab'"
-                                    :portfolioWallets="props.portfolioWallets"
-                                    :totalBalance="props.totalBalance"
+                                    :bills="props.bills"
+                                    :totalBalanceAssets="props.totalBalanceAssets"
                                 />
                                 <StackingTab
                                     v-if="selectedTab === 'StackingTab'"
@@ -77,8 +78,8 @@ function changeTab(tab) {
                                 />
                                 <PortfolioTab
                                     v-if="selectedTab === 'PortfolioTab'"
-                                    :portfolioWallets="props.bills"
-                                    :totalBalance="props.totalBalance"
+                                    :portfolioWallets="props.portfolioWallets"
+                                    :totalBalancePortfolio="props.totalBalancePortfolio"
                                 />
                             </div>
                         </div>

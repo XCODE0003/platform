@@ -629,8 +629,7 @@ class CurrenciesSeeder extends Seeder
                     'is_deposit' => (bool) ($c['receive_active'] ?? false),
                     'min_deposit_amount' => (string) ($c['min_receive'] ?? '0'),
                     'address_regex' => (string) ($c['address_regex'] ?? '0'),
-                    'created_by' => 'system',
-                    'updated_by' => 'system',
+
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
