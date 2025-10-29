@@ -93,7 +93,7 @@ module.exports = {
         {
             name: 'reverb-server',
             script: 'php',
-            args: 'artisan reverb:start --host=0.0.0.0 --port=6001',
+            args: ['artisan', 'reverb:start'],
             cwd: __dirname,
             interpreter: 'none',
             instances: 1,
