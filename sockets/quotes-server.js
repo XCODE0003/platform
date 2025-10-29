@@ -2,6 +2,8 @@ import 'dotenv/config'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import mysql from 'mysql2/promise'
+// Use Node 18+ global fetch, fallback to node-fetch if not available
+const fetch = globalThis.fetch ?? (await import('node-fetch')).default
 import WebSocket from 'ws'
 
 const httpServer = createServer()
@@ -156,6 +158,17 @@ io.on('connection', (socket) => {
               closed: k.x,
             }
             io.to(key).emit('bar', bar)
+            // naive auto-fill: notify backend to fill orders that reached stop/limit/market
+            // This demo assumes app is reachable on same host and authenticated isn’t required (adjust with token if needed)
+            try {
+              const url = process.env.APP_URL || 'http://localhost'
+              // Backend should decide which orders to fill; here we only send latest price
+              fetch(url + '/api/trade/tick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pair_id: src.pair_id, price: Number(k.c) })
+              }).catch(() => {})
+            } catch {}
           } catch {}
         }
         ws.onerror = () => {}

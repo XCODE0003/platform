@@ -34,7 +34,7 @@ class TwelveDataService
 
         return collect($values)->map(function ($v) {
             return [
-                'time'   => Carbon::parse($v['datetime'], 'UTC')->toDateTimeString(),
+                'time'   => Carbon::parse($v['datetime'], 'UTC')->getTimestampMs(),
                 'open'   => $v['open'],
                 'high'   => $v['high'],
                 'low'    => $v['low'],

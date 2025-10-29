@@ -2282,13 +2282,14 @@ button.clear {
     display: flex;
     flex-direction: column;
     gap: 10px;
-
+    width: 100%;
     max-width: 1234px;
 }
 
 .trade-history {
     border-radius: 15px;
-
+    max-width: 1000px;
+    width: 100%;
     background: var(--Dark_4, #061B27);
     /* padding: 20px; */
 }
@@ -2299,7 +2300,7 @@ button.clear {
     justify-content: space-between;
     border-radius: 15px;
     background: var(--Blue, #C4E9FC);
-    padding: 5px 40px 5px 5px;
+    padding: 5px ;
 }
 
 .pair-head .left {
@@ -2410,7 +2411,7 @@ button.clear {
 .trade-table {
     border-radius: 15px;
     background: var(--Dark_4, #061B27);
-    padding: 18px 20px;
+    padding: 0px 20px;
 }
 
 .trade-table .tabs__header,
@@ -2418,9 +2419,7 @@ button.clear {
     padding: 0;
 }
 
-.trade-table .tabs__content {
-    padding-top: 20px;
-}
+
 
 .trade-table .grid-head {
     padding-left: 15px;
@@ -2480,7 +2479,7 @@ button.clear {
 }
 
 .trade-table .orderBook .grid-separator {
-    padding: 13px 0 20px;
+    padding: 0px 0 20px;
     display: flex;
     justify-content: space-between;
 }
@@ -2740,9 +2739,9 @@ button.clear {
 }
 
 .itc-select.assets .itc-select__toggle {
-    border-radius: 10px;
+    border-radius: 6px;
     background: var(--Dark_3, #1D323E);
-    padding: 20px;
+    padding: 8.5px;
 }
 
 .itc-select.assets .itc-select__toggle::after {

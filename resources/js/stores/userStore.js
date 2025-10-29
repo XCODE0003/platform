@@ -9,7 +9,7 @@ export const useUserStore = defineStore("user", {
         user: null,
         loading: false,
         errors: null,
-
+        activeBill: null,
     }),
 
     getters: {

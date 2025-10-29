@@ -28,11 +28,12 @@ class PairResource extends Resource
 
                     ->relationship('currencyIn', 'name')
                     ->required()
+                    ->searchable()
 
                     ->native(false),
                 Forms\Components\Select::make('currency_id_out')
                     ->relationship('currencyOut', 'name')
-
+                    ->searchable()
                     ->required()
 
                     ->native(false),

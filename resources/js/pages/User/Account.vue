@@ -112,15 +112,14 @@ const modal = useModalStore();
                                     </svg>
                                 </div>
                                 <div class="account-info">
-                                    <div class="info-block">
+                                    <!-- <div class="info-block">
                                         <span class="title">UID</span>
                                         <span class="context" id="uid">{{
                                            randomUUID( user.id)
                                         }}</span>
-                                    </div>
-                                    <div class="info-block">
+                                    </div> -->
+                                    <!-- <div class="info-block">
                                         <span class="title">Status</span>
-                                        <!-- class="premium verified" -->
                                         <span class="context">
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
@@ -141,7 +140,7 @@ const modal = useModalStore();
                                         <span class="context" id="timezone">{{
                                             user.timezone
                                         }}</span>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         </div>

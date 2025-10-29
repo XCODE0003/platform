@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Service\User\CalculateTotalBalance;
+use App\Http\Controllers\User\TradeController;
 
 Route::get('/', function () {
     return redirect()->route('trade');
@@ -62,13 +63,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('auth')
         ->name('account.withdraw');
 
-    Route::post('/trade/order', [App\Http\Controllers\User\TradeController::class, 'createOrder'])
-        ->middleware('auth')
-        ->name('trade.create-order');
+    // Trading endpoints
 
-    Route::post('/trade/orders/{orderId}/cancel', [App\Http\Controllers\User\TradeController::class, 'cancelOrder'])
-        ->middleware('auth')
-        ->name('trade.cancel-order');
     Route::get('/about', function () {
         return Inertia::render('App/About');
     })->name('about');
@@ -88,3 +84,4 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__ . '/auth.php';
 require __DIR__ . '/settings.php';
+require __DIR__ . '/trade.php';

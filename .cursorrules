@@ -1,0 +1,133 @@
+# Laravel + Vue 3 + Inertia.js Project Rules
+
+## Tech Stack
+- Backend: Laravel 12, PHP 8.2+
+- Frontend: Vue 3 (Composition API), TypeScript
+- UI: Inertia.js, Tailwind CSS 4, Reka UI
+- Admin: Filament 3.3
+- State: Pinia
+- Testing: Pest
+- Build: Vite
+
+## Code Style
+
+### PHP
+- PSR-12 standard
+- Use strict types: `declare(strict_types=1);`
+- Type hints for all parameters and return types
+- Use Laravel conventions (Eloquent, facades, helpers)
+- Prefer constructor property promotion (PHP 8.2+)
+- Use named arguments for clarity when needed
+
+### Vue/TypeScript
+- Composition API with `<script setup>` syntax
+- TypeScript for all new files
+- Props with TypeScript interfaces
+- Use Pinia stores for global state
+- Prefer `ref` over `reactive` for primitives
+- Use `computed` for derived state
+
+### Formatting
+- Tab size: 4 spaces (PHP, JS, TS, Vue)
+- Tab size: 2 spaces (JSON, YAML)
+- Single quotes for strings (JS/TS)
+- Semicolons required
+- Max line length: 80 (soft), 120 (hard)
+- Prettier for JS/TS/Vue formatting
+- Laravel Pint for PHP formatting
+
+## File Structure
+
+### Frontend
+- Pages: `resources/js/pages/` (Inertia pages)
+- Components: `resources/js/components/`
+- Stores: `resources/js/stores/` (Pinia)
+- Types: Define inline or in component files
+- Use `@` alias for `resources/js/`
+
+### Backend
+- Controllers: `app/Http/Controllers/`
+- Models: `app/Models/`
+- Services: `app/Services/` or `app/Http/Service/`
+- Repositories: `app/Repositories/`
+- Jobs: `app/Jobs/`
+- Filament: `app/Filament/`
+
+## Naming Conventions
+
+### PHP
+- Classes: PascalCase
+- Methods: camelCase
+- Variables: camelCase
+- Constants: UPPER_SNAKE_CASE
+- Database tables: snake_case, plural
+- Model properties: snake_case
+
+### JavaScript/TypeScript
+- Components: PascalCase (e.g., `OrderForm.vue`)
+- Files: PascalCase for components, camelCase for utilities
+- Variables/functions: camelCase
+- Constants: UPPER_SNAKE_CASE
+- Props: camelCase
+- Events: kebab-case
+
+## Best Practices
+
+### Laravel
+- Use Eloquent relationships over manual joins
+- Use form requests for validation
+- Use resource controllers for CRUD
+- Use API resources for JSON responses
+- Use queues for long-running tasks
+- Use events and listeners for decoupling
+
+### Vue/Inertia
+- Keep components small and focused
+- Use composables for reusable logic
+- Prefer `defineProps` with TypeScript types
+- Use `defineEmits` for component events
+- Use Inertia's `router.visit()` for navigation
+- Share data via Inertia's `share()` method
+- Use `usePage()` for accessing shared props
+
+### State Management
+- Use Pinia stores for global state
+- Keep component-specific state local
+- Use composables for shared reactive logic
+- Avoid prop drilling - use stores or provide/inject
+
+### Testing
+- Use Pest for all tests
+- Feature tests for HTTP endpoints
+- Unit tests for complex business logic
+- Use factories for test data
+- Use RefreshDatabase trait
+
+## Security
+- Always validate and sanitize user input
+- Use CSRF protection (enabled by default)
+- Use Laravel's authorization (policies, gates)
+- Never expose sensitive data in API responses
+- Use prepared statements (Eloquent does this)
+
+## Performance
+- Use eager loading to avoid N+1 queries
+- Cache expensive queries
+- Use queues for background jobs
+- Optimize images and assets
+- Use Vite for fast HMR in development
+
+## Git Workflow
+- Feature branches from `main`
+- Meaningful commit messages
+- Keep commits atomic and focused
+- Don't commit `node_modules/`, `vendor/`, `.env`
+
+## When Generating Code
+- Follow existing patterns in the codebase
+- Use TypeScript for new Vue components
+- Add proper type hints in PHP
+- Include validation in form requests
+- Add comments for complex logic only
+- Prefer self-documenting code
+- Use existing components and utilities before creating new ones

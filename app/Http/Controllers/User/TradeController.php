@@ -16,7 +16,7 @@ class TradeController extends Controller
     public function show(Request $request): Response
     {
         $user = $request->user();
-
+        $bills = $user->bills->load('currency');
         // Получаем активные группы с их парами и валютами
         $groups = GroupPair::where('is_active', true)
             ->with([
@@ -58,6 +58,7 @@ class TradeController extends Controller
 
         return Inertia::render('User/Trade', [
             'tradingPairs' => $tradingPairs,
+            'bills' => $bills,
             // 'userBalances' => $this->getUserBalances($user),
             // 'openOrders' => $this->getOpenOrders($user),
             // 'tradeHistory' => $this->getTradeHistory($user),
@@ -118,35 +119,7 @@ class TradeController extends Controller
             // 'orderBook' => $this->getOrderBook(),
         ]);
     }
-    /**
-     * Create a new order.
-     */
-    public function createOrder(Request $request)
-    {
-        $request->validate([
-            'pair' => ['required', 'string'],
-            'side' => ['required', 'in:buy,sell'],
-            'type' => ['required', 'in:market,limit'],
-            'amount' => ['required', 'numeric', 'min:0.00000001'],
-            'price' => ['nullable', 'numeric', 'min:0.00000001'],
-        ]);
-
-        // Здесь должна быть логика создания ордера
-
-        return back()->with('success', 'Order created successfully');
-    }
-
-    /**
-     * Cancel an order.
-     */
-    public function cancelOrder(Request $request, $orderId)
-    {
-        $user = $request->user();
-
-        // Здесь должна быть логика отмены ордера
-
-        return back()->with('success', 'Order cancelled successfully');
-    }
+    // legacy placeholders removed; new endpoints in OrderController
 
     /**
      * Get available trading pairs.
