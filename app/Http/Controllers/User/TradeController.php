@@ -56,7 +56,7 @@ class TradeController extends Controller
             ];
         })->values()->all();
 
-        return Inertia::render('User/Trade1', [
+        return Inertia::render('User/Trade', [
             'tradingPairs' => $tradingPairs,
             'bills' => $bills,
             // 'userBalances' => $this->getUserBalances($user),
