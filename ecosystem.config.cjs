@@ -90,5 +90,23 @@ module.exports = {
             error_file: './storage/logs/quotes-router-error.log',
             time: true,
         },
+        {
+            name: 'reverb-server',
+            script: 'php',
+            args: 'artisan reverb:start --host=0.0.0.0 --port=6001',
+            cwd: __dirname,
+            interpreter: 'none',
+            instances: 1,
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '512M',
+            env: {
+                NODE_ENV: 'production',
+            },
+            log_file: './storage/logs/reverb.log',
+            out_file: './storage/logs/reverb-out.log',
+            error_file: './storage/logs/reverb-error.log',
+            time: true,
+        },
     ],
 };
