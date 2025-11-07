@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
 use App\Http\Requests\KycRequest;
-use Inertia\Response;
-use RobThree\Auth\TwoFactorAuth;
-use RobThree\Auth\Providers\Qr\QRServerProvider;
+use App\Http\Requests\User\WithdrawRequest;
 use App\Models\KycUser;
 use App\Models\Promocode;
+use App\Models\Withdraw;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+use RobThree\Auth\Providers\Qr\QRServerProvider;
+use RobThree\Auth\TwoFactorAuth;
 
 class AccountController extends Controller
 {
@@ -119,28 +124,65 @@ class AccountController extends Controller
     /**
      * Process withdrawal request.
      */
-    public function withdraw(Request $request)
+    public function withdraw(WithdrawRequest $request): RedirectResponse
     {
-        $request->validate([
-            'currency_id' => ['required', 'exists:user_wallets,id'],
-            'address' => ['required', 'string'],
-            'amount' => ['required', 'numeric', 'min:0.00000001'],
-        ]);
-
         $user = $request->user();
-        $wallet = $user->wallets()->findOrFail($request->currency_id);
+        $bill = $request->bill();
 
-        // Проверяем достаточность средств
-        if ($wallet->balance < $request->amount) {
-            return back()->withErrors(['amount' => 'Insufficient balance']);
+        if (! $bill) {
+            abort(404);
         }
 
-        // Здесь должна быть логика создания заявки на вывод
-        // Например, создание записи в таблице withdrawals
+        $currency = $bill->currency;
+        $amount = (float) $request->input('amount');
 
-        // Временно просто уменьшаем баланс
-        $wallet->balance -= $request->amount;
-        $wallet->save();
+        $percentFee = (float) ($currency->send_percent ?? $currency->withdraw_fee ?? 0);
+        $fixedFee = (float) ($currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0);
+
+        $fee = round($amount * ($percentFee / 100), 8) + $fixedFee;
+        $netAmount = round($amount - $fee, 8);
+
+        if ($netAmount <= 0) {
+            return back()->withErrors([
+                'amount' => 'Amount is too small after fees.',
+            ]);
+        }
+
+        DB::transaction(function () use ($bill, $user, $currency, $amount, $fee, $netAmount, $request): void {
+            $lockedBill = $user->bills()
+                ->whereKey($bill->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $lockedBill) {
+                throw ValidationException::withMessages([
+                    'bill_id' => 'The selected balance is no longer available.',
+                ]);
+            }
+
+            if ((float) $lockedBill->balance < $amount) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Insufficient balance for this withdrawal.',
+                ]);
+            }
+
+            $lockedBill->balance = number_format(((float) $lockedBill->balance) - $amount, 8, '.', '');
+            $lockedBill->save();
+
+            $user->withdraws()->create([
+                'bill_id' => $lockedBill->id,
+                'currency_id' => $currency?->id ?? $lockedBill->currency_id,
+                'amount' => $amount,
+                'fee' => $fee,
+                'net_amount' => $netAmount,
+                'address' => $request->input('address'),
+                'status' => Withdraw::STATUS_PENDING,
+                'meta' => [
+                    'fee_percent' => $currency->send_percent ?? $currency->withdraw_fee ?? 0,
+                    'fee_fixed' => $currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0,
+                ],
+            ]);
+        });
 
         return back()->with('success', 'Withdrawal request submitted successfully');
     }

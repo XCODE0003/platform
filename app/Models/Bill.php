@@ -11,6 +11,7 @@ class Bill extends Model
         'currency_id',
         'balance',
         'name',
+        'demo'
     ];
 
     public function user()

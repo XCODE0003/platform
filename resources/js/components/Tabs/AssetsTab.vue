@@ -54,6 +54,9 @@ function toggleZeroBalance(event) {
                 <span> {{ props.totalBalanceAssets }} USD</span>
 
             </div>
+             <button @click="modal.open('createBill')" class="btn small_btn btn_16">
+                Create new bill
+            </button>
             <!-- <div class="text_17 block">
                 <img src="/images/balance_icon-spot.svg" alt="" />
                 <p>Spot balance:</p>
@@ -61,29 +64,17 @@ function toggleZeroBalance(event) {
                 <span class="color-gray2">≈ BTC</span>
             </div> -->
         </div>
-        <div class="assets-search pt40">
+        <div class="assets-search pt40 flex items-center gap-2">
             <label class="assets-search_input">
-                <input
-                    type="text"
-                    class="clear text_small_14"
-                    v-model="search"
-                    placeholder="Search"
-                />
+                <input type="text" class="clear text_small_14" v-model="search" placeholder="Search" />
             </label>
+
         </div>
         <div class="assets-overview pt10 pb20">
             <div class="hide-container">
                 <div class="form-check">
-                    <input
-                        type="checkbox"
-                        :checked="isHiddenZero"
-                        @change="toggleZeroBalance"
-                        id="hidezero"
-                        class="checkbox"
-                    />
-                    <label for="hidezero" class="text_small_12 color-gray2"
-                        >Hide zero balances</label
-                    >
+                    <input type="checkbox" :checked="isHiddenZero" @change="toggleZeroBalance" id="hidezero" class="checkbox" />
+                    <label for="hidezero" class="text_small_12 color-gray2">Hide zero balances</label>
                 </div>
             </div>
         </div>
@@ -95,11 +86,7 @@ function toggleZeroBalance(event) {
                 <div>On orders</div>
                 <div>Total balance</div>
             </div>
-            <div
-                v-for="bill in bills"
-                class="grid-line"
-                data-balance_coin=""
-            >
+            <div v-for="bill in bills" class="grid-line" data-balance_coin="">
                 <div class="flex-center gap6">
                     <!-- <img
                         width="30px"

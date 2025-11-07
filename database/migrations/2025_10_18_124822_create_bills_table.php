@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('currency_id');
             $table->string('balance');
             $table->string('name')->nullable();
+            $table->boolean('demo')->default(false);
             $table->timestamps();
         });
     }

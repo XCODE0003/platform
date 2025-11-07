@@ -1,30 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
-use Filament\Models\Contracts\HasName;
-
 
 class User extends Authenticatable implements FilamentUser, HasName
 {
+    use HasFactory;
+    use Notifiable;
+    use TwoFactorAuthenticatable;
 
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
     }
+
     public function getFilamentName(): string
     {
         return $this->email;
     }
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -32,7 +34,6 @@ class User extends Authenticatable implements FilamentUser, HasName
      * @var list<string>
      */
     protected $fillable = [
-
         'email',
         'password',
         'google_2fa_enabled',
@@ -66,12 +67,22 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return $this->hasMany(Bill::class);
     }
-    public function DepositWallets()
+
+    public function depositWallets()
     {
         return $this->hasMany(DepositAddress::class);
     }
+
+
+
     public function wallets()
     {
         return $this->hasMany(UserWallet::class);
     }
+
+    public function withdraws()
+    {
+        return $this->hasMany(Withdraw::class);
+    }
 }
+

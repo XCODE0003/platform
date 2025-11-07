@@ -16,6 +16,10 @@ const props = defineProps({
     totalBalancePortfolio: Number,
     totalBalanceAssets: Number,
     bills: Array,
+    withdraws: {
+        type: Array,
+        default: () => [],
+    },
 });
 function changeTab(tab) {
     selectedTab.value = tab;
@@ -30,57 +34,26 @@ function changeTab(tab) {
                     <div class="assets-content">
                         <div class="tabs-wrapper">
                             <div class="tabs assets-menu">
-                                <span
-                                    @click="changeTab('AssetsTab')"
-                                    :class="{
-                                        active: selectedTab === 'AssetsTab',
-                                    }"
-                                    class="tab btn_16 assets-menu_btn"
-                                    >Overview</span
-                                >
-                                <span
-                                    @click="changeTab('PortfolioTab')"
-                                    :class="{
-                                        active: selectedTab === 'PortfolioTab',
-                                    }"
-                                    class="tab btn_16 assets-menu_btn"
-                                    >Portfolio</span
-                                >
-                                <span
-                                    @click="changeTab('StackingTab')"
-                                    :class="{
-                                        active: selectedTab === 'StackingTab',
-                                    }"
-                                    class="tab btn_16 assets-menu_btn"
-                                    >Staking</span
-                                >
-                                <span
-                                    @click="changeTab('TransactionTab')"
-                                    :class="{
-                                        active:
-                                            selectedTab === 'TransactionTab',
-                                    }"
-                                    class="tab btn_16 assets-menu_btn"
-                                    >Transaction history</span
-                                >
+
+                                <span @click="changeTab('AssetsTab')" :class="{
+                                    active: selectedTab === 'AssetsTab',
+                                }" class="tab btn_16 assets-menu_btn">Overview</span>
+                                <span @click="changeTab('PortfolioTab')" :class="{
+                                    active: selectedTab === 'PortfolioTab',
+                                }" class="tab btn_16 assets-menu_btn">Portfolio</span>
+                                <span @click="changeTab('StackingTab')" :class="{
+                                    active: selectedTab === 'StackingTab',
+                                }" class="tab btn_16 assets-menu_btn">Staking</span>
+                                <span @click="changeTab('TransactionTab')" :class="{
+                                    active:
+                                        selectedTab === 'TransactionTab',
+                                }" class="tab btn_16 assets-menu_btn">Transaction history</span>
                             </div>
                             <div class="tabs-content">
-                                <AssetsTab
-                                    v-if="selectedTab === 'AssetsTab'"
-                                    :bills="props.bills"
-                                    :totalBalanceAssets="props.totalBalanceAssets"
-                                />
-                                <StackingTab
-                                    v-if="selectedTab === 'StackingTab'"
-                                />
-                                <TransactionTab
-                                    v-if="selectedTab === 'TransactionTab'"
-                                />
-                                <PortfolioTab
-                                    v-if="selectedTab === 'PortfolioTab'"
-                                    :portfolioWallets="props.portfolioWallets"
-                                    :totalBalancePortfolio="props.totalBalancePortfolio"
-                                />
+                                <AssetsTab v-if="selectedTab === 'AssetsTab'" :bills="props.bills" :totalBalanceAssets="props.totalBalanceAssets" />
+                                <StackingTab v-if="selectedTab === 'StackingTab'" />
+                                <TransactionTab v-if="selectedTab === 'TransactionTab'" :withdraws="props.withdraws" />
+                                <PortfolioTab v-if="selectedTab === 'PortfolioTab'" :portfolioWallets="props.portfolioWallets" :totalBalancePortfolio="props.totalBalancePortfolio" />
                             </div>
                         </div>
                     </div>
@@ -90,7 +63,7 @@ function changeTab(tab) {
             <Deposit :depositWallets="props.depositWallets" />
             <Promocode />
             <Stacking />
-            <WithdrawModal />
+            <WithdrawModal :bills="props.bills" />
         </main>
     </MainLayout>
 </template>

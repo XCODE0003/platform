@@ -19,16 +19,18 @@ Route::middleware('auth')->group(function () {
         $portfolioWallets = $user->wallets->load('currency');
         $deposit = $user->DepositWallets->load('currency');
         $totalBalancePortfolio = (new CalculateTotalBalance())->calculate($user);
-        $totalBalanceAssets = $user->bills->sum(function($bill) {
+        $totalBalanceAssets = $user->bills->sum(function ($bill) {
             return $bill->balance + ($bill->pending_balance ?? 0);
         });
         $bills = $user->bills->load('currency');
+        $withdraws = $user->withdraws()->with('currency')->latest()->take(50)->get();
         return Inertia::render('User/Assets', [
             'portfolioWallets' => $portfolioWallets,
             'depositWallets' => $deposit,
             'bills' => $bills,
             'totalBalanceAssets' => $totalBalanceAssets,
             'totalBalancePortfolio' => $totalBalancePortfolio,
+            'withdraws' => $withdraws,
         ]);
     })->name('assets');
     Route::get('/account', [App\Http\Controllers\User\AccountController::class, 'show'])
