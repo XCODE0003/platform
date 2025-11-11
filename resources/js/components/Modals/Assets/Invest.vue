@@ -5,6 +5,7 @@ import { useModalStore } from '@/stores/modal.js';
 import { useToast } from '@/composables/useToast.js';
 import { VueFinalModal } from 'vue-final-modal';
 import { useUserStore } from '../../../stores/userStore.js';
+import CurrencySelector from '@/components/Shared/CurrencySelector.vue';
 const userStore = useUserStore()
 
 const wallets = computed(() => (userStore.bills ?? []).filter((i: any) => i.demo == 0));
@@ -16,9 +17,7 @@ const isOpen = computed({
     set: (value) => (value ? modal.open('invest') : modal.close('invest')),
 });
 
-const selectedBill = ref(null);
-const isDropdownOpen = ref(false);
-const dropdownRef = ref(null);
+const selectedBill = ref<any>(null);
 
 const form = useForm({
     bill_id: '',
@@ -29,48 +28,19 @@ const form = useForm({
 
 watch(wallets, (newVal) => {
     const list = newVal ?? [];
-    if (list.length) {
+    if (list.length && !selectedBill.value) {
         selectedBill.value = list[0];
         form.bill_id = list[0].id;
-    } else {
+    }
+    if (!list.length) {
         selectedBill.value = null;
         form.reset();
     }
 }, { immediate: true });
 
-function toggleDropdown() {
-    if (!wallets.value.length) return;
-    isDropdownOpen.value = !isDropdownOpen.value;
-}
-
-function closeDropdown() {
-    isDropdownOpen.value = false;
-}
-
-function selectBill(bill) {
-    selectedBill.value = bill;
-    form.bill_id = bill.id;
-    closeDropdown();
-}
-
-function handleClickOutside(event: Event) {
-    if (!dropdownRef.value) {
-        return;
-    }
-
-    const target = event.target as Node | null;
-    if (target && !dropdownRef.value.contains(target)) {
-        closeDropdown();
-    }
-}
-
-onMounted(() => {
-    document.addEventListener('click', handleClickOutside as EventListener);
-});
-
-onBeforeUnmount(() => {
-    document.removeEventListener('click', handleClickOutside as EventListener);
-});
+watch(selectedBill, (val) => {
+    if (val) form.bill_id = val.id;
+}, { immediate: true });
 
 const amountNumber = computed(() => Number.parseFloat(form.amount || '0'));
 const feePercent = computed(() => Number.parseFloat(selectedBill.value?.currency?.send_percent ?? selectedBill.value?.currency?.withdraw_fee ?? 0) || 0);
@@ -117,7 +87,6 @@ function submitWithdraw() {
             toast.success('Withdrawal request submitted successfully');
             form.reset('address', 'amount');
             isOpen.value = false;
-            closeDropdown();
         },
         onError: (errors: any) => {
             if (errors.amount) {
@@ -158,49 +127,9 @@ function submitWithdraw() {
             <form @submit.prevent="submitWithdraw" class="withdraw-form">
                 <div class="pb20">
                     <p class="text_16 _115 color-gray2 pb10">Select cryptocurrency</p>
-                    <div class="currency-selector" ref="dropdownRef">
-                        <div
-                            class="simple-select"
-                            :class="{ open: isDropdownOpen, error: form.errors.bill_id }"
-                            @click.stop="toggleDropdown"
-                        >
-                            <div v-if="selectedBill" class="selected-info">
-                                <img v-if="iconPath" :src="iconPath" alt="" />
-                                <div class="item-text">
-                                    <span class="symbol">{{ currencySymbol }}</span>
-                                    <span class="balance">Balance: {{ availableBalance.toFixed(8) }}</span>
-                                </div>
-                            </div>
-                            <div v-else class="simple-select__placeholder">
-                                Choose cryptocurrency
-                            </div>
-                            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                        </div>
 
-                        <transition name="fade">
-                            <div v-if="isDropdownOpen" class="simple-select__dropdown" @click.stop>
-                                <div class="dropdown-list">
-                                    <button
-                                        v-for="bill in wallets"
-                                        :key="bill.id"
-                                        type="button"
-                                        class="dropdown-item"
-                                        :class="{ active: selectedBill?.id === bill.id }"
-                                        @click="selectBill(bill)"
-                                    >
-                                        <div class="item-info">
-                                            <span class="symbol">{{ bill.name }}</span>
-                                            <span class="name">{{ bill.currency?.name }}</span>
-                                        </div>
-                                        <span class="amount">{{ Number.parseFloat(bill.balance ?? '0').toFixed(8) }}</span>
-                                    </button>
-                                    <p v-if="!wallets.length" class="dropdown-empty">No balances found</p>
-                                </div>
-                            </div>
-                        </transition>
-                    </div>
+                    <CurrencySelector v-model="selectedBill" :wallets="wallets" :error="form.errors.bill_id" />
+
                     <div v-if="form.errors.bill_id" class="error-message text-red">
                         {{ form.errors.bill_id }}
                     </div>
