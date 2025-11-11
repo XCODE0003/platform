@@ -26,4 +26,5 @@ Route::middleware('auth')->group(function () {
 
     Route::post('2fa/toggle', [AccountController::class, 'toggle2FA'])->name('toggle-2fa');
     Route::post('kyc', [AccountController::class, 'store'])->name('kyc.store');
+
 });

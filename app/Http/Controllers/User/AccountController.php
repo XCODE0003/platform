@@ -132,6 +132,11 @@ class AccountController extends Controller
         if (! $bill) {
             abort(404);
         }
+        if($bill->demo){
+            return back()->withErrors([
+                'bill_id' => 'Withdrawals are not allowed from demo accounts.',
+            ]);
+        }
 
         $currency = $bill->currency;
         $amount = (float) $request->input('amount');

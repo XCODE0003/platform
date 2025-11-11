@@ -1,42 +1,38 @@
-<script setup>
+<script setup lang="ts">
 import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
-import { calculateInUsd, calculateRate } from '@/utils/rates';
-import { defineProps, ref, watch } from 'vue';
+import { computed, defineProps, ref } from 'vue';
+import { useUserStore } from '@/stores/userStore.js';
+import { useModalStore } from '@/stores/modal.js';
 
 const props = defineProps({
-    bills: Array,
     totalBalanceAssets: Number,
 });
 
-const bills = ref(props.bills);
+const userStore = useUserStore();
+const modal = useModalStore();
+
 const search = ref('');
 const isHiddenZero = ref(false);
 
-// Объединяем логику фильтрации в одну функцию
-function applyFilters() {
-    let filteredBills = props.bills;
+// Вычисляемый — всегда актуален, не мутирует пропсы и стор
+const bills = computed(() => {
+    const list = userStore.bills ?? [];
+    let filtered = Array.isArray(list) ? list : [];
 
-    // Применяем фильтр по поиску
     if (search.value) {
-        filteredBills = filteredBills.filter(bill =>
-            bill.name.toLowerCase().includes(search.value.toLowerCase())
-        );
+        const q = search.value.toString().toLowerCase();
+        filtered = filtered.filter(bill => {
+            const name = (bill.name ?? bill.bill_name ?? '').toString().toLowerCase();
+            return name.includes(q);
+        });
     }
 
-    // Применяем фильтр по нулевым балансам
     if (isHiddenZero.value) {
-        filteredBills = filteredBills.filter(bill => bill.balance > 0);
+        filtered = filtered.filter(bill => Number(bill.balance ?? 0) > 0);
     }
 
-    bills.value = filteredBills;
-}
-
-// Следим за изменениями поиска и фильтра нулевых балансов
-watch([search, isHiddenZero], applyFilters);
-
-function toggleZeroBalance(event) {
-    isHiddenZero.value = event.target.checked;
-}
+    return filtered;
+});
 </script>
 
 <template>
@@ -51,10 +47,10 @@ function toggleZeroBalance(event) {
             <div class="text_17 block">
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
-                <span> {{ props.totalBalanceAssets }} USD</span>
+                <span> {{ props.totalBalanceAssets ?? 0 }} USD</span>
 
             </div>
-             <button @click="modal.open('createBill')" class="btn small_btn btn_16">
+             <button @click="modal.open('bill')" class="btn small_btn btn_16">
                 Create new bill
             </button>
             <!-- <div class="text_17 block">
@@ -73,7 +69,7 @@ function toggleZeroBalance(event) {
         <div class="assets-overview pt10 pb20">
             <div class="hide-container">
                 <div class="form-check">
-                    <input type="checkbox" :checked="isHiddenZero" @change="toggleZeroBalance" id="hidezero" class="checkbox" />
+                    <input type="checkbox" v-model="isHiddenZero" id="hidezero" class="checkbox" />
                     <label for="hidezero" class="text_small_12 color-gray2">Hide zero balances</label>
                 </div>
             </div>
@@ -86,7 +82,7 @@ function toggleZeroBalance(event) {
                 <div>On orders</div>
                 <div>Total balance</div>
             </div>
-            <div v-for="bill in bills" class="grid-line" data-balance_coin="">
+            <div v-for="bill in bills" :key="bill.id || bill.name || bill.bill_name" class="grid-line" data-balance_coin="">
                 <div class="flex-center gap6">
                     <!-- <img
                         width="30px"
@@ -97,24 +93,24 @@ function toggleZeroBalance(event) {
                         "
                         alt=""
                     /> -->
-                    <span>{{ bill.name }}</span>
+                    <span>{{ bill.name ?? bill.bill_name }}</span>
                 </div>
                 <div class="flex-column gap10">
-                    <span class="text_16"> {{ bill.balance }} {{ bill.currency.symbol }}</span>
+                    <span class="text_16"> {{ Number(bill.balance ?? 0).toFixed(2) }} {{ bill.currency?.symbol ?? '' }}</span>
 
                 </div>
 
                 <div class="flex-column gap10">
-                    <span class="text_16">{{ bill.pending_balance ?? 0 }} {{ bill.currency.symbol }}</span>
+                    <span class="text_16">{{ Number(bill.pending_balance ?? 0).toFixed(2) }} {{ bill.currency?.symbol ?? '' }}</span>
 
                 </div>
                 <div class="flex-column gap10">
                     <span class="text_16">
-                        {{ (Number(bill.balance) + Number(bill.pending_balance ?? 0)).toFixed(2) }} {{ bill.currency.symbol }}
+                        {{ (Number(bill.balance ?? 0) + Number(bill.pending_balance ?? 0)).toFixed(2) }} {{ bill.currency?.symbol ?? '' }}
                     </span>
                 </div>
             </div>
-            <p class="notfound" id="assetsZero" style="display: none">
+            <p v-if="bills.length === 0" class="notfound">
                 Nothing found
                 <img src="/images/modal_close.svg" alt="" />
             </p>

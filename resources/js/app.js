@@ -16,7 +16,6 @@ import '../css/lib/iziToast.css';
 // import { vTippy } from './directives/tippy';
 
 // Глобальный флаг для отслеживания первой загрузки
-
 window.isFirstPageLoad = true;
 window.iziToast = iziToast;
 

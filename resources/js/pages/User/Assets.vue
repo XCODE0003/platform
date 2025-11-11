@@ -8,14 +8,20 @@ import StackingTab from '@/components/Tabs/StackingTab.vue';
 import TransactionTab from '@/components/Tabs/TransactionTab.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
 import PortfolioTab from '@/components/Tabs/PortfolioTab.vue';
-import { defineProps, ref } from 'vue';
+import { defineProps, onMounted, ref } from 'vue';
+import BillNew from '../../components/Modals/Assets/BillNew.vue';
 const selectedTab = ref('AssetsTab');
+import { useModalStore } from '@/stores/modal.js';
+import { useUserStore } from '../../stores/userStore.js';
+import Invest from '../../components/Modals/Assets/Invest.vue';
+const userStore = useUserStore()
+const modal = useModalStore();
 const props = defineProps({
     portfolioWallets: Array,
     depositWallets: Array,
     totalBalancePortfolio: Number,
     totalBalanceAssets: Number,
-    bills: Array,
+    bills: Object,
     withdraws: {
         type: Array,
         default: () => [],
@@ -24,6 +30,10 @@ const props = defineProps({
 function changeTab(tab) {
     selectedTab.value = tab;
 }
+
+onMounted(() => {
+    userStore.bills = props.bills;
+})
 </script>
 
 <template>
@@ -50,7 +60,7 @@ function changeTab(tab) {
                                 }" class="tab btn_16 assets-menu_btn">Transaction history</span>
                             </div>
                             <div class="tabs-content">
-                                <AssetsTab v-if="selectedTab === 'AssetsTab'" :bills="props.bills" :totalBalanceAssets="props.totalBalanceAssets" />
+                                <AssetsTab v-if="selectedTab === 'AssetsTab'"  :totalBalanceAssets="props.totalBalanceAssets" />
                                 <StackingTab v-if="selectedTab === 'StackingTab'" />
                                 <TransactionTab v-if="selectedTab === 'TransactionTab'" :withdraws="props.withdraws" />
                                 <PortfolioTab v-if="selectedTab === 'PortfolioTab'" :portfolioWallets="props.portfolioWallets" :totalBalancePortfolio="props.totalBalancePortfolio" />
@@ -64,6 +74,8 @@ function changeTab(tab) {
             <Promocode />
             <Stacking />
             <WithdrawModal :bills="props.bills" />
+            <BillNew :bills="props.bills" />
+            <Invest :bills="props.bills" />
         </main>
     </MainLayout>
 </template>

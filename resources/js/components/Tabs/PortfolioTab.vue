@@ -1,6 +1,7 @@
 <script setup>
 import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
 import { calculateInUsd, calculateRate } from '@/utils/rates';
+import { useModalStore } from '@/stores/modal.js';
 import { defineProps, ref, watch } from 'vue';
 const props = defineProps({
     portfolioWallets: Array,
@@ -9,6 +10,7 @@ const props = defineProps({
 const portfolioWallets = ref(props.portfolioWallets);
 const search = ref('');
 const isHiddenZero = ref(false);
+const modal = useModalStore();
 
 watch(search, searchPortfolioWallets);
 watch(isHiddenZero, (newValue) => {
@@ -30,6 +32,8 @@ function searchPortfolioWallets() {
     }
 
 }
+
+
 </script>
 
 <template>
@@ -44,21 +48,12 @@ function searchPortfolioWallets() {
             <div class="text_17 block">
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
-                <span> {{ props.totalBalancePortfolio }} USD</span>
-                <span class="color-gray2"
-                    >≈
-                    <span id=""
-                        >
-                        <!-- {{
-                            calculateInUsd(
-                                props.totalBalance,
-                                props.portfolioWallets[0].currency.exchange_rate,
-                            ).toFixed(4)
-                        }} -->
-                        BTC</span
-                    ></span
-                >
+                <span> {{ props.totalBalancePortfolio ?? 0 }} USD</span>
+
             </div>
+            <button @click="modal.open('invest')" class="btn small_btn btn_16">
+                Invest
+            </button>
             <!-- <div class="text_17 block">
                 <img src="/images/balance_icon-spot.svg" alt="" />
                 <p>Spot balance:</p>

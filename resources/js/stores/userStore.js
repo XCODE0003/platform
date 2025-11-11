@@ -10,6 +10,7 @@ export const useUserStore = defineStore("user", {
         loading: false,
         errors: null,
         activeBill: null,
+        bills:null,
     }),
 
     getters: {
@@ -22,6 +23,11 @@ export const useUserStore = defineStore("user", {
         setUser(user) {
             this.user = user;
         },
+        async fetchBills() {
+            const response = await axiosClient.get("/assets/bills");
+            this.bills = response.data.bills;
+            return response;
+        },
 
         clearUser() {
             this.user = null;
@@ -30,7 +36,22 @@ export const useUserStore = defineStore("user", {
         clearErrors() {
             this.errors = null;
         },
-
+        async createBill(billData) {
+            try {
+                this.loading = true;
+                const response = await axiosClient.post("/bills/create", billData);
+                await this.fetchBills()
+                showSuccess("Bill created successfully");
+                return response;
+            }
+            catch (error) {
+                this.errors = error.response?.data?.errors || { message: "Error creating bill" };
+                showError(this.errors.message || "Error creating bill");
+            }
+            finally {
+                this.loading = false;
+            }
+        },
         async fetchUser() {
             try {
                 this.loading = true;
@@ -38,9 +59,6 @@ export const useUserStore = defineStore("user", {
                 this.setUser(response.data.user);
                 return response;
             } catch (error) {
-
-
-
                 throw error;
             } finally {
                 this.loading = false;
