@@ -159,7 +159,7 @@ class Paginator
 
 
 	/**
-	 * Returns the total number of pages.
+	 * Returns the total number of Pages.
 	 * @return int<0, max>|null
 	 */
 	public function getPageCount(): ?int

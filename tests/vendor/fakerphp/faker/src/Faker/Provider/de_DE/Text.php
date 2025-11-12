@@ -2008,7 +2008,7 @@ EOT;
     any statements concerning tax treatment of donations received from
     outside the United States.  U.S. laws alone swamp our small staff.
 
-    Please check the Project Gutenberg Web pages for current donation
+    Please check the Project Gutenberg Web Pages for current donation
     methods and addresses.  Donations are accepted in a number of other
     ways including checks, online payments and credit card donations.
     To donate, please visit: http://pglaf.org/donate

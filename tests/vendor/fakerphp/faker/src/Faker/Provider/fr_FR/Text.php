@@ -1385,7 +1385,7 @@ les poches de son tablier, et dont la bonne demoiselle elle-même
 avalait de longs chapitres, dans les intervalles de sa besogne. Ce
 n'étaient qu'amours, amants, amantes, dames persécutées
 s'évanouissant dans des pavillons solitaires, postillons qu'on tue
-à tous les relais, chevaux qu'on crève à toutes les pages, forêts
+à tous les relais, chevaux qu'on crève à toutes les Pages, forêts
 sombres, troubles du coeur, serments, sanglots, larmes et baisers,
 nacelles au clair de lune, rossignols dans les bosquets, messieurs
 braves comme des lions, doux comme des agneaux, vertueux comme on
@@ -3856,7 +3856,7 @@ médecin jouaient aux dominos, et Emma changeant de place,
 s'accoudait sur la table, à feuilleter l'Illustration. Elle avait
 apporté son journal de modes. Léon se mettait près d'elle; ils
 regardaient ensemble les gravures et s'attendaient au bas des
-pages. Souvent elle le priait de lui lire des vers; Léon les
+Pages. Souvent elle le priait de lui lire des vers; Léon les
 déclamait d'une voix traînante et qu'il faisait expirer
 soigneusement aux passages d'amour. Mais le bruit des dominos le
 contrariait; M. Homais y était fort, il battait Charles à plein
@@ -4973,7 +4973,7 @@ fois, à ce même murmure des ondes, sur les cailloux couverts de
 mousse. Quels bons soleils ils avaient eus! quelles bonnes après-
 midi, seuls, à l'ombre, dans le fond du jardin! Il lisait tout
 haut, tête nue, posé sur un tabouret de bâtons secs; le vent frais
-de la prairie faisait trembler les pages du livre et les capucines
+de la prairie faisait trembler les Pages du livre et les capucines
 de la tonnelle... Ah! il était parti, le seul charme de sa vie, le
 seul espoir possible d'une félicité! Comment n'avait-elle pas
 saisi ce bonheur-là, quand il se présentait! Pourquoi ne l'avoir
@@ -5447,7 +5447,7 @@ et le pharmacien poursuivit:
 -- Plût à Dieu que nos agriculteurs fussent des chimistes, ou que
 du moins ils écoutassent davantage les conseils de la science!
 Ainsi, moi, j'ai dernièrement écrit un fort opuscule, un mémoire
-de plus de soixante et douze pages, intitulé: Du cidre, de sa
+de plus de soixante et douze Pages, intitulé: Du cidre, de sa
 fabrication et de ses effets; suivi de quelques réflexions
 nouvelles à ce sujet, que j'ai envoyé à la Société agronomique de
 Rouen; ce qui m'a même valu l'honneur d'être reçu parmi ses
@@ -12674,7 +12674,7 @@ contient pas autre chose.
 Et il inclina les papiers, légèrement, comme pour en faire tomber
 des napoléons. Alors l'indignation la prit, à voir cette grosse
 main, aux doigts rouges et mous comme des limaces, qui se posait
-sur ces pages où son coeur avait battu.
+sur ces Pages où son coeur avait battu.
 
 Ils partirent enfin! Félicité rentra. Elle l'avait envoyée aux
 aguets pour détourner Bovary; et elles installèrent vivement sous
@@ -15502,7 +15502,7 @@ EOT;
     any statements concerning tax treatment of donations received from
     outside the United States.  U.S. laws alone swamp our small staff.
 
-    Please check the Project Gutenberg Web pages for current donation
+    Please check the Project Gutenberg Web Pages for current donation
     methods and addresses.  Donations are accepted in a number of other
     ways including including checks, online payments and credit card
     donations.  To donate, please visit: http://pglaf.org/donate

@@ -714,7 +714,7 @@ final class MimeType
         'p10' => 'application/x-pkcs10',
         'p12' => 'application/x-pkcs12',
         'pac' => 'application/x-ns-proxy-autoconfig',
-        'pages' => 'application/x-iwork-pages-sffpages',
+        'Pages' => 'application/x-iwork-Pages-sffpages',
         'pas' => 'text/x-pascal',
         'paw' => 'application/vnd.pawaafile',
         'pbd' => 'application/vnd.powerbuilder6',

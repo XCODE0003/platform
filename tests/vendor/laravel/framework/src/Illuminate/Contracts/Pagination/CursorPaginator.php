@@ -93,7 +93,7 @@ interface CursorPaginator
     public function cursor();
 
     /**
-     * Determine if there are enough items to split into multiple pages.
+     * Determine if there are enough items to split into multiple Pages.
      *
      * @return bool
      */

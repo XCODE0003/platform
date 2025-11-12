@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | These options configure if and how Inertia uses Server Side Rendering
-    | to pre-render every initial visit made to your application's pages
+    | to pre-render every initial visit made to your application's Pages
     | automatically. A separate rendering service should be available.
     |
     | See: https://inertiajs.com/server-side-rendering
@@ -36,7 +36,7 @@ return [
         'ensure_pages_exist' => true,
 
         'page_paths' => [
-            resource_path('js/pages'),
+            resource_path('js/Pages'),
         ],
 
         'page_extensions' => [

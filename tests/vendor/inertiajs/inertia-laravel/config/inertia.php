@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | These options configures if and how Inertia uses Server Side Rendering
-    | to pre-render the initial visits made to your application's pages.
+    | to pre-render the initial visits made to your application's Pages.
     |
     | You can specify a custom SSR bundle path, or omit it to let Inertia
     | try and automatically detect it for you.

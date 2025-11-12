@@ -25,13 +25,13 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\WebpackEncoreBundle\Asset\EntrypointLookupInterface;
 
 /**
- * Dump error pages to plain HTML files that can be directly served by a web server.
+ * Dump error Pages to plain HTML files that can be directly served by a web server.
  *
  * @author Loïck Piera <pyrech@gmail.com>
  */
 #[AsCommand(
     name: 'error:dump',
-    description: 'Dump error pages to plain HTML files that can be directly served by a web server',
+    description: 'Dump error Pages to plain HTML files that can be directly served by a web server',
 )]
 final class ErrorDumpCommand extends Command
 {
@@ -46,9 +46,9 @@ final class ErrorDumpCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('path', InputArgument::REQUIRED, 'Path where to dump the error pages in')
-            ->addArgument('status-codes', InputArgument::IS_ARRAY, 'Status codes to dump error pages for, all of them by default')
-            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force directory removal before dumping new error pages')
+            ->addArgument('path', InputArgument::REQUIRED, 'Path where to dump the error Pages in')
+            ->addArgument('status-codes', InputArgument::IS_ARRAY, 'Status codes to dump error Pages for, all of them by default')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force directory removal before dumping new error Pages')
         ;
     }
 
@@ -57,10 +57,10 @@ final class ErrorDumpCommand extends Command
         $path = $input->getArgument('path');
 
         $io = new SymfonyStyle($input, $output);
-        $io->title('Dumping error pages');
+        $io->title('Dumping error Pages');
 
         $this->dump($io, $path, $input->getArgument('status-codes'), (bool) $input->getOption('force'));
-        $io->success(\sprintf('Error pages have been dumped in "%s".', $path));
+        $io->success(\sprintf('Error Pages have been dumped in "%s".', $path));
 
         return Command::SUCCESS;
     }
@@ -71,7 +71,7 @@ final class ErrorDumpCommand extends Command
             $statusCodes = array_filter(array_keys(Response::$statusTexts), fn ($statusCode) => $statusCode >= 400);
         }
 
-        if ($force || ($this->filesystem->exists($path) && $io->confirm(\sprintf('The "%s" directory already exists. Do you want to remove it before dumping the error pages?', $path), false))) {
+        if ($force || ($this->filesystem->exists($path) && $io->confirm(\sprintf('The "%s" directory already exists. Do you want to remove it before dumping the error Pages?', $path), false))) {
             $this->filesystem->remove($path);
         }
 

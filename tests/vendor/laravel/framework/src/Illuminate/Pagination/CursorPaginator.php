@@ -113,7 +113,7 @@ class CursorPaginator extends AbstractCursorPaginator implements Arrayable, Arra
     }
 
     /**
-     * Determine if there are enough items to split into multiple pages.
+     * Determine if there are enough items to split into multiple Pages.
      *
      * @return bool
      */

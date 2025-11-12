@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
- * Renders error or exception pages from a given FlattenException.
+ * Renders error or exception Pages from a given FlattenException.
  *
  * @author Yonel Ceruto <yonelceruto@gmail.com>
  * @author Matthias Pigulla <mp@webfactory.de>

@@ -122,7 +122,7 @@ class Paginator extends AbstractPaginator implements Arrayable, ArrayAccess, Cou
     }
 
     /**
-     * Manually indicate that the paginator does have more pages.
+     * Manually indicate that the paginator does have more Pages.
      *
      * @param  bool  $hasMore
      * @return $this

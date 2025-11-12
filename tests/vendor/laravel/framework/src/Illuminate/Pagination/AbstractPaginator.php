@@ -378,7 +378,7 @@ abstract class AbstractPaginator implements CanBeEscapedWhenCastToString, Htmlab
     }
 
     /**
-     * Determine if there are enough items to split into multiple pages.
+     * Determine if there are enough items to split into multiple Pages.
      *
      * @return bool
      */

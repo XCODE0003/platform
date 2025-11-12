@@ -411,13 +411,13 @@ class DocsCommand extends Command
     }
 
     /**
-     * The pages available to open.
+     * The Pages available to open.
      *
      * @return \Illuminate\Support\Collection
      */
     public function pages()
     {
-        return new Collection($this->docs()['pages']);
+        return new Collection($this->docs()['Pages']);
     }
 
     /**

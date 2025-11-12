@@ -93,7 +93,7 @@ interface Paginator
     public function currentPage();
 
     /**
-     * Determine if there are enough items to split into multiple pages.
+     * Determine if there are enough items to split into multiple Pages.
      *
      * @return bool
      */
