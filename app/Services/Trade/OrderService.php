@@ -96,14 +96,34 @@ class OrderService
 
         DB::transaction(function () use ($order): void {
             $bill = $order->bill()->lockForUpdate()->first();
+            $pair = $order->pair;
 
-            // Refund the reserved funds — no PnL since the order was never filled
-            if ($order->total !== null) {
-                $bill->balance = bcadd((string) $bill->balance, (string) $order->total, 10);
-                $bill->save();
+            // Fetch current market price to calculate realized PnL
+            $marketPrice = $pair->default_source === 'binance'
+                ? (new UpdateRates())->fetchBinancePrice($pair->currencyIn->symbol . 'USDT')
+                : (new UpdateRates())->fetchTwelveDataPrice($pair->currencyIn->symbol);
+
+            $anchorPrice = $order->price ?? $order->stop_price;
+            $qty = (string) $order->amount;
+
+            // PnL = price diff × qty (positive = profit, negative = loss)
+            $pnl = '0';
+            if ($anchorPrice !== null && $marketPrice > 0) {
+                $perUnit = $order->side === 'buy'
+                    ? bcsub((string) $marketPrice, (string) $anchorPrice, 10)
+                    : bcsub((string) $anchorPrice, (string) $marketPrice, 10);
+                $pnl = bcmul($perUnit, $qty, 10);
             }
 
-            $order->status = 'cancelled';
+            // Return locked funds + PnL
+            if ($order->total !== null) {
+                $bill->balance = bcadd((string) $bill->balance, (string) $order->total, 10);
+            }
+            $bill->balance = bcadd((string) $bill->balance, $pnl, 10);
+            $bill->save();
+
+            $order->take_profit = $pnl; // reused as realized_pnl storage
+            $order->status = 'filled';
             $order->save();
         });
     }
