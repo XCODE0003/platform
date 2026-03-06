@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
@@ -88,6 +89,11 @@ class User extends Authenticatable implements FilamentUser, HasName
     public function withdraws()
     {
         return $this->hasMany(Withdraw::class);
+    }
+
+    public function sendPasswordResetNotification(string $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 }
 
