@@ -12,6 +12,11 @@ use App\Models\Pair;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use App\Services\MarketData\UpdateRates;
+use function bccomp;
+use function bcmul;
+use function bcsub;
+use function bcadd;
+use function bcdiv;
 
 class OrderService
 {
