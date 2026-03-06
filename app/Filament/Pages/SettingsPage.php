@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Setting;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -29,6 +30,8 @@ class SettingsPage extends Page implements HasForms
         $this->form->fill([
             'portfolio_fee_percent' => Setting::get('portfolio_fee_percent', 0),
             'portfolio_fee_fixed'   => Setting::get('portfolio_fee_fixed',   0),
+            'staking_enabled'       => (bool) Setting::get('staking_enabled', 1),
+            'staking_year_basis_days' => (int) Setting::get('staking_year_basis_days', 365),
         ]);
     }
 
@@ -55,6 +58,24 @@ class SettingsPage extends Page implements HasForms
                             ->minValue(0)
                             ->helperText('Fixed amount deducted regardless of transfer size'),
                     ])->columns(2),
+                Section::make('Staking')
+                    ->description('Global staking behavior and reward basis')
+                    ->icon('heroicon-o-lock-closed')
+                    ->schema([
+                        Toggle::make('staking_enabled')
+                            ->label('Enable staking for users')
+                            ->default(true)
+                            ->inline(false)
+                            ->helperText('When disabled, users cannot open new staking positions.'),
+                        TextInput::make('staking_year_basis_days')
+                            ->label('Year basis (days)')
+                            ->numeric()
+                            ->integer()
+                            ->default(365)
+                            ->minValue(1)
+                            ->maxValue(366)
+                            ->helperText('Used in reward formula: amount * APY * duration / basis'),
+                    ])->columns(2),
             ])
             ->statePath('data');
     }
@@ -65,6 +86,8 @@ class SettingsPage extends Page implements HasForms
 
         Setting::set('portfolio_fee_percent', $data['portfolio_fee_percent'] ?? 0);
         Setting::set('portfolio_fee_fixed',   $data['portfolio_fee_fixed']   ?? 0);
+        Setting::set('staking_enabled',       (int) ($data['staking_enabled'] ?? true));
+        Setting::set('staking_year_basis_days', (int) ($data['staking_year_basis_days'] ?? 365));
 
         Notification::make()
             ->title('Settings saved')

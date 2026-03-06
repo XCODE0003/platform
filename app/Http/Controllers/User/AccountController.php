@@ -7,6 +7,7 @@ use App\Http\Requests\KycRequest;
 use App\Http\Requests\User\WithdrawRequest;
 use App\Models\KycUser;
 use App\Models\Promocode;
+use App\Models\Ticket;
 use App\Models\Withdraw;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,9 +32,16 @@ class AccountController extends Controller
 
         $kycData = KycUser::where('user_id', $user->id)->first();
 
+        $userTicket = Ticket::where('user_id', $user->id)
+            ->whereIn('status', [Ticket::STATUS_OPEN, Ticket::STATUS_IN_PROGRESS])
+            ->with(['messages' => fn ($q) => $q->orderBy('created_at')])
+            ->latest()
+            ->first();
+
         return Inertia::render('User/Account', [
-            'qrText' => $qrText,
-            'kycData' => $kycData,
+            'qrText'     => $qrText,
+            'kycData'    => $kycData,
+            'userTicket' => $userTicket,
         ]);
     }
 
@@ -102,21 +110,42 @@ class AccountController extends Controller
         ]);
 
         $promocode = Promocode::where('code', $request->promocode)->first();
-        if(!$promocode){
-            return back()->with('error', 'Promocode not found');
+
+        if (!$promocode || !$promocode->is_active) {
+            throw ValidationException::withMessages(['promocode' => 'Promocode not found or inactive.']);
         }
+
+        if ($promocode->expiration_date->isPast()) {
+            throw ValidationException::withMessages(['promocode' => 'Promocode has expired.']);
+        }
+
         $user = $request->user();
-        $wallet = $user->wallets()->where('currency_id', $promocode->currency_id)->first();
-        if(!$wallet){
-            return back()->with('error', 'Wallet not found');
+
+        if ($promocode->usedBy($user->id)) {
+            throw ValidationException::withMessages(['promocode' => 'You have already activated this promocode.']);
         }
-        $wallet->balance += $promocode->amount;
-        $wallet->save();
 
-        $promocode->save();
+        $wallet = $user->wallets()->where('currency_id', $promocode->currency_id)->first();
+        if (!$wallet) {
+            throw ValidationException::withMessages(['promocode' => 'No wallet found for this promocode currency.']);
+        }
 
+        DB::transaction(function () use ($user, $wallet, $promocode): void {
+            // Re-check inside transaction to prevent race conditions
+            $alreadyUsed = DB::table('promocode_users')
+                ->where('promocode_id', $promocode->id)
+                ->where('user_id', $user->id)
+                ->exists();
 
+            if ($alreadyUsed) {
+                throw ValidationException::withMessages(['promocode' => 'You have already activated this promocode.']);
+            }
 
+            $wallet->balance = bcadd((string) $wallet->balance, (string) $promocode->amount, 8);
+            $wallet->save();
+
+            $promocode->users()->attach($user->id, ['used_at' => now()]);
+        });
 
         return back()->with('success', 'Promocode successfully activated');
     }
@@ -184,7 +213,8 @@ class AccountController extends Controller
                 'status' => Withdraw::STATUS_PENDING,
                 'meta' => [
                     'fee_percent' => $currency->send_percent ?? $currency->withdraw_fee ?? 0,
-                    'fee_fixed' => $currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0,
+                    'fee_fixed'   => $currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0,
+                    'network'     => $request->input('network'),
                 ],
             ]);
         });
@@ -200,10 +230,23 @@ class AccountController extends Controller
         if (!$kycData) {
             $kycData = new KycUser();
             $kycData->user_id = $user->id;
-            $kycData->status = 'pending';
         }
 
-        $kycData->fill($request->all());
+        $kycData->fill($request->only([
+            'sex', 'first_name', 'last_name', 'phone',
+            'date_of_birth', 'country', 'city', 'address', 'zip_code',
+        ]));
+
+        $documents = $kycData->documents ?? [];
+        $dir = 'kyc/' . $user->id;
+        foreach (['document_front', 'document_back', 'document_selfie'] as $field) {
+            if ($request->hasFile($field)) {
+                $path = $request->file($field)->store($dir, 'local');
+                $key = str_replace('document_', '', $field);
+                $documents[$key] = $path;
+            }
+        }
+        $kycData->documents = $documents;
         $kycData->status = 'pending';
         $kycData->save();
 

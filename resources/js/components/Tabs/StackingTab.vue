@@ -1,26 +1,15 @@
 <script setup>
-import { computed } from 'vue';
 import { useModalStore } from '@/stores/modal.js';
 
 const props = defineProps({
     stakingEnabled:  { type: Boolean, default: true },
     stakingPlans:    { type: Array, default: () => [] },
-    userStakings:    { type: Array, default: () => [] },
 });
 
 const modal = useModalStore();
 
 function openStaking() {
     modal.open('stacking');
-}
-
-const activeStakings = computed(() =>
-    props.userStakings.filter(s => s.status === 'active')
-);
-
-function formatDate(dateStr) {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString();
 }
 </script>
 
@@ -51,30 +40,30 @@ function formatDate(dateStr) {
                 <div>Final Amount</div>
                 <div>Date, time</div>
             </div>
-            <div v-for="staking in activeStakings" :key="staking.id" class="grid-line">
+            <div v-for="plan in props.stakingPlans" :key="plan.id" class="grid-line">
                 <div class="flex-center gap6">
                     <img
                         width="30px"
-                        :src="'/images/coin_icons/' + (staking.plan?.currency?.icon ?? staking.plan?.currency?.symbol ?? '').toLowerCase() + '.svg'"
+                        :src="'/images/coin_icons/' + (plan.currency?.icon ?? plan.currency?.symbol ?? '').toLowerCase() + '.svg'"
                         alt=""
                     />
-                    <span>{{ staking.plan?.currency?.symbol }}</span>
+                    <span>{{ plan.currency?.symbol }}</span>
                 </div>
                 <div>
-                    <span class="text_small_14">{{ staking.apy_rate }}%</span>
+                    <span class="text_small_14">{{ plan.apy_percent }}%</span>
                 </div>
                 <div>
-                    <span class="text_16">{{ staking.duration_days }}</span>
+                    <span class="text_16">{{ plan.duration_days }}</span>
                 </div>
                 <div>
-                    <span class="text_small_14">{{ (staking.amount + staking.reward_amount).toFixed(8) }}</span>
+                    <span class="text_small_14">-</span>
                 </div>
                 <div>
-                    <span class="text_16">{{ formatDate(staking.started_at) }}</span>
+                    <span class="text_16">-</span>
                 </div>
             </div>
 
-            <p v-if="!activeStakings.length" class="notfound">
+            <p v-if="!props.stakingPlans.length" class="notfound">
                 Nothing found
                 <img src="/images/notfound.svg" alt="" />
             </p>

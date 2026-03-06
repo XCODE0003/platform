@@ -28,6 +28,8 @@ const props = defineProps({
     },
     portfolioFeePercent: { type: Number, default: 0 },
     portfolioFeeFixed:   { type: Number, default: 0 },
+    stakingEnabled: { type: Boolean, default: true },
+    stakingYearBasisDays: { type: Number, default: 365 },
     stakingPlans:  { type: Array, default: () => [] },
     userStakings:  { type: Array, default: () => [] },
 });
@@ -66,6 +68,7 @@ onMounted(() => {
                             <div class="tabs-content">
                                 <AssetsTab v-if="selectedTab === 'AssetsTab'"  :totalBalanceAssets="props.totalBalanceAssets" />
                                 <StackingTab v-if="selectedTab === 'StackingTab'"
+                                    :stakingEnabled="props.stakingEnabled"
                                     :stakingPlans="props.stakingPlans"
                                     :userStakings="props.userStakings"
                                     :portfolioWallets="props.portfolioWallets"
@@ -81,6 +84,8 @@ onMounted(() => {
             <Deposit :depositWallets="props.depositWallets" />
             <Promocode />
             <Stacking
+                :stakingEnabled="props.stakingEnabled"
+                :stakingYearBasisDays="props.stakingYearBasisDays"
                 :stakingPlans="props.stakingPlans"
                 :portfolioWallets="props.portfolioWallets"
             />

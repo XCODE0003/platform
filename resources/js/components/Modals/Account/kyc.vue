@@ -35,7 +35,9 @@ const form = useForm({
     city: '',
     address: '',
     zip_code: '',
-    kyc_documents: [],
+    document_front: null,
+    document_back: null,
+    document_selfie: null,
     status: props.kycData.status ?? 0,
     error_message: '',
 });
@@ -92,7 +94,7 @@ function submitKyc() {
 
             <form
                 @submit.prevent="submitKyc"
-                style="max-height: 300px; overflow: auto"
+                style="max-height: 500px; overflow: auto"
                 class="flex-column flex hide-scroll"
             >
                 <select
@@ -232,6 +234,61 @@ function submitKyc() {
                 >
                     {{ errors.zip_code }}
                 </div>
+
+                <div class="mb10">
+                    <label class="text_16 color-gray2 mb5" style="display:block">ID / Passport (front)</label>
+                    <template v-if="kycData.status === 'approved' || kycData.status === 'pending'">
+                        <span class="text_16">{{ kycData.documents?.front ? 'Uploaded' : 'Not uploaded' }}</span>
+                    </template>
+                    <template v-else>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,application/pdf"
+                            class="input mb5"
+                            @change="e => form.document_front = e.target.files[0]"
+                        />
+                        <span v-if="form.document_front" class="text_16 color-gray2">{{ form.document_front.name }}</span>
+                        <span v-else-if="kycData.documents?.front" class="text_16 color-gray2">Uploaded</span>
+                    </template>
+                    <div v-if="errors.document_front" class="error-message text-red mb5">{{ errors.document_front }}</div>
+                </div>
+
+                <div class="mb10">
+                    <label class="text_16 color-gray2 mb5" style="display:block">ID / Passport (back)</label>
+                    <template v-if="kycData.status === 'approved' || kycData.status === 'pending'">
+                        <span class="text_16">{{ kycData.documents?.back ? 'Uploaded' : 'Not uploaded' }}</span>
+                    </template>
+                    <template v-else>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,application/pdf"
+                            class="input mb5"
+                            @change="e => form.document_back = e.target.files[0]"
+                        />
+                        <span v-if="form.document_back" class="text_16 color-gray2">{{ form.document_back.name }}</span>
+                        <span v-else-if="kycData.documents?.back" class="text_16 color-gray2">Uploaded</span>
+                    </template>
+                    <div v-if="errors.document_back" class="error-message text-red mb5">{{ errors.document_back }}</div>
+                </div>
+
+                <div class="mb25">
+                    <label class="text_16 color-gray2 mb5" style="display:block">Selfie with document</label>
+                    <template v-if="kycData.status === 'approved' || kycData.status === 'pending'">
+                        <span class="text_16">{{ kycData.documents?.selfie ? 'Uploaded' : 'Not uploaded' }}</span>
+                    </template>
+                    <template v-else>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,application/pdf"
+                            class="input mb5"
+                            @change="e => form.document_selfie = e.target.files[0]"
+                        />
+                        <span v-if="form.document_selfie" class="text_16 color-gray2">{{ form.document_selfie.name }}</span>
+                        <span v-else-if="kycData.documents?.selfie" class="text_16 color-gray2">Uploaded</span>
+                    </template>
+                    <div v-if="errors.document_selfie" class="error-message text-red mb5">{{ errors.document_selfie }}</div>
+                </div>
+
                 <button
                     type="submit"
                     v-if="kycData.status !== 'approved' && kycData.status !== 'pending'"

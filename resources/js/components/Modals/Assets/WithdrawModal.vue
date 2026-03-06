@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineProps, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { useModalStore } from '@/stores/modal.js';
 import { useToast } from '@/composables/useToast.js';
@@ -20,15 +20,17 @@ const isOpen = computed({
     set: (value) => (value ? modal.open('withdraw') : modal.close('withdraw')),
 });
 
-const wallets = computed(() => props.bills ?? []);
+const wallets = computed(() => (props.bills ?? []).filter(b => !b.demo));
 const selectedBill = ref(null);
 const isDropdownOpen = ref(false);
-const dropdownRef = ref(null);
+
+const ALL_NETWORKS = ['USDTTRC20', 'USDTERC20', 'USDTBEP20', 'BTC', 'ETH', 'BNB'];
 
 const form = useForm({
-    bill_id: '',
-    address: '',
-    amount: '',
+    bill_id:  '',
+    network:  '',
+    address:  '',
+    amount:   '',
 });
 
 watch(wallets, (newVal) => {
@@ -41,38 +43,11 @@ watch(wallets, (newVal) => {
     }
 }, { immediate: true });
 
-function toggleDropdown() {
-    if (!wallets.value.length) return;
-    isDropdownOpen.value = !isDropdownOpen.value;
-}
-
-function closeDropdown() {
-    isDropdownOpen.value = false;
-}
-
 function selectBill(bill) {
     selectedBill.value = bill;
     form.bill_id = bill.id;
-    closeDropdown();
+    isDropdownOpen.value = false;
 }
-
-function handleClickOutside(event) {
-    if (!dropdownRef.value) {
-        return;
-    }
-
-    if (!dropdownRef.value.contains(event.target)) {
-        closeDropdown();
-    }
-}
-
-onMounted(() => {
-    document.addEventListener('click', handleClickOutside);
-});
-
-onBeforeUnmount(() => {
-    document.removeEventListener('click', handleClickOutside);
-});
 
 const amountNumber = computed(() => Number.parseFloat(form.amount || '0'));
 const feePercent = computed(() => Number.parseFloat(selectedBill.value?.currency?.send_percent ?? selectedBill.value?.currency?.withdraw_fee ?? 0) || 0);
@@ -116,23 +91,13 @@ function submitWithdraw() {
     form.post('/account/withdraw', {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Withdrawal request submitted successfully');
-            form.reset('address', 'amount');
+            toast.showSuccess('Withdrawal request submitted successfully');
+            form.reset('address', 'amount', 'network');
             isOpen.value = false;
-            closeDropdown();
         },
         onError: (errors) => {
-            if (errors.amount) {
-                toast.error(errors.amount);
-            }
-
-            if (errors.address) {
-                toast.error(errors.address);
-            }
-
-            if (errors.bill_id) {
-                toast.error(errors.bill_id);
-            }
+            const msg = Object.values(errors)[0];
+            if (msg) toast.showError(msg);
         },
     });
 }
@@ -160,11 +125,11 @@ function submitWithdraw() {
             <form @submit.prevent="submitWithdraw" class="withdraw-form">
                 <div class="pb20">
                     <p class="text_16 _115 color-gray2 pb10">Select cryptocurrency</p>
-                    <div class="currency-selector" ref="dropdownRef">
+                    <div class="currency-selector">
                         <div
                             class="simple-select"
                             :class="{ open: isDropdownOpen, error: form.errors.bill_id }"
-                            @click.stop="toggleDropdown"
+                            @click.stop="isDropdownOpen = !isDropdownOpen"
                         >
                             <div v-if="selectedBill" class="selected-info">
                                 <img v-if="iconPath" :src="iconPath" alt="" />
@@ -182,7 +147,7 @@ function submitWithdraw() {
                         </div>
 
                         <transition name="fade">
-                            <div v-if="isDropdownOpen" class="simple-select__dropdown" @click.stop>
+                            <div v-if="isDropdownOpen" class="simple-select__dropdown">
                                 <div class="dropdown-list">
                                     <button
                                         v-for="bill in wallets"
@@ -190,7 +155,7 @@ function submitWithdraw() {
                                         type="button"
                                         class="dropdown-item"
                                         :class="{ active: selectedBill?.id === bill.id }"
-                                        @click="selectBill(bill)"
+                                        @click.stop="selectBill(bill)"
                                     >
                                         <div class="item-info">
                                             <span class="symbol">{{ bill.currency?.symbol }}</span>
@@ -205,6 +170,26 @@ function submitWithdraw() {
                     </div>
                     <div v-if="form.errors.bill_id" class="error-message text-red">
                         {{ form.errors.bill_id }}
+                    </div>
+                </div>
+
+                <!-- Network selection -->
+                <div class="pb20" v-if="selectedBill">
+                    <p class="text_16 _115 color-gray2 pb10">Network</p>
+                    <div class="network-grid" :class="{ error: form.errors.network }">
+                        <button
+                            v-for="net in ALL_NETWORKS"
+                            :key="net"
+                            type="button"
+                            class="network-btn"
+                            :class="{ active: form.network === net }"
+                            @click.stop="form.network = net"
+                        >
+                            {{ net }}
+                        </button>
+                    </div>
+                    <div v-if="form.errors.network" class="error-message text-red">
+                        {{ form.errors.network }}
                     </div>
                 </div>
 
@@ -279,7 +264,7 @@ function submitWithdraw() {
                 <button
                     type="submit"
                     class="btn btn_action btn_16 color-dark"
-                    :disabled="!selectedBill || !form.address || !form.amount || form.processing"
+                    :disabled="!selectedBill || !form.network || !form.address || !form.amount || form.processing"
                 >
                     {{ form.processing ? 'Processing...' : 'Withdraw' }}
                 </button>
@@ -343,6 +328,7 @@ function submitWithdraw() {
 
 .item-text .symbol {
     font-weight: 600;
+    color: white;
 }
 
 .item-text .balance {
@@ -460,6 +446,50 @@ function submitWithdraw() {
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 18px;
+}
+
+.network-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.network-grid.error .network-btn {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.network-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.network-btn:hover {
+    border-color: rgba(121, 249, 149, 0.4);
+    color: white;
+}
+
+.network-btn.active {
+    border-color: rgba(121, 249, 149, 0.7);
+    background: rgba(121, 249, 149, 0.15);
+    color: white;
+    font-weight: 600;
+}
+
+.network-single {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(121, 249, 149, 0.35);
+    background: rgba(121, 249, 149, 0.08);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
 }
 
 .fade-enter-active,

@@ -59,11 +59,11 @@ const handleSelectPair = (pair) => {
                 <div :class="{ 'grid grid-cols-4 gap-3': selectedGroup !== null && selectedGroup.pairs.length > 0 }" class=" items-center gap-2">
                     <div v-if="selectedGroup !== null && selectedGroup.pairs.length > 0" v-for="pair in selectedGroup?.pairs" class="bg-[#1D323E] p-2 rounded-lg cursor-pointer hover:bg-[#273D4A] transition-all duration-300 hover:shadow-md hover:!text-white" @click="handleSelectPair(pair)">
                         <div class="flex items-center gap-2 ">
-                            <img :src="`/images/coin_icons/${pair.currency_in?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" />
+                            <img :src="`/images/coin_icons/${pair.currency_in?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" @error="e => e.target.style.display='none'" />
                             <div class="text-white text-sm text-nowrap">
                              {{ pair.currency_in?.symbol }} <span class="text-white/50">/</span> {{ pair.currency_out?.symbol }}
                             </div>
-                            <img :src="`/images/coin_icons/${pair.currency_out?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" />
+                            <img :src="`/images/coin_icons/${pair.currency_out?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" @error="e => e.target.style.display='none'" />
                         </div>
                     </div>
                     <div v-else class="bg-[#1D323E] text-white p-2 rounded-lg cursor-pointer text-center transition-all duration-300  w-full">

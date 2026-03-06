@@ -8,6 +8,7 @@ const props = defineProps({
     totalBalancePortfolio: Number,
 });
 const portfolioWallets = ref(props.portfolioWallets);
+watch(() => props.portfolioWallets, (v) => { portfolioWallets.value = v; });
 const search = ref('');
 const isHiddenZero = ref(false);
 const modal = useModalStore();
@@ -49,10 +50,12 @@ function searchPortfolioWallets() {
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
                 <span> {{ props.totalBalancePortfolio ?? 0 }} USD</span>
-
             </div>
             <button @click="modal.open('invest')" class="btn small_btn btn_16">
                 Invest
+            </button>
+            <button @click="modal.open('portfolio-withdraw')" class="btn small_btn btn_16">
+                Withdraw
             </button>
             <!-- <div class="text_17 block">
                 <img src="/images/balance_icon-spot.svg" alt="" />
@@ -150,7 +153,7 @@ function searchPortfolioWallets() {
                         ≈
                         {{
                             calculateRate(
-                                wallet.balance + wallet.pending_balance,
+                                parseFloat(wallet.balance) + parseFloat(wallet.pending_balance),
                                 wallet.currency.exchange_rate,
                             )
                         }}

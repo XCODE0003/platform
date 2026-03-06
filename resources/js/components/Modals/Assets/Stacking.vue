@@ -6,6 +6,8 @@ import { computed, ref, watch } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
 
 const props = defineProps({
+    stakingEnabled: { type: Boolean, default: true },
+    stakingYearBasisDays: { type: Number, default: 365 },
     stakingPlans:    { type: Array, default: () => [] },
     portfolioWallets: { type: Array, default: () => [] },
 });
@@ -14,8 +16,16 @@ const modal = useModalStore();
 const toast = useToast();
 
 const isOpen = computed({
-    get: () => modal.isOpen('stacking'),
-    set: (v) => (v ? modal.open('stacking') : modal.close('stacking')),
+    get: () => modal.isOpen('stacking') || modal.isOpen('staking'),
+    set: (v) => {
+        if (v) {
+            modal.open('stacking');
+            return;
+        }
+
+        modal.close('stacking');
+        modal.close('staking');
+    },
 });
 
 const selectedPlan = ref(null);
@@ -28,18 +38,48 @@ const walletBalance = computed(() => {
 
 const estimatedReward = computed(() => {
     if (!selectedPlan.value || !form.amount) return 0;
+    const yearBasisDays = props.stakingYearBasisDays > 0
+        ? props.stakingYearBasisDays
+        : 365;
     const amt = parseFloat(form.amount || '0');
-    return Number((amt * (selectedPlan.value.apy_percent / 100) * (selectedPlan.value.duration_days / 365)).toFixed(10));
+    return Number((amt * (selectedPlan.value.apy_percent / 100) * (selectedPlan.value.duration_days / yearBasisDays)).toFixed(10));
 });
 
 const form = useForm({ plan_id: '', amount: '' });
 
-watch(isOpen, (v) => { if (!v) { form.reset(); selectedPlan.value = null; } });
+watch(isOpen, (v) => {
+    if (!v) {
+        form.reset();
+        selectedPlan.value = null;
+        return;
+    }
+
+    const planId = modal.payload?.planId;
+    if (!planId) {
+        return;
+    }
+
+    selectPlanById(planId);
+});
 
 function selectPlan(plan) {
     selectedPlan.value = plan;
     form.plan_id = plan.id;
     form.amount  = '';
+}
+
+function selectPlanById(planId) {
+    const matchedPlan = props.stakingPlans.find(
+        plan => Number(plan.id) === Number(planId)
+    );
+
+    if (matchedPlan) {
+        selectPlan(matchedPlan);
+    }
+}
+
+function handlePlanChange() {
+    selectPlanById(form.plan_id);
 }
 
 function submit() {
@@ -76,31 +116,31 @@ function submit() {
                 <!-- Plan selection -->
                 <div class="pb20">
                     <p class="text_16 color-gray2 pb10">Choose a plan</p>
-                    <div v-if="stakingPlans.length" class="plans-grid">
-                        <button
+                    <p v-if="!props.stakingEnabled" class="text_small_12 color-gray2 pb10">
+                        New staking is currently disabled by administrator
+                    </p>
+                    <select
+                        v-model="form.plan_id"
+                        class="input"
+                        :class="{ error: form.errors.plan_id }"
+                        :disabled="!stakingPlans.length"
+                        @change="handlePlanChange"
+                    >
+                        <option value="">Select plan</option>
+                        <option
                             v-for="plan in stakingPlans"
                             :key="plan.id"
-                            type="button"
-                            class="plan-card"
-                            :class="{ active: selectedPlan?.id === plan.id }"
-                            @click.stop="selectPlan(plan)"
+                            :value="plan.id"
                         >
-                            <div class="plan-currency">
-                                <img
-                                    :src="'/images/coin_icons/' + (plan.currency?.icon ?? plan.currency?.symbol ?? '').toLowerCase() + '.svg'"
-                                    width="28" height="28" alt=""
-                                />
-                                <span class="plan-symbol">{{ plan.currency?.symbol }}</span>
-                            </div>
-                            <div class="plan-name">{{ plan.name }}</div>
-                            <div class="plan-apy">{{ plan.apy_percent }}% APY</div>
-                            <div class="plan-duration">{{ plan.duration_days }} days</div>
-                            <div class="plan-min" v-if="plan.min_amount > 0">
-                                Min: {{ plan.min_amount }}
-                            </div>
-                        </button>
-                    </div>
-                    <p v-else class="text_small_12 color-gray2">No staking plans available</p>
+                            {{ plan.currency?.symbol }} — {{ plan.name }} — {{ plan.apy_percent }}% / {{ plan.duration_days }}d
+                        </option>
+                    </select>
+                    <p v-if="form.errors.plan_id" class="error-msg">{{ form.errors.plan_id }}</p>
+                    <p v-if="selectedPlan" class="text_small_12 color-gray2 pt8">
+                        Min: {{ selectedPlan.min_amount }} {{ selectedPlan.currency?.symbol }}
+                        <span v-if="selectedPlan.max_amount"> • Max: {{ selectedPlan.max_amount }} {{ selectedPlan.currency?.symbol }}</span>
+                    </p>
+                    <p v-if="!stakingPlans.length" class="text_small_12 color-gray2">No staking plans available</p>
                 </div>
 
                 <!-- Amount -->
@@ -142,7 +182,7 @@ function submit() {
                 </div>
 
                 <button type="submit" class="btn btn_action btn_16 color-dark"
-                    :disabled="!selectedPlan || !form.amount || form.processing">
+                    :disabled="!props.stakingEnabled || !selectedPlan || !form.amount || form.processing">
                     {{ form.processing ? 'Processing...' : 'Start Staking' }}
                 </button>
             </form>
@@ -152,36 +192,6 @@ function submit() {
 
 <style scoped>
 .staking-form { display: flex; flex-direction: column; }
-
-.plans-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
-}
-
-.plan-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 14px 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.03);
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-}
-.plan-card:hover { border-color: rgba(121,249,149,0.3); background: rgba(255,255,255,0.06); }
-.plan-card.active { border-color: rgba(121,249,149,0.7); background: rgba(121,249,149,0.12); }
-
-.plan-currency { display: flex; align-items: center; gap: 6px; }
-.plan-symbol { font-weight: 700; font-size: 15px; }
-.plan-name { font-size: 11px; color: rgba(255,255,255,0.6); }
-.plan-apy { font-size: 18px; font-weight: 700; color: #79f995; }
-.plan-duration { font-size: 12px; color: rgba(255,255,255,0.7); }
-.plan-min { font-size: 11px; color: rgba(255,255,255,0.45); }
 
 .amount-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .max-btn { font-size: 12px; padding: 5px 10px; border-radius: 6px; background: rgba(255,255,255,0.08); color: white; cursor: pointer; }
@@ -196,4 +206,5 @@ function submit() {
 }
 .reward-row { display: flex; justify-content: space-between; }
 .error-msg { margin-top: 4px; font-size: 12px; color: #ef4444; }
+.pt8 { padding-top: 8px; }
 </style>

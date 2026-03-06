@@ -57,7 +57,10 @@ onMounted(() => {
 });
 
 watch(selectedPair, () => {
-    console.log(selectedPair.value.currency_in?.code + selectedPair.value.currency_out?.code);
+    tradeStore.setPrice(null);
+    tradeStore.setHigh(null);
+    tradeStore.setLow(null);
+    tradeStore.setVolume(null);
 });
 
 const modal = useModalStore();

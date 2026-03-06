@@ -37,11 +37,13 @@ class QuotesRouterCommand extends Command
             // Start missing
             foreach ($activeKeys as $key => $sub) {
                 if (isset($procs[$key]) && $procs[$key]->isRunning()) continue;
-                $this->info("Need to start relay {$key}");
                 $pairId = $sub->pair_id;
                 $res = $sub->resolution;
                 $childTtl = max(60, $ttlDefault);
                 [$provider, $symbol] = $this->getBestSource((int)$pairId);
+                // TwelveData and yfinance have their own dedicated commands
+                if ($provider === 'twelvedata' || $provider === 'yfinance') continue;
+                $this->info("Need to start relay {$key}");
                 $cmd = [PHP_BINARY, base_path('artisan'), 'quotes:relay', '--pair_id='.$pairId, '--provider='.$provider, '--symbol='.$symbol, '--resolution='.$res, '--ttl='.$childTtl];
                 $proc = new Process($cmd, base_path());
                 $proc->start();

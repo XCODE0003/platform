@@ -93,7 +93,7 @@ watch(() => props.wallets, (val) => {
 .selected-info { display:flex; align-items:center; gap:12px; }
 .selected-info img { width:28px; height:28px; }
 .item-text { display:flex; flex-direction:column; gap:2px; }
-.item-text .symbol { font-weight:600; }
+.item-text .symbol { font-weight:600; color: white; }
 .item-text .balance { font-size:12px; color: rgba(255,255,255,0.6); }
 .simple-select__dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #0a1f2b; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding:8px; z-index:40; }
 .dropdown-list { max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }

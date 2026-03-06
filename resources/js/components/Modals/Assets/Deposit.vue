@@ -365,6 +365,7 @@ function iconPathFor(wallet) {
 .item-text .symbol {
     font-size: 14px;
     font-weight: 600;
+    color: white;
 }
 
 .item-text .name {

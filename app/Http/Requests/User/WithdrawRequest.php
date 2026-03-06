@@ -26,8 +26,9 @@ class WithdrawRequest extends FormRequest
                 'integer',
                 Rule::exists('bills', 'id')->where(fn ($query) => $query->where('user_id', $this->user()?->id)),
             ],
+            'network' => ['nullable', 'string', Rule::in(['USDTTRC20', 'USDTERC20', 'USDTBEP20', 'BTC', 'ETH', 'BNB', ''])],
             'address' => ['required', 'string', 'max:255'],
-            'amount' => ['required', 'numeric', 'min:0.00000001'],
+            'amount'  => ['required', 'numeric', 'min:0.00000001'],
         ];
     }
 

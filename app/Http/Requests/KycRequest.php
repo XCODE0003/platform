@@ -31,7 +31,9 @@ class KycRequest extends FormRequest
             'city' => 'required|string|max:255',
             'address' => 'required|string|max:255',
             'zip_code' => 'required|string|max:255',
-            
+            'document_front' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'document_back'  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'document_selfie' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
         ];
     }
 }

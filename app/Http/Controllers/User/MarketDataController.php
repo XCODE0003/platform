@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pair;
+use App\Services\SpreadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Repositories\BarsRepository;
@@ -21,9 +22,21 @@ class MarketDataController extends Controller
             .'/'
             .($pair->currencyOut->symbol ?? $pair->currencyOut->name ?? 'QUOTE');
 
+        $assetClass = $pair->asset_class ?? 'crypto';
+
+        $pricescaleMap = [
+            'crypto' => 100000,
+            'stock'  => 100,
+            'forex'  => 100000,
+            'metal'  => 100,
+            'fiat'   => 10000,
+        ];
+
         return response()->json([
-            'pair_id' => $pair->id,
-            'display' => $display,
+            'pair_id'     => $pair->id,
+            'display'     => $display,
+            'asset_class' => $assetClass,
+            'pricescale'  => $pricescaleMap[$assetClass] ?? 100000,
         ]);
     }
 
@@ -108,14 +121,24 @@ class MarketDataController extends Controller
                 ->get();
         }
 
-        // 3) Return DB rows in TV format
-        $bars = $rows->map(function ($r) {
+        // 3) Return DB rows in TV format, with spread applied per bar's own date
+        $spread = app(SpreadService::class);
+        $bars = $rows->map(function ($r) use ($pair, $spread) {
+            $barTimeMs = (int) $r->time;
+            [$o, $h, $l, $c] = $spread->applyToBarMs(
+                $pair->id,
+                $barTimeMs,
+                (float) $r->open,
+                (float) $r->high,
+                (float) $r->low,
+                (float) $r->close,
+            );
             return [
-                'time' => (int) $r->time,
-                'open' => (float) $r->open,
-                'high' => (float) $r->high,
-                'low' => (float) $r->low,
-                'close' => (float) $r->close,
+                'time'   => $barTimeMs,
+                'open'   => $o,
+                'high'   => $h,
+                'low'    => $l,
+                'close'  => $c,
                 'volume' => (float) $r->volume,
             ];
         })->values()->all();
@@ -126,17 +149,17 @@ class MarketDataController extends Controller
     private function mapResolution(string $res): array
     {
         $map = [
-            '1' => ['1m', 60_000],
+            '1'    => ['1m',  60_000],
             // '3' => ['3m', 180_000],
             // '5' => ['5m', 300_000],
             // '15' => ['15m', 900_000],
             // '30' => ['30m', 1_800_000],
-            // '60' => ['1h', 3_600_000],
+            '60'   => ['1h',  3_600_000],
             // '120' => ['2h', 7_200_000],
             // '240' => ['4h', 14_400_000],
-            // '1D' => ['1d', 86_400_000],
-            // 'D' => ['1d', 86_400_000],
-            // '1440' => ['1d', 86_400_000],
+            '1D'   => ['1d',  86_400_000],
+            'D'    => ['1d',  86_400_000],
+            '1440' => ['1d',  86_400_000],
         ];
         return $map[$res] ?? ['1d', 86_400_000];
     }
