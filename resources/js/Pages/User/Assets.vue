@@ -26,6 +26,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    portfolioFeePercent: { type: Number, default: 0 },
+    portfolioFeeFixed:   { type: Number, default: 0 },
+    stakingPlans:  { type: Array, default: () => [] },
+    userStakings:  { type: Array, default: () => [] },
 });
 function changeTab(tab) {
     selectedTab.value = tab;
@@ -61,7 +65,11 @@ onMounted(() => {
                             </div>
                             <div class="tabs-content">
                                 <AssetsTab v-if="selectedTab === 'AssetsTab'"  :totalBalanceAssets="props.totalBalanceAssets" />
-                                <StackingTab v-if="selectedTab === 'StackingTab'" />
+                                <StackingTab v-if="selectedTab === 'StackingTab'"
+                                    :stakingPlans="props.stakingPlans"
+                                    :userStakings="props.userStakings"
+                                    :portfolioWallets="props.portfolioWallets"
+                                />
                                 <TransactionTab v-if="selectedTab === 'TransactionTab'" :withdraws="props.withdraws" />
                                 <PortfolioTab v-if="selectedTab === 'PortfolioTab'" :portfolioWallets="props.portfolioWallets" :totalBalancePortfolio="props.totalBalancePortfolio" />
                             </div>
@@ -72,10 +80,18 @@ onMounted(() => {
             <!-- Модальные окна -->
             <Deposit :depositWallets="props.depositWallets" />
             <Promocode />
-            <Stacking />
+            <Stacking
+                :stakingPlans="props.stakingPlans"
+                :portfolioWallets="props.portfolioWallets"
+            />
             <WithdrawModal :bills="props.bills" />
             <BillNew :bills="props.bills" />
-            <Invest :bills="props.bills" />
+            <Invest
+                :bills="props.bills"
+                :portfolioWallets="props.portfolioWallets"
+                :portfolioFeePercent="props.portfolioFeePercent"
+                :portfolioFeeFixed="props.portfolioFeeFixed"
+            />
         </main>
     </MainLayout>
 </template>

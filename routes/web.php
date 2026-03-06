@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Service\User\CalculateTotalBalance;
 use App\Http\Controllers\User\TradeController;
+use App\Models\Setting;
+use App\Models\StakingPlan;
+use App\Models\Staking;
 
 Route::get('/', function () {
     return redirect()->route('trade');
@@ -25,12 +28,19 @@ Route::middleware('auth')->group(function () {
         $bills = $user->bills->load('currency');
         $withdraws = $user->withdraws()->with('currency')->latest()->take(50)->get();
         return Inertia::render('User/Assets', [
-            'portfolioWallets' => $portfolioWallets,
-            'depositWallets' => $deposit,
-            'bills' => $bills,
-            'totalBalanceAssets' => $totalBalanceAssets,
-            'totalBalancePortfolio' => $totalBalancePortfolio,
-            'withdraws' => $withdraws,
+            'portfolioWallets'       => $portfolioWallets,
+            'depositWallets'         => $deposit,
+            'bills'                  => $bills,
+            'totalBalanceAssets'     => $totalBalanceAssets,
+            'totalBalancePortfolio'  => $totalBalancePortfolio,
+            'withdraws'              => $withdraws,
+            'portfolioFeePercent'    => (float) Setting::get('portfolio_fee_percent', 0),
+            'portfolioFeeFixed'      => (float) Setting::get('portfolio_fee_fixed',   0),
+            'stakingPlans'           => StakingPlan::where('is_active', true)->with('currency')->get(),
+            'userStakings'           => Staking::where('user_id', $user->id)
+                ->with(['plan.currency'])
+                ->orderByDesc('created_at')
+                ->get(),
         ]);
     })->name('assets');
     Route::get('/account', [App\Http\Controllers\User\AccountController::class, 'show'])
