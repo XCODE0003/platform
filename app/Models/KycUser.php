@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class KycUser extends Model
 {
-    protected $fillable = ['user_id', 'status', 'error_message', 'sex', 'first_name', 'last_name', 'phone', 'date_of_birth', 'country', 'city', 'address', 'zip_code'];
+    protected $fillable = ['user_id', 'status', 'error_message', 'sex', 'first_name', 'last_name', 'phone', 'date_of_birth', 'country', 'city', 'address', 'zip_code', 'documents'];
+
+    protected $casts = ['documents' => 'array'];
 
     public const STATUS_OPTIONS = [
         'start' => 'Start',

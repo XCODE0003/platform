@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import UnifiedDatafeed from './datafeed_unified'
+import UnifiedDatafeed, { unsubscribeAll } from './datafeed_unified'
 
 const props = defineProps({
   symbol: { type: String, default: 'BTCUSDT' },
@@ -230,6 +230,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  unsubscribeAll()
   try { if (positionShape && positionShape.remove) positionShape.remove() } catch (_) {}
   try { if (entryArrow && entryArrow.remove) entryArrow.remove() } catch (_) {}
   try { if (exitArrow && exitArrow.remove) exitArrow.remove() } catch (_) {}
@@ -240,6 +241,7 @@ onBeforeUnmount(() => {
 })
 
 watch(() => [props.symbol, props.interval, props.theme, props.autosize], async () => {
+  unsubscribeAll()
   if (tvWidget && tvWidget.remove) tvWidget.remove()
   tvWidget = null
   isReady.value = false

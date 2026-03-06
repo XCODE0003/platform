@@ -19,6 +19,11 @@ return [
             'supports' => ['forex','fiat'],
             'base_url' => env('EXCHANGERATE_BASE_URL', 'https://api.exchangerate.host'),
         ],
+        'yfinance' => [
+            'class' => App\Services\MarketData\Providers\YFinanceSource::class,
+            'supports' => ['stock','forex','metal','fiat','index'],
+            'base_url' => env('YFINANCE_BASE_URL', 'http://127.0.0.1:8001'),
+        ],
     ],
 ];
 

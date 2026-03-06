@@ -14,6 +14,7 @@ class DataProvidersSeeder extends Seeder
             ['code' => 'twelvedata', 'name' => 'TwelveData', 'asset_classes' => ['stock','forex','metal','fiat'], 'base_url' => 'https://api.twelvedata.com', 'enabled' => true],
             ['code' => 'finnhub', 'name' => 'Finnhub', 'asset_classes' => ['stock','forex','metal'], 'base_url' => 'https://finnhub.io', 'enabled' => true],
             ['code' => 'exchangeratehost', 'name' => 'ExchangeRate Host', 'asset_classes' => ['forex','fiat'], 'base_url' => 'https://api.exchangerate.host', 'enabled' => true],
+            ['code' => 'yfinance', 'name' => 'YFinance', 'asset_classes' => ['stock','forex','metal','index'], 'base_url' => 'https://api.yfinance.com', 'enabled' => true],
         ];
 
         foreach ($items as $item) {

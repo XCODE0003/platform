@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Events\BarUpdated;
+use App\Services\SpreadService;
 use Illuminate\Console\Command;
 use Throwable;
 use Illuminate\Support\Facades\Log;
@@ -63,6 +64,7 @@ class QuotesRelayCommand extends Command
         $count = 0;
         $deadline = time() + $ttlSeconds;
         $verbose = (bool) env('QUOTES_LOG_VERBOSE', false);
+        $spread = app(SpreadService::class);
         while (true) {
             try {
                 if (time() >= $deadline) {
@@ -81,8 +83,9 @@ class QuotesRelayCommand extends Command
                 if ($verbose) {
                     Log::debug('quotes: ws raw', ['pair_id' => $pairId, 'resolution' => $resolution, 'payload' => $data]);
                 }
+                [$o, $h, $l, $c] = $spread->applyToBar($pairId, (float)$k['o'], (float)$k['h'], (float)$k['l'], (float)$k['c']);
                 try {
-                    event(new BarUpdated($pairId, $resolution, (int)$k['t'], (float)$k['o'], (float)$k['h'], (float)$k['l'], (float)$k['c'], (float)$k['v'], (bool)$k['x']));
+                    event(new BarUpdated($pairId, $resolution, (int)$k['t'], $o, $h, $l, $c, (float)$k['v'], (bool)$k['x']));
                 } catch (\Throwable $e) {
                     Log::warning('quotes: broadcast error', ['pair_id' => $pairId, 'resolution' => $resolution, 'error' => $e->getMessage()]);
                 }
@@ -159,6 +162,7 @@ class QuotesRelayCommand extends Command
         $deadline = time() + $ttlSeconds;
         $verbose = (bool) env('QUOTES_LOG_VERBOSE', false);
         $count = 0;
+        $spread = app(SpreadService::class);
 
         // Aggregator state
         $barStartMs = null;
@@ -204,8 +208,9 @@ class QuotesRelayCommand extends Command
 
                 // If tick moved to a new bar interval, close previous bar
                 if ($tsMs >= $barStartMs + $intervalMs) {
+                    [$bo, $bh, $bl, $bc] = $spread->applyToBar($pairId, (float)$o, (float)$h, (float)$l, (float)$c);
                     try {
-                        event(new BarUpdated($pairId, $resolution, (int)$barStartMs, (float)$o, (float)$h, (float)$l, (float)$c, (float)$vol, true));
+                        event(new BarUpdated($pairId, $resolution, (int)$barStartMs, $bo, $bh, $bl, $bc, (float)$vol, true));
                     } catch (\Throwable $e) {
                         Log::warning('quotes: TD broadcast close error', ['pair_id' => $pairId, 'error' => $e->getMessage()]);
                     }
@@ -224,9 +229,10 @@ class QuotesRelayCommand extends Command
                     Log::debug('quotes: TD tick', ['pair_id' => $pairId, 't' => $tsMs, 'price' => $price]);
                 }
 
-                // Emit in-progress bar update
+                // Emit in-progress bar update (with spread applied)
+                [$bo, $bh, $bl, $bc] = $spread->applyToBar($pairId, (float)$o, (float)$h, (float)$l, (float)$c);
                 try {
-                    event(new BarUpdated($pairId, $resolution, (int)$barStartMs, (float)$o, (float)$h, (float)$l, (float)$c, (float)$vol, false));
+                    event(new BarUpdated($pairId, $resolution, (int)$barStartMs, $bo, $bh, $bl, $bc, (float)$vol, false));
                 } catch (\Throwable $e) {
                     Log::warning('quotes: TD broadcast open error', ['pair_id' => $pairId, 'error' => $e->getMessage()]);
                 }

@@ -48,6 +48,22 @@ class CurrencyResource extends Resource
                     ->numeric()
                     ->default(0)
                     ->required(),
+                Forms\Components\Section::make('Portfolio Transfer Fee')
+                    ->description('Commission applied when transferring from Portfolio → Trading Account')
+                    ->schema([
+                        Forms\Components\TextInput::make('portfolio_fee_percent')
+                            ->label('Fee, %')
+                            ->numeric()
+                            ->default(0)
+                            ->suffix('%')
+                            ->minValue(0)
+                            ->maxValue(100),
+                        Forms\Components\TextInput::make('portfolio_fee_fixed')
+                            ->label('Fixed fee')
+                            ->numeric()
+                            ->default(0)
+                            ->minValue(0),
+                    ])->columns(2),
                 Forms\Components\TextInput::make('address_regex')
                     ->nullable(),
             ]);

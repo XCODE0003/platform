@@ -18,10 +18,10 @@ const configurationData = {
         // '5',
         // '15',
         // '30',
-        // '60',
+        '60',
         // '120',
         // '240',
-        // '1D',
+        '1D',
     ],
 };
 
@@ -38,6 +38,40 @@ function parsePairSymbol(symbolName) {
     const id = Number(parts[1]);
     if (!Number.isFinite(id)) return null;
     return id;
+}
+
+const SESSION_BY_CLASS = {
+    crypto: '24x7',
+    stock:  '0930-1600:2345',   // NYSE Mon-Fri
+    forex:  '0000-2400:2345',   // 24h Mon-Fri
+    metal:  '0000-2400:2345',
+    fiat:   '0000-2400:2345',
+};
+
+const TIMEZONE_BY_CLASS = {
+    crypto: 'Etc/UTC',
+    stock:  'America/New_York',
+    forex:  'Etc/UTC',
+    metal:  'Etc/UTC',
+    fiat:   'Etc/UTC',
+};
+
+function buildSymbolInfo(pairId, display, assetClass, pricescale) {
+    const cls = assetClass || 'crypto';
+    return {
+        ticker: `PAIR:${pairId}`,
+        name: display,
+        session: SESSION_BY_CLASS[cls] ?? '24x7',
+        timezone: TIMEZONE_BY_CLASS[cls] ?? 'Etc/UTC',
+        minmov: 1,
+        pricescale: pricescale ?? 100000,
+        has_intraday: true,
+        has_daily: true,
+        intraday_multipliers: ['1', '60'],
+        supported_resolutions: configurationData.supported_resolutions,
+        volume_precision: 1,
+        data_status: 'streaming',
+    };
 }
 
 export const resolveSymbol = (
@@ -58,36 +92,12 @@ export const resolveSymbol = (
         .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
         .then((info) => {
             const display = info?.display || `PAIR:${pairId}`;
-            const symbolInfo = {
-                ticker: `PAIR:${pairId}`,
-                name: display,
-                session: '24x7',
-                timezone: 'Etc/UTC',
-                minmov: 1,
-                pricescale: 100000,
-                has_intraday: true,
-                intraday_multipliers: configurationData.supported_resolutions,
-                supported_resolutions: configurationData.supported_resolutions,
-                volume_precision: 1,
-                data_status: 'streaming',
-            };
+            const symbolInfo = buildSymbolInfo(pairId, display, info?.asset_class, info?.pricescale);
             dbg('resolveSymbol ok', { symbolName, pairId, symbolInfo });
             onSymbolResolvedCallback(symbolInfo);
         })
         .catch(() => {
-            const fallback = {
-                ticker: `PAIR:${pairId}`,
-                name: `PAIR:${pairId}`,
-                session: '24x7',
-                timezone: 'Etc/UTC',
-                minmov: 1,
-                pricescale: 100000,
-                has_intraday: true,
-                intraday_multipliers: configurationData.supported_resolutions,
-                supported_resolutions: configurationData.supported_resolutions,
-                volume_precision: 1,
-                data_status: 'streaming',
-            };
+            const fallback = buildSymbolInfo(pairId, `PAIR:${pairId}`);
             dbg('resolveSymbol fallback', { symbolName, pairId, fallback });
             onSymbolResolvedCallback(fallback);
         });
@@ -114,7 +124,7 @@ export const getBars = async (
         url.searchParams.set('resolution', String(resolution));
         url.searchParams.set('from', String(periodParams.from));
         url.searchParams.set('to', String(periodParams.to));
-        url.searchParams.set('source', 'twelvedata');
+        // source determined by pair's default_source on backend
 
         const resp = await fetch(url.toString(), {
             credentials: 'same-origin',
@@ -158,7 +168,7 @@ export const subscribeBars = (
         return;
     }
     // Touch relay TTL so backend keeps WS open for this pair/resolution
-    try {
+    const ensureRelay = () => {
         axiosClient
             .post('/api/quotes/ensure', {
                 pair_id: pairId,
@@ -166,7 +176,14 @@ export const subscribeBars = (
                 ttl: 600,
             })
             .catch(() => {});
+    };
+    try {
+        ensureRelay();
     } catch (_) {}
+    // Refresh TTL every 5 minutes so relay stays alive as long as chart is open
+    const ttlRefreshInterval = setInterval(() => {
+        try { ensureRelay(); } catch (_) {}
+    }, 5 * 60 * 1000);
     // pick channel by resolution: pair.{id}.{res}
     const chanName = 'pair.' + pairId + '.' + String(resolution);
     const channel = window.Echo.channel(chanName);
@@ -193,12 +210,10 @@ export const subscribeBars = (
             volume: Number(bar.volume),
             closed: Boolean(bar.closed),
         };
-        console.log('[quotes] BAR TV', tvBar);
         dbg('tv onRealtimeCallback', tvBar);
         onRealtimeCallback(tvBar);
     };
     channel.listen('.bar', (payload) => {
-        console.log('[quotes] BAR RAW', payload);
         dbg('bar raw', payload);
         try {
             let data = payload;
@@ -217,6 +232,7 @@ export const subscribeBars = (
         handler,
         pairId,
         resolution: String(resolution),
+        ttlRefreshInterval,
     });
 };
 
@@ -224,13 +240,16 @@ export const unsubscribeBars = (subscriberUID) => {
     const s = subs.get(subscriberUID);
     if (!s) return;
     dbg('unsubscribeBars', { pairId: s?.pairId, subscriberUID });
-    try {
-        s.channel.stopListening('.bar');
-    } catch {}
-    try {
-        window.Echo.leave('pair.' + s.pairId + '.' + s.resolution);
-    } catch {}
+    try { clearInterval(s.ttlRefreshInterval); } catch {}
+    try { s.channel.stopListening('.bar'); } catch {}
+    try { window.Echo.leave('pair.' + s.pairId + '.' + s.resolution); } catch {}
     subs.delete(subscriberUID);
+};
+
+export const unsubscribeAll = () => {
+    for (const uid of [...subs.keys()]) {
+        unsubscribeBars(uid);
+    }
 };
 
 const UnifiedDatafeed = {

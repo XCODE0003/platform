@@ -1,10 +1,12 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
+import { useToast } from '@/composables/useToast.js';
 import { useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
 
 const modal = useModalStore();
+const toast = useToast();
 const isOpen = computed({
     get: () => modal.isOpen('promocode'),
     set: (v) => (v ? modal.open('promocode') : modal.close('promocode')),
@@ -15,8 +17,13 @@ const form = useForm({ promocode: '' });
 function activatePromocode() {
     form.post('/account/activate-promocode', {
         onSuccess: () => {
+            toast.showSuccess('Promocode successfully activated');
             isOpen.value = false;
             form.reset();
+        },
+        onError: (errors) => {
+            const msg = errors.promocode ?? Object.values(errors)[0] ?? 'Activation failed';
+            toast.showError(msg);
         },
     });
 }

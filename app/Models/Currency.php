@@ -16,6 +16,8 @@ class Currency extends Model
         'status',
         'is_deposit',
         'min_deposit_amount',
+        'portfolio_fee_percent',
+        'portfolio_fee_fixed',
         'address_regex',
 
 

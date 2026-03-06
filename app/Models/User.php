@@ -20,7 +20,7 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        return (bool) $this->is_admin;
     }
 
     public function getFilamentName(): string
@@ -38,6 +38,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'password',
         'google_2fa_enabled',
         'google_2fa_secret',
+        'is_admin',
     ];
 
     /**
@@ -59,7 +60,8 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'         => 'hashed',
+            'is_admin'         => 'boolean',
         ];
     }
 

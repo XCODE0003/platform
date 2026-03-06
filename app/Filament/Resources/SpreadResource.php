@@ -29,13 +29,23 @@ class SpreadResource extends Resource
                     ->native(false)
                     ->options(User::all()->pluck('email', 'id')),
                 Forms\Components\Select::make('currency_id_in')
+                    ->label('Currency (base)')
                     ->native(false)
-                    ->options(Currency::all()->pluck('name', 'id')),
-                Forms\Components\Select::make('currency_id_out')
-                    ->native(false)
-                    ->options(Currency::all()->pluck('name', 'id')),
+                    ->options(Currency::all()->pluck('name', 'id'))
+                    ->required()
+                    ->searchable(),
                 Forms\Components\TextInput::make('spread_value')
-                    ->numeric(),
+                    ->numeric()
+                    ->suffix('%')
+                    ->helperText('Percentage markup added to prices (e.g. 0.5 = +0.5%)'),
+                Forms\Components\DatePicker::make('start_date')
+                    ->native(false)
+                    ->nullable()
+                    ->helperText('Leave empty to apply spread from any date'),
+                Forms\Components\DatePicker::make('end_date')
+                    ->native(false)
+                    ->nullable()
+                    ->helperText('Leave empty to apply spread with no end date'),
                 Forms\Components\Toggle::make('is_active')
                     ->required(),
             ]);
@@ -45,10 +55,21 @@ class SpreadResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.email'),
-                Tables\Columns\TextColumn::make('currency_in.name'),
-                Tables\Columns\TextColumn::make('currency_out.name'),
-                Tables\Columns\TextColumn::make('spread_value'),
+                Tables\Columns\TextColumn::make('user.email')
+                    ->label('User')
+                    ->placeholder('All users'),
+                Tables\Columns\TextColumn::make('currency_in.name')
+                    ->label('Currency'),
+                Tables\Columns\TextColumn::make('spread_value')
+                    ->suffix('%'),
+                Tables\Columns\TextColumn::make('start_date')
+                    ->label('From')
+                    ->date('d.m.Y')
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('end_date')
+                    ->label('To')
+                    ->date('d.m.Y')
+                    ->placeholder('—'),
                 Tables\Columns\ToggleColumn::make('is_active'),
             ])
             ->filters([
@@ -56,9 +77,7 @@ class SpreadResource extends Resource
                     ->native(false)
                     ->options(User::all()->pluck('email', 'id')),
                 Tables\Filters\SelectFilter::make('currency_id_in')
-                    ->native(false)
-                    ->options(Currency::all()->pluck('name', 'id')),
-                Tables\Filters\SelectFilter::make('currency_id_out')
+                    ->label('Currency')
                     ->native(false)
                     ->options(Currency::all()->pluck('name', 'id')),
             ])

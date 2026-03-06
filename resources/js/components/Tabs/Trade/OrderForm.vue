@@ -308,15 +308,15 @@ function switchTab(tab) {
                     <div class="tabs__content-item tabs__content-item-3" id="LimitOrderBuy">
                         <div class="flex-center">
                             <div class="way-select">
-                                <!-- <button type="button" @click="typeOrder = 'limit'" :class="{ active: typeOrder === 'limit' }" class="btn way text_small_14">
-                                    Limit
-                                </button> -->
                                 <button type="button" @click="typeOrder = 'market'" :class="{ active: typeOrder === 'market' }" class="btn way text_small_14">
                                     Market
                                 </button>
-                                <!-- <button type="button" @click="typeOrder = 'stop'" :class="{ active: typeOrder === 'stop' }" class="btn way text_small_14">
+                                <button type="button" @click="typeOrder = 'limit'" :class="{ active: typeOrder === 'limit' }" class="btn way text_small_14">
+                                    Limit
+                                </button>
+                                <button type="button" @click="typeOrder = 'stop'" :class="{ active: typeOrder === 'stop' }" class="btn way text_small_14">
                                     Stop
-                                </button> -->
+                                </button>
                             </div>
                             <div class="balance">
                                 <span class="text_small_12 color-gray2">Available balance</span>
@@ -469,15 +469,15 @@ function switchTab(tab) {
                     <div class="tabs__content-item tabs__content-item-3" id="LimitOrderSell">
                         <div class="flex-center">
                             <div class="way-select">
-                                <!-- <button type="button" @click="typeOrder = 'limit'" :class="{ active: typeOrder === 'limit' }" class="btn way text_small_14">
-                                    Limit
-                                </button> -->
                                 <button type="button" @click="typeOrder = 'market'" :class="{ active: typeOrder === 'market' }" class="btn way text_small_14">
                                     Market
                                 </button>
-                                <!-- <button type="button" @click="typeOrder = 'stop'" :class="{ active: typeOrder === 'stop' }" class="btn way text_small_14">
+                                <button type="button" @click="typeOrder = 'limit'" :class="{ active: typeOrder === 'limit' }" class="btn way text_small_14">
+                                    Limit
+                                </button>
+                                <button type="button" @click="typeOrder = 'stop'" :class="{ active: typeOrder === 'stop' }" class="btn way text_small_14">
                                     Stop
-                                </button> -->
+                                </button>
                             </div>
                             <div class="balance">
                                 <span class="text_small_12 color-gray2">Available balance</span>
