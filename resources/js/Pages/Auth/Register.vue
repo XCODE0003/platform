@@ -45,7 +45,6 @@ function submit() {
                                 <Link
                                     href="/login"
                                     class="btn btn_sign"
-                                    style="background: var(--Blue, #c4e9fc)"
                                 >
                                     Log in
                                 </Link>
