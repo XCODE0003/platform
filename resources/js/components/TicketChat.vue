@@ -402,7 +402,12 @@ function formatTime(str) {
 .chat-textarea:focus { border-color: rgba(121,249,149,0.4); }
 .chat-textarea::placeholder { color: rgba(255,255,255,0.3); }
 .chat-textarea--sm { flex: 1; }
-
+.chat-send-btn span{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
 .chat-send-btn {
     width: 100%; margin-top: 10px;
     padding: 10px; border-radius: 10px;
