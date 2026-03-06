@@ -8,6 +8,9 @@ import { disabledButton, watchErrors, fieldNamesPresets } from '@/utils/system';
 const page = usePage();
 const { showError, showSuccess } = useToast();
 const form = useForm({
+    first_name: '',
+    last_name: '',
+    phone: '',
     email: '',
     password: '',
     password_confirmation: '',
@@ -49,6 +52,38 @@ function submit() {
                             </Link>
                         </div>
                         <form class="login-block" @submit.prevent="submit">
+                            <div class="form-row">
+                                <label class="form-item">
+                                    <input
+                                        required
+                                        :class="{ input: true, 'input-wrong': errors.first_name }"
+                                        type="text"
+                                        name="first_name"
+                                        v-model="form.first_name"
+                                        placeholder="First name"
+                                    />
+                                </label>
+                                <label class="form-item">
+                                    <input
+                                        required
+                                        :class="{ input: true, 'input-wrong': errors.last_name }"
+                                        type="text"
+                                        name="last_name"
+                                        v-model="form.last_name"
+                                        placeholder="Last name"
+                                    />
+                                </label>
+                            </div>
+                            <label class="form-item">
+                                <input
+                                    required
+                                    :class="{ input: true, 'input-wrong': errors.phone }"
+                                    type="tel"
+                                    name="phone"
+                                    v-model="form.phone"
+                                    placeholder="+1 234 567 8900"
+                                />
+                            </label>
                             <label class="form-item">
                                 <input
                                     required
@@ -103,22 +138,13 @@ function submit() {
                                     for="terms"
                                     class="text_small_12 color-gray2"
                                     >I agree to
-                                    <a
-                                        href="#"
-                                        style="
-                                            color: inherit;
-                                            text-decoration: underline;
-                                            margin-left: 3px;
-                                        "
-                                    >
-                                        terms of use
-                                    </a>
+                                    terms of use
                                 </label>
                             </div>
                             <button
                                 class="submit btn btn_16 color-white"
                                 type="submit"
-                                :disabled="form.processing || disabledButton(form.data(), ['email', 'password', 'password_confirmation', 'terms'])"
+                                :disabled="form.processing || disabledButton(form.data(), ['first_name', 'last_name', 'phone', 'email', 'password', 'password_confirmation', 'terms'])"
                             >
                             {{ form.processing ? 'Creating...' : 'Sign up' }}
                             </button>
@@ -133,4 +159,10 @@ function submit() {
     </MainLayout>
 </template>
 
-<style scoped></style>
+<style scoped>
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+</style>

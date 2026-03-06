@@ -34,6 +34,9 @@ class User extends Authenticatable implements FilamentUser, HasName
      * @var list<string>
      */
     protected $fillable = [
+        'first_name',
+        'last_name',
+        'phone',
         'email',
         'password',
         'google_2fa_enabled',

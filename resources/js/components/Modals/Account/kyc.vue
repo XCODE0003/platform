@@ -26,7 +26,7 @@ const props = defineProps({
 });
 
 const form = useForm({
-    sex: '',
+    sex: 'male',
     first_name: '',
     last_name: '',
     phone: '',
@@ -100,6 +100,7 @@ function submitKyc() {
                 <select
                     v-model="form.sex"
                     class="input mb10"
+
                     name="sex"
                     id="sex"
                 >

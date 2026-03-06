@@ -44,7 +44,7 @@ class GroupPairResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Active')
                     ->trueIcon('heroicon-o-check')
-                    ->falseIcon('heroicon-o-x')
+                    ->falseIcon('heroicon-o-x-mark')
                     ->boolean(),
             ])
             ->filters([

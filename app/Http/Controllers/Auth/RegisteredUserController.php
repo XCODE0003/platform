@@ -35,13 +35,19 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name'  => ['required', 'string', 'max:100'],
+            'phone'      => ['required', 'string', 'max:30'],
+            'email'      => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'password'   => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
         $secret = (new GoogleCreateSecret())->createSecret();
         $user = User::create([
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'first_name'        => $request->first_name,
+            'last_name'         => $request->last_name,
+            'phone'             => $request->phone,
+            'email'             => $request->email,
+            'password'          => Hash::make($request->password),
             'google_2fa_secret' => $secret,
         ]);
         (new CreateWallets())->createWallets($user);
