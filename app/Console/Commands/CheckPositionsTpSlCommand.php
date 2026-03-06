@@ -10,6 +10,7 @@ use App\Services\Trade\OrderService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use function bccomp;
 
 /**
  * Fallback safety check: runs every minute to catch any TP/SL conditions
