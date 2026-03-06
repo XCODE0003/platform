@@ -123,7 +123,10 @@ class OrderController extends Controller
         ]);
         $position = Position::query()->where('user_id', $user->id)->whereKey($positionId)->firstOrFail();
         $closed = $this->service->closePosition($position, (string) $validated['price']);
-        return response()->json($closed);
+        return response()->json([
+            'position' => $closed,
+            'bills'    => $this->serializeBills($user),
+        ]);
     }
 
     /**

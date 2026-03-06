@@ -66,5 +66,10 @@ export function useToast() {
         showSuccess,
         showWarning,
         showInfo,
+        // short aliases
+        error: showError,
+        success: showSuccess,
+        warning: showWarning,
+        info: showInfo,
     };
 }

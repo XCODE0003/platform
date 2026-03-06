@@ -1,16 +1,14 @@
 <script setup>
-import { ref } from 'vue';
 import TicketChat from '@/components/TicketChat.vue';
+import { useSupportChatStore } from '@/stores/supportChatStore.js';
+import { storeToRefs } from 'pinia';
 
-const chatOpen = ref(false);
-
-function toggleChat() {
-    chatOpen.value = !chatOpen.value;
-}
+const supportChat = useSupportChatStore();
+const { open: chatOpen } = storeToRefs(supportChat);
 </script>
 
 <template>
-  <div class="tickets-toggle" :class="{ active: chatOpen }" @click="toggleChat">
+  <div class="tickets-toggle" :class="{ active: chatOpen }" @click="supportChat.toggleChat()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
           d="M17 18.43H13L8.54999 21.39C7.88999 21.83 7 21.36 7 20.56V18.43C4 18.43 2 16.43 2 13.43V7.42993C2 4.42993 4 2.42993 7 2.42993H17C20 2.42993 22 4.42993 22 7.42993V13.43C22 16.43 20 18.43 17 18.43Z"
@@ -56,7 +54,7 @@ function toggleChat() {
     </div>
   </div>
 
-  <TicketChat :open="chatOpen" @close="chatOpen = false" />
+  <TicketChat :open="chatOpen" @close="supportChat.closeChat()" />
 </template>
 
 <style scoped>

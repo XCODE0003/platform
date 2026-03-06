@@ -228,7 +228,9 @@ function submitBuy(e) {
         buyAmount.value = '';
         buyTotal.value = '';
     }).catch((err) => {
-        toast.error(err?.response?.data?.message || 'Failed to place order');
+        const data = err?.response?.data;
+        const msg = data?.errors ? Object.values(data.errors).flat()[0] : (data?.message || 'Failed to place order');
+        toast.error(msg);
     }).finally(() => {
         submitting.value = false;
     });
@@ -264,7 +266,9 @@ function submitSell(e) {
         sellAmount.value = '';
         sellTotal.value = '';
     }).catch((err) => {
-        toast.error(err?.response?.data?.message || 'Failed to place order');
+        const data = err?.response?.data;
+        const msg = data?.errors ? Object.values(data.errors).flat()[0] : (data?.message || 'Failed to place order');
+        toast.error(msg);
     }).finally(() => {
         submitting.value = false;
     });

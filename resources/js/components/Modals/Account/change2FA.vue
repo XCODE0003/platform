@@ -1,9 +1,11 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
+import { useToast } from '@/composables/useToast.js';
 import { computed, ref, defineProps } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
 import { useUserStore } from '@/stores/userStore.js';
 const userStore = useUserStore();
+const toast = useToast();
 const is_2fa = computed(() => userStore.user.google_2fa_enabled);
 const ga2fa = ref({ code: '' });
 const modal = useModalStore();
@@ -17,22 +19,17 @@ const isOpen = computed({
     get: () => modal.isOpen('change2fa'),
     set: (v) => (v ? modal.open('change2fa') : modal.close('change2fa')),
 });
-const enable2fa = async () => {
+const toggle2fa = async () => {
     const response = await userStore.toggle2FA(ga2fa.value.code);
     if (response.success) {
         userStore.user.google_2fa_enabled = response.is_2fa;
-        is_2fa.value = response.is_2fa;
+        toast.showSuccess(response.is_2fa ? '2FA enabled successfully' : '2FA disabled successfully');
+        ga2fa.value.code = '';
         isOpen.value = false;
     }
 };
-const disable2fa = async () => {
-    const response = await userStore.toggle2FA(ga2fa.value.code);
-    if (response.success) {
-        userStore.user.google_2fa_enabled = response.is_2fa;
-        is_2fa.value = response.is_2fa;
-        isOpen.value = false;
-    }
-};
+const enable2fa = toggle2fa;
+const disable2fa = toggle2fa;
 
 
 

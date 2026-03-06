@@ -156,6 +156,14 @@ class AccountController extends Controller
     public function withdraw(WithdrawRequest $request): RedirectResponse
     {
         $user = $request->user();
+
+        $kycApproved = KycUser::where('user_id', $user->id)->where('status', 'approved')->exists();
+        if (! $kycApproved) {
+            return back()->withErrors([
+                'kyc' => 'KYC verification is required for withdrawals. Please complete verification in your account settings.',
+            ]);
+        }
+
         $bill = $request->bill();
 
         if (! $bill) {

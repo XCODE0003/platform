@@ -100,7 +100,10 @@ export const useTradeStore = defineStore('trade', {
         },
         async closePosition(id, price) {
             const { data } = await axiosClient.post(`/api/trade/positions/${id}/close`, { price });
-            this.lastClosedPosition = data;
+            this.lastClosedPosition = data.position ?? data;
+            if (data?.bills) {
+                this.setBills(data.bills);
+            }
             setTimeout(() => {
                 this.lastClosedPosition = null;
             }, 5000);

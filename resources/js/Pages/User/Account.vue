@@ -5,6 +5,7 @@ import ChangePassword from '@/components/Modals/Account/changePassword.vue';
 import Kyc from '@/components/Modals/Account/kyc.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
 import { useModalStore } from '@/stores/modal.js';
+import { useSupportChatStore } from '@/stores/supportChatStore.js';
 import { randomUUID } from '@/utils/system';
 import QRCode from "qrcode";
 import { router, usePage } from '@inertiajs/vue3';
@@ -83,6 +84,12 @@ function UpdateInfo2fa(value) {
 }
 
 const modal = useModalStore();
+const supportChat = useSupportChatStore();
+
+const kycStatus = computed(() => kycData.value?.status ?? 'start');
+const kycPassed = computed(() => kycStatus.value === 'approved');
+const kycPending = computed(() => kycStatus.value === 'pending');
+const kycRejected = computed(() => kycStatus.value === 'rejected');
 
 </script>
 
@@ -147,6 +154,38 @@ const modal = useModalStore();
                         </div>
 
                         <div class="account-block account-settings">
+                            <div class="line">
+                                <div class="title text_17">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#344955"/>
+                                    </svg>
+                                    Name
+                                </div>
+                                <div class="content">
+                                    <input
+                                        type="text"
+                                        readonly
+                                        class="clear text_17"
+                                        :value="[user.first_name, user.last_name].filter(Boolean).join(' ') || '—'"
+                                    />
+                                </div>
+                            </div>
+                            <div class="line">
+                                <div class="title text_17">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6.62 10.79C8.06 13.62 10.38 15.94 13.21 17.38L15.41 15.18C15.69 14.9 16.08 14.82 16.43 14.93C17.55 15.3 18.75 15.5 20 15.5C20.55 15.5 21 15.95 21 16.5V20C21 20.55 20.55 21 20 21C10.61 21 3 13.39 3 4C3 3.45 3.45 3 4 3H7.5C8.05 3 8.5 3.45 8.5 4C8.5 5.25 8.7 6.45 9.07 7.57C9.18 7.92 9.1 8.31 8.82 8.59L6.62 10.79Z" fill="#344955"/>
+                                    </svg>
+                                    Phone
+                                </div>
+                                <div class="content">
+                                    <input
+                                        type="text"
+                                        readonly
+                                        class="clear text_17"
+                                        :value="user.phone || '—'"
+                                    />
+                                </div>
+                            </div>
                             <div class="line">
                                 <div class="title text_17">
                                     <svg
@@ -291,15 +330,38 @@ const modal = useModalStore();
                                             fill="#344955"
                                         />
                                     </svg>
-                                    Verification
+                                    KYC
                                 </div>
                                 <div class="content">
+                                    <div class="kyc-status-row flex-center gap8">
+                                        <span
+                                            v-if="kycPassed"
+                                            class="kyc-badge kyc-badge-passed"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/>
+                                            </svg>
+                                            Passed
+                                        </span>
+                                        <span
+                                            v-else-if="kycPending"
+                                            class="kyc-badge kyc-badge-pending"
+                                        >
+                                            Pending verification
+                                        </span>
+                                        <span
+                                            v-else-if="kycRejected"
+                                            class="kyc-badge kyc-badge-rejected"
+                                        >
+                                            Rejected
+                                        </span>
+                                        <span v-else class="kyc-badge kyc-badge-not-passed">
+                                            Not passed
+                                        </span>
+                                    </div>
                                     <p
-                                        v-if="
-                                            kycData.status === 'rejected' &&
-                                            kycData.error_message
-                                        "
-                                        class="text-red2"
+                                        v-if="kycRejected && kycData.error_message"
+                                        class="text-red2 text_small_12 mt5"
                                     >
                                         {{ kycData.error_message }}
                                     </p>
@@ -308,24 +370,21 @@ const modal = useModalStore();
                                     <button
                                         class="btn small_btn btn_16"
                                         :class="{
-                                            bg_success:
-                                            kycData.status === 3,
-                                            bg_danger:
-                                            kycData.status === 2,
+                                            bg_success: kycPassed,
+                                            bg_danger: kycRejected,
                                         }"
+                                        :disabled="kycPassed"
                                         @click="modal.open('verify')"
                                     >
-
                                         {{
-                                            kycData.status === 'start'
-                                                ? 'Send kyc application'
-                                                : kycData.status === 'pending'
+                                            kycPassed
+                                                ? 'Verified'
+                                                : kycPending
                                                   ? 'View application'
-                                                  : kycData.status === 'rejected'
+                                                  : kycRejected
                                                     ? 'Resend application'
-                                                    : 'KYC verification completed'
+                                                    : 'Send KYC application'
                                         }}
-
                                     </button>
                                 </div>
                             </div>
@@ -338,7 +397,7 @@ const modal = useModalStore();
                                 </div>
                                 <div class="content"></div>
                                 <div class="action">
-                                    <button class="btn small_btn btn_16" @click="modal.open('ticket')">
+                                    <button class="btn small_btn btn_16" @click="supportChat.openChat()">
                                         Contact Support
                                     </button>
                                 </div>
@@ -356,4 +415,32 @@ const modal = useModalStore();
     </MainLayout>
 </template>
 
-<style scoped></style>
+<style scoped>
+.kyc-status-row { flex-wrap: wrap; }
+.kyc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+.kyc-badge-passed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+.kyc-badge-pending {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+.kyc-badge-rejected {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+.kyc-badge-not-passed {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+}
+.mt5 { margin-top: 5px; }
+</style>

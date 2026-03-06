@@ -95,6 +95,10 @@ Route::middleware('auth')->group(function () {
     // Unified market data endpoint
     Route::get('/api/market/pair', [App\Http\Controllers\User\MarketDataController::class, 'pairInfo'])->name('market.pair');
     Route::get('/api/market/bars', [App\Http\Controllers\User\MarketDataController::class, 'bars'])->name('market.bars');
+
+    Route::get('/api/support/ticket', [App\Http\Controllers\User\TicketController::class, 'current'])->name('support.ticket');
+    Route::post('/api/support/tickets', [App\Http\Controllers\User\TicketController::class, 'store'])->name('support.tickets.store');
+    Route::post('/api/support/messages', [App\Http\Controllers\User\TicketController::class, 'addMessage'])->name('support.messages.store');
 });
 
 require __DIR__ . '/auth.php';

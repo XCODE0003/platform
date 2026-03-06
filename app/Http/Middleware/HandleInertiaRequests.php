@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\KycUser;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -38,12 +39,18 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $user = $request->user();
+        $kycApproved = $user
+            ? (bool) KycUser::where('user_id', $user->id)->where('status', 'approved')->exists()
+            : false;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'kyc_approved' => $kycApproved,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

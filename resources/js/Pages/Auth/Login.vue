@@ -1,5 +1,5 @@
 <script setup>
-import MainLayout from '@/layouts/MainLayout.vue';
+import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { useToast } from '@/composables/useToast';
 import { disabledButton, watchErrors, fieldNamesPresets } from '@/utils/system';
@@ -30,7 +30,7 @@ function submit() {
 </script>
 
 <template>
-    <MainLayout>
+    <AuthLayout>
         <main class="login">
             <section class="login">
                 <div class="container">
@@ -131,7 +131,7 @@ function submit() {
                 </div>
             </section>
         </main>
-    </MainLayout>
+    </AuthLayout>
 </template>
 
 <style scoped></style>

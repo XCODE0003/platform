@@ -1,9 +1,12 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
-import { computed, ref } from 'vue';
+import { useToast } from '@/composables/useToast.js';
+import { computed } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import { VueFinalModal } from 'vue-final-modal';
 
 const modal = useModalStore();
+const toast = useToast();
 
 const isOpen = computed({
     get: () => modal.isOpen('changePassword'),
@@ -11,24 +14,24 @@ const isOpen = computed({
         v ? modal.open('changePassword') : modal.close('changePassword'),
 });
 
-const ChangePasswordModel = ref({
-    old_password: '',
+const form = useForm({
+    current_password: '',
     password: '',
     password_confirmation: '',
 });
 
-const errors = ref({
-    old_password: '',
-    password: '',
-    password_confirmation: '',
-});
-
-async function changePassword() {
-    // Replace with real Inertia POST when backend route is ready
-    errors.value.old_password = '';
-    errors.value.password = '';
-    errors.value.password_confirmation = '';
-    isOpen.value = false;
+function changePassword() {
+    form.post('/account/change-password', {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.showSuccess('Password changed successfully');
+            form.reset();
+            isOpen.value = false;
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach((msg) => toast.showError(msg));
+        },
+    });
 }
 </script>
 
@@ -53,9 +56,9 @@ async function changePassword() {
             <input
                 type="password"
                 class="input mb10"
-                v-model="ChangePasswordModel.old_password"
-                :class="{ 'input-wrong': errors.old_password }"
-                name="old_password"
+                v-model="form.current_password"
+                :class="{ 'input-wrong': form.errors.current_password }"
+                name="current_password"
                 placeholder="Current password"
                 required
             />
@@ -63,8 +66,8 @@ async function changePassword() {
                 type="password"
                 name="password"
                 class="input mb10"
-                v-model="ChangePasswordModel.password"
-                :class="{ 'input-wrong': errors.password }"
+                v-model="form.password"
+                :class="{ 'input-wrong': form.errors.password }"
                 placeholder="New password"
                 required
                 title="8 - 30 characters"
@@ -72,8 +75,8 @@ async function changePassword() {
             <input
                 type="password"
                 name="password_confirmation"
-                v-model="ChangePasswordModel.password_confirmation"
-                :class="{ 'input-wrong': errors.password_confirmation }"
+                v-model="form.password_confirmation"
+                :class="{ 'input-wrong': form.errors.password_confirmation }"
                 class="input mb25"
                 placeholder="Confirm new password"
                 required
@@ -82,9 +85,10 @@ async function changePassword() {
                 type="submit"
                 @click="changePassword"
                 :disabled="
-                    !ChangePasswordModel.old_password ||
-                    !ChangePasswordModel.password ||
-                    !ChangePasswordModel.password_confirmation
+                    !form.current_password ||
+                    !form.password ||
+                    !form.password_confirmation ||
+                    form.processing
                 "
                 class="btn btn_action btn_16 color-dark trigger-changepassword"
             >

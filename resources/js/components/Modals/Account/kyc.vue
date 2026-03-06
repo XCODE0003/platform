@@ -1,11 +1,12 @@
 <script setup>
+import Select from '@/components/Tabs/Select/Select.vue';
 import { useModalStore } from '@/stores/modal.js';
 import { useForm } from '@inertiajs/vue3';
 import { computed, defineEmits, defineProps, watchEffect } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
 import { usePage } from '@inertiajs/vue3';
 import { useToast } from '@/composables/useToast.js';
-const { showError } = useToast();
+const { showError, showSuccess } = useToast();
 import { watchErrors, fieldNamesPresets, disabledButton } from '@/utils/system.js';
 const page = usePage();
 const modal = useModalStore();
@@ -58,13 +59,22 @@ watchEffect(() => {
     }
 });
 
+const sexOptions = [
+    { value: 'male', label: 'I am male' },
+    { value: 'female', label: 'I am female' },
+];
+
 function submitKyc() {
     form.post('/kyc', {
         preserveScroll: true,
         onSuccess: () => {
             form.status = 'pending';
             updateModel({ ...form.data() });
+            showSuccess('KYC submitted successfully. We will review your documents shortly.');
             isOpen.value = false;
+        },
+        onError: (errors) => {
+            Object.values(errors).forEach((msg) => showError(msg));
         },
     });
 }
@@ -97,16 +107,17 @@ function submitKyc() {
                 style="max-height: 500px; overflow: auto"
                 class="flex-column flex hide-scroll"
             >
-                <select
-                    v-model="form.sex"
-                    class="input mb10"
+                <div class="mb10 kyc-sex-select">
+                    <Select
+                        id="kyc-sex"
 
-                    name="sex"
-                    id="sex"
-                >
-                    <option value="male">I am male</option>
-                    <option value="female">I am female</option>
-                </select>
+                        v-model="form.sex"
+                        :options="sexOptions"
+                        placeholder="Select gender"
+                        :disabled="kycData && (kycData.status === 'approved' || kycData.status === 'pending')"
+                        :show-button="false"
+                    />
+                </div>
                 <input
                     type="text"
                     :readonly="kycData.status === 'approved' || kycData.status === 'pending'"
@@ -313,4 +324,19 @@ function submitKyc() {
     </VueFinalModal>
 </template>
 
-<style scoped></style>
+<style scoped>
+.kyc-sex-select :deep(.itc-select) {
+    width: 100%;
+}
+.kyc-sex-select :deep(.itc-select__toggle) {
+    padding: 24px 20px;
+    padding-right: 44px;
+    border-radius: 10px;
+    font-size: 18px;
+    line-height: 120%;
+    border: 1px solid transparent;
+}
+.kyc-sex-select :deep(.itc-select__toggle .chevron) {
+    right: 20px;
+}
+</style>

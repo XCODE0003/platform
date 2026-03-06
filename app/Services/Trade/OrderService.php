@@ -80,25 +80,8 @@ class OrderService
             ]);
             $order->save();
 
-            // Create position immediately for all order types
-            $entryPrice = $data['price'] ?? $data['stop_price'] ?? null;
-            if ($entryPrice !== null) {
-                $position = new Position([
-                    'user_id' => $userId,
-                    'pair_id' => $pair->id,
-                    'bill_id' => $bill->id,
-                    'side' => $side,
-                    'entry_price' => (string) $entryPrice,
-                    'quantity' => $amount,
-                    'entry_total' => $total,
-                    'take_profit' => $data['take_profit'] ?? null,
-                    'stop_loss' => $data['stop_loss'] ?? null,
-                    'status' => 'open',
-                ]);
-                $position->save();
-
-
-            }
+            // Position is created in fillOrder() once the order is actually matched.
+            // Do NOT create a position here to avoid double-counting when fillOrder merges.
 
             return $order;
         });
@@ -112,49 +95,15 @@ class OrderService
 
 
         DB::transaction(function () use ($order): void {
-            // Refund reserved funds to bill
             $bill = $order->bill()->lockForUpdate()->first();
-            $pair = $order->pair;
-            if($pair->default_source === 'binance') {
-                $marketPrice = (new UpdateRates())->fetchBinancePrice($pair->currencyIn->symbol . 'USDT');
-            } else {
-                $marketPrice = (new UpdateRates())->fetchTwelveDataPrice($pair->currencyIn->symbol );
 
-            }
-
-
-            // Базовая цена ордера для расчета (limit или stop)
-            $anchorPrice = $order->price ?? $order->stop_price;
-
-            // Кол-во в базовой валюте
-            $qty = (string) $order->amount;
-
-            // per-unit diff с правильным направлением
-            $perUnit = '0';
-            if ($anchorPrice !== null) {
-                $perUnit = $order->side === 'buy'
-                    ? bcsub((string) $marketPrice, (string) $anchorPrice, 10)
-                    : bcsub((string) $anchorPrice, (string) $marketPrice, 10);
-            }
-
-            // Полный PnL = diff * qty
-            $pnl = bcmul($perUnit, $qty, 10);
-
+            // Refund the reserved funds — no PnL since the order was never filled
             if ($order->total !== null) {
                 $bill->balance = bcadd((string) $bill->balance, (string) $order->total, 10);
+                $bill->save();
             }
-            $bill->balance = bcadd((string) $bill->balance, (string) $pnl, 10);
-            $bill->save();
 
-
-            $position = Position::query()->where('user_id', $order->user_id)->where('pair_id', $order->pair_id)->where('bill_id', $order->bill_id)->where('status', 'open')->first();
-            if ($position) {
-                $position->take_profit = $pnl;
-                $position->status = 'closed';
-                $position->save();
-            }
-            $order->take_profit = $pnl;
-            $order->status = 'filled'; // если хотите именно 'cancelled', замените, но тогда решите где хранить PnL
+            $order->status = 'cancelled';
             $order->save();
         });
     }
