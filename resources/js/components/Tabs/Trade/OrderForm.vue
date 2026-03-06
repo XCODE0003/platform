@@ -47,8 +47,10 @@ const FEE_RATE = 0.001; // 0.1%
 const submitting = ref(false);
 
 function toNum(v) {
-    const n = Number((v ?? '').toString().replace(',', '.'));
-    return Number.isFinite(n) ? n : null;
+    const s = (v ?? '').toString().trim().replace(',', '.');
+    if (s === '' || s === '.') return null;
+    const n = Number(s);
+    return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 function getDecimals(sym) {
@@ -145,29 +147,14 @@ function applyPercent(side, percent) {
     const bal = Number(selectedBill.value?.balance ?? 0);
     if (!Number.isFinite(bal) || bal <= 0) return;
 
-    const priceBuy = typeOrder.value === 'market' ? livePrice.value : toNum(buyPrice.value);
-    const priceSell = typeOrder.value === 'market' ? livePrice.value : toNum(sellPrice.value);
+    const total = parseFloat((bal * percent).toFixed(8));
 
     if (side === 'buy') {
-        if ((selectedBill.value?.currency?.symbol ?? '') === quoteSymbol.value) {
-            const total = bal * percent;
-            buyTotal.value = total.toString();
-            lastBuyEdited.value = 'total';
-        } else if ((selectedBill.value?.currency?.symbol ?? '') === baseSymbol.value && priceBuy) {
-            const amount = bal * percent;
-            buyAmount.value = amount.toString();
-            lastBuyEdited.value = 'amount';
-        }
+        buyTotal.value = String(total);
+        lastBuyEdited.value = 'total';
     } else {
-        if ((selectedBill.value?.currency?.symbol ?? '') === baseSymbol.value) {
-            const amount = bal * percent;
-            sellAmount.value = amount.toString();
-            lastSellEdited.value = 'amount';
-        } else if ((selectedBill.value?.currency?.symbol ?? '') === quoteSymbol.value && priceSell) {
-            const total = bal * percent;
-            sellTotal.value = total.toString();
-            lastSellEdited.value = 'total';
-        }
+        sellTotal.value = String(total);
+        lastSellEdited.value = 'total';
     }
 }
 
@@ -289,6 +276,16 @@ function switchTab(tab) {
     lastBuyEdited.value = null;
     lastSellEdited.value = null;
 }
+
+// При смене типа ордера сбрасываем состояние пересчёта и поля цены
+watch(typeOrder, () => {
+    lastBuyEdited.value  = null;
+    lastSellEdited.value = null;
+    buyPrice.value       = '';
+    sellPrice.value      = '';
+    buyStopPrice.value   = '';
+    sellStopPrice.value  = '';
+});
 </script>
 <template>
     <div class="order-form">
