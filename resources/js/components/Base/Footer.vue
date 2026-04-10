@@ -30,7 +30,7 @@ const { open: chatOpen } = storeToRefs(supportChat);
           CRYPTOHOUSE
         </a>
         <div class="copyright text_small_12">
-          © 2023. All rights reserved by CRYPTOHOUSE
+          © 2026. All rights reserved by CRYPTOHOUSE
         </div>
       </div>
       <div class="footer-links">
