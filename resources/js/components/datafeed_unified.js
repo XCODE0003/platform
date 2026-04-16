@@ -62,9 +62,9 @@ const TIMEZONE_BY_CLASS = {
     index:     'America/New_York',
 };
 
-function buildSymbolInfo(pairId, display, assetClass, pricescale) {
+function buildSymbolInfo(pairId, display, assetClass, pricescale, description) {
     const cls = assetClass || 'crypto';
-    return {
+    const info = {
         ticker: `PAIR:${pairId}`,
         name: display,
         session: SESSION_BY_CLASS[cls] ?? '24x7',
@@ -80,6 +80,10 @@ function buildSymbolInfo(pairId, display, assetClass, pricescale) {
         volume_precision: 1,
         data_status: 'streaming',
     };
+    if (description) {
+        info.description = description;
+    }
+    return info;
 }
 
 export const resolveSymbol = (
@@ -100,7 +104,7 @@ export const resolveSymbol = (
         .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
         .then((info) => {
             const display = info?.display || `PAIR:${pairId}`;
-            const symbolInfo = buildSymbolInfo(pairId, display, info?.asset_class, info?.pricescale);
+            const symbolInfo = buildSymbolInfo(pairId, display, info?.asset_class, info?.pricescale, info?.description);
             dbg('resolveSymbol ok', { symbolName, pairId, symbolInfo });
             onSymbolResolvedCallback(symbolInfo);
         })

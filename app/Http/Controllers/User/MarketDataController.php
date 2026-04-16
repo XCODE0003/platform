@@ -39,6 +39,7 @@ class MarketDataController extends Controller
             'display'     => $display,
             'asset_class' => $assetClass,
             'pricescale'  => $pricescaleMap[$assetClass] ?? 100000,
+            'description' => $pair->description,
         ]);
     }
 

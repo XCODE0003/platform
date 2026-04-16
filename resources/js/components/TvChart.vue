@@ -4,6 +4,7 @@ import UnifiedDatafeed, { unsubscribeAll } from './datafeed_unified'
 
 const props = defineProps({
   symbol: { type: String, default: 'BTCUSDT' },
+  description: { type: String, default: '123' },
   interval: { type: String, default: '1' },
   theme: { type: String, default: 'dark' },
   autosize: { type: Boolean, default: true },
