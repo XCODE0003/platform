@@ -68,17 +68,21 @@ class TwelveDataSource implements MarketDataSource
     private function mapResolution(string $res): string
     {
         $map = [
-            '1' => '1min',
-            '3' => '3min',
-            '5' => '5min',
-            '15' => '15min',
-            '30' => '30min',
-            '60' => '1h',
-            '120' => '2h',
-            '240' => '4h',
-            '1D' => '1day',
-            'D' => '1day',
+            '1'    => '1min',
+            '3'    => '3min',
+            '5'    => '5min',
+            '15'   => '15min',
+            '30'   => '30min',
+            '60'   => '1h',
+            '120'  => '2h',
+            '240'  => '4h',
+            '1D'   => '1day',
+            'D'    => '1day',
             '1440' => '1day',
+            '1W'   => '1week',
+            'W'    => '1week',
+            '1M'   => '1month',
+            'M'    => '1month',
         ];
         return $map[$res] ?? '1day';
     }

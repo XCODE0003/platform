@@ -30,19 +30,20 @@ class ProcessOrdersOnBarUpdate
 
     private function matchPendingOrders(int $pairId, string $price): void
     {
+        // Market orders are filled immediately on placement — only process limit/stop here
         $orders = Order::query()
             ->where('pair_id', $pairId)
-            ->whereIn('status', ['open', 'queued'])
+            ->whereIn('status', ['queued'])
+            ->whereIn('type', ['limit', 'stop'])
             ->orderBy('id')
             ->limit(200)
             ->get();
 
         foreach ($orders as $order) {
             $shouldFill = match ($order->type) {
-                'market' => true,
-                'limit'  => $this->limitShouldFill($order->side, $price, (string) $order->price),
-                'stop'   => $this->stopShouldFill($order->side, $price, (string) $order->stop_price),
-                default  => false,
+                'limit' => $this->limitShouldFill($order->side, $price, (string) $order->price),
+                'stop'  => $this->stopShouldFill($order->side, $price, (string) $order->stop_price),
+                default => false,
             };
 
             if (!$shouldFill) continue;

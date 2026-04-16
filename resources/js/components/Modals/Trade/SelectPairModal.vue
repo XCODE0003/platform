@@ -1,10 +1,9 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
 import { useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
 import { useTradeStore } from '@/stores/tradeStore.js';
-import { onMounted } from 'vue';
 const modal = useModalStore();
 
 const isOpen = computed({
@@ -19,12 +18,11 @@ const selectGroupPair = (pairGroup) => {
     selectedGroup.value = pairGroup;
 };
 
-onMounted(() => {
-    if (tradingPairs.value.length > 0) {
-        selectedGroup.value = tradingPairs.value[0];
-
+watch(tradingPairs, (pairs) => {
+    if (pairs.length > 0 && selectedGroup.value === null) {
+        selectedGroup.value = pairs[0];
     }
-});
+}, { immediate: true });
 
 
 const handleSelectPair = (pair) => {

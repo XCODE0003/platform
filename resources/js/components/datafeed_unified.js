@@ -14,14 +14,16 @@ const dbg = (...args) => {
 const configurationData = {
     supported_resolutions: [
         '1',
-        // '3',
-        // '5',
-        // '15',
-        // '30',
+        '3',
+        '5',
+        '15',
+        '30',
         '60',
-        // '120',
-        // '240',
+        '120',
+        '240',
         '1D',
+        '1W',
+        '1M',
     ],
 };
 
@@ -41,19 +43,23 @@ function parsePairSymbol(symbolName) {
 }
 
 const SESSION_BY_CLASS = {
-    crypto: '24x7',
-    stock:  '0930-1600:2345',   // NYSE Mon-Fri
-    forex:  '0000-2400:2345',   // 24h Mon-Fri
-    metal:  '0000-2400:2345',
-    fiat:   '0000-2400:2345',
+    crypto:    '24x7',
+    stock:     '0930-1600:2345',   // NYSE Mon-Fri
+    forex:     '0000-2400:2345',   // 24h Mon-Fri
+    metal:     '0000-2400:2345',
+    fiat:      '0000-2400:2345',
+    commodity: '0000-2400:2345',   // CME Globex ~23h/day Mon-Fri
+    index:     '0000-2400:2345',
 };
 
 const TIMEZONE_BY_CLASS = {
-    crypto: 'Etc/UTC',
-    stock:  'America/New_York',
-    forex:  'Etc/UTC',
-    metal:  'Etc/UTC',
-    fiat:   'Etc/UTC',
+    crypto:    'Etc/UTC',
+    stock:     'America/New_York',
+    forex:     'Etc/UTC',
+    metal:     'Etc/UTC',
+    fiat:      'Etc/UTC',
+    commodity: 'America/Chicago',  // CME is Chicago-based
+    index:     'America/New_York',
 };
 
 function buildSymbolInfo(pairId, display, assetClass, pricescale) {
@@ -67,7 +73,9 @@ function buildSymbolInfo(pairId, display, assetClass, pricescale) {
         pricescale: pricescale ?? 100000,
         has_intraday: true,
         has_daily: true,
-        intraday_multipliers: ['1', '60'],
+        intraday_multipliers: ['1', '3', '5', '15', '30', '60', '120', '240'],
+        has_weekly: true,
+        has_monthly: true,
         supported_resolutions: configurationData.supported_resolutions,
         volume_precision: 1,
         data_status: 'streaming',

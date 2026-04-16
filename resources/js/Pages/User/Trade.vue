@@ -45,9 +45,95 @@ const selectedBillId = computed({
     set: (v) => tradeStore.setSelectedBill(v),
 });
 
+const STORAGE_KEY_RECENT = 'platform.trade.recentPairIds';
+const STORAGE_KEY_SELECTED = 'platform.trade.selectedPairId';
+
+const MAX_RECENT_PAIRS = 6;
+const recentPairs = ref([]);
+
+function flattenTradingPairs(groups) {
+    if (!groups?.length) {
+        return [];
+    }
+    return groups.flatMap((g) => g.pairs ?? []);
+}
+
+function persistTradeTabs() {
+    try {
+        localStorage.setItem(
+            STORAGE_KEY_RECENT,
+            JSON.stringify(recentPairs.value.map((x) => x.id)),
+        );
+        const sid = selectedPair.value?.id;
+        if (sid != null) {
+            localStorage.setItem(STORAGE_KEY_SELECTED, String(sid));
+        }
+    } catch {
+        // quota / private mode
+    }
+}
+
+function loadRecentPairIdsFromStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY_RECENT);
+        if (!raw) {
+            return [];
+        }
+        const ids = JSON.parse(raw);
+        return Array.isArray(ids) ? ids : [];
+    } catch {
+        return [];
+    }
+}
+
+function resolvePairsFromIds(ids, flat) {
+    const out = [];
+    for (const id of ids) {
+        const p = flat.find((x) => Number(x.id) === Number(id));
+        if (p) {
+            out.push(p);
+        }
+    }
+    return out.slice(0, MAX_RECENT_PAIRS);
+}
+
 onMounted(() => {
     tradeStore.setTradingPairs(props.tradingPairs);
-    tradeStore.setSelectedPair(tradingPairs.value[0].pairs[0]);
+    const flat = flattenTradingPairs(tradingPairs.value);
+    const defaultPair = flat[0] ?? null;
+
+    const storedIds = loadRecentPairIdsFromStorage();
+    const restored = resolvePairsFromIds(storedIds, flat);
+    if (restored.length) {
+        recentPairs.value = restored;
+    }
+
+    let savedSelectedId = null;
+    try {
+        const s = localStorage.getItem(STORAGE_KEY_SELECTED);
+        if (s !== null && s !== '') {
+            const n = Number(s);
+            savedSelectedId = Number.isNaN(n) ? null : n;
+        }
+    } catch {
+        savedSelectedId = null;
+    }
+
+    let initialPair = null;
+    if (savedSelectedId != null) {
+        initialPair =
+            flat.find((p) => Number(p.id) === savedSelectedId) ?? null;
+    }
+    if (!initialPair && restored.length) {
+        initialPair = restored[0];
+    }
+    if (!initialPair) {
+        initialPair = defaultPair;
+    }
+    if (initialPair) {
+        tradeStore.setSelectedPair(initialPair);
+    }
+
     tradeStore.setBills(props.bills);
     if (!tradeStore.selectedBillId && props.bills?.length) {
         tradeStore.setSelectedBill(props.bills[0].id);
@@ -56,18 +142,45 @@ onMounted(() => {
     ordersPoller.value = setInterval(() => tradeStore.fetchOrders(), 3000);
 });
 
-watch(selectedPair, () => {
+const modal = useModalStore();
+
+watch(selectedPair, (p) => {
     tradeStore.setPrice(null);
     tradeStore.setHigh(null);
     tradeStore.setLow(null);
     tradeStore.setVolume(null);
-});
+    if (!p?.id) {
+        return;
+    }
+    recentPairs.value = [
+        p,
+        ...recentPairs.value.filter((x) => x.id !== p.id),
+    ].slice(0, MAX_RECENT_PAIRS);
+    persistTradeTabs();
+}, { immediate: true });
 
-const modal = useModalStore();
-const pair = ref('_ETH');
+function selectRecentPair(pair) {
+    tradeStore.setSelectedPair(pair);
+}
 
-function handleSelectPair(pair) {
-    selectedPair.value = pair;
+function fallbackFirstPair() {
+    const groups = tradingPairs.value;
+    return groups?.[0]?.pairs?.[0] ?? null;
+}
+
+function removeRecentPair(pair) {
+    const id = pair.id;
+    const wasActive = selectedPair.value?.id === id;
+    recentPairs.value = recentPairs.value.filter((x) => x.id !== id);
+    if (!wasActive) {
+        persistTradeTabs();
+        return;
+    }
+    const next = recentPairs.value[0] ?? fallbackFirstPair();
+    if (next) {
+        tradeStore.setSelectedPair(next);
+    }
+    persistTradeTabs();
 }
 
 const tvSymbol = computed(() => {
@@ -102,8 +215,17 @@ const closedPosition = computed(() => {
         close_price: pos.close_price,
         side: pos.side,
         amount: pos.quantity,
-      closed_at: pos.closed_at || pos.updated_at,
+        closed_at: pos.closed_at || pos.updated_at,
     };
+});
+
+const historicalTrade = computed(() => {
+    const pair = selectedPair.value;
+    const t = tradeStore.selectedHistoricalTrade;
+    if (!pair || !t) return null;
+    // Only show if the trade belongs to the currently selected pair
+    if (Number(t.pair_id) !== Number(pair.id)) return null;
+    return t;
 });
 
 
@@ -125,7 +247,7 @@ onBeforeUnmount(() => {
                         <div class="trade-left">
                             <div class="pair-head">
                                 <div class="left">
-                                    <button class="btn btn_start_2 !bg-[#1D323E] !p-2 !rounded-lg !min-w-[100px]" @click="modal.open('selectPair')">
+                                    <button class="btn btn_start_2 !bg-[#1D323E] !p-2 !rounded-lg !min-w-[100px]" @mousedown.prevent="modal.open('selectPair')">
                                         {{ selectedPair ? selectedPair?.currency_in?.symbol + '/' + selectedPair?.currency_out?.symbol : 'Select pair' }}
                                     </button>
 
@@ -157,7 +279,33 @@ onBeforeUnmount(() => {
                             </div>
 
                             <div class="chart-wrapper">
-                                <TvChart :symbol="tvSymbol" :pair="selectedPair" :position="openPosition" :closedPosition="closedPosition" interval="5" theme="dark" />
+                                <div v-if="recentPairs.length" class="chart-pair-tabs tv-tabs-bar">
+                                    <div
+                                        v-for="p in recentPairs"
+                                        :key="p.id"
+                                        class="pair-tab"
+                                        :class="{ 'pair-tab--active': selectedPair?.id === p.id }"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="pair-tab__label"
+                                            @click="selectRecentPair(p)"
+                                        >
+                                            {{ p.currency_in?.symbol }}/{{ p.currency_out?.symbol }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="pair-tab__close"
+                                            aria-label="Закрыть"
+                                            @click.stop="removeRecentPair(p)"
+                                        >
+                                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <TvChart :symbol="tvSymbol" :pair="selectedPair" :position="openPosition" :closedPosition="closedPosition" :historicalTrade="historicalTrade" interval="5" theme="dark" />
                             </div>
 
                             <TradeHistory />
@@ -173,6 +321,115 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Панель вкладок в духе TradingView (dark toolbar) */
+.tv-tabs-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    margin: 0 0 1px;
+    padding: 0px;
+    align-items: flex-end;
+    background: #131722;
+    border-bottom: 1px solid #2a2e39;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tv-tabs-bar::-webkit-scrollbar {
+    height: 4px;
+}
+.tv-tabs-bar::-webkit-scrollbar-thumb {
+    background: #2a2e39;
+    border-radius: 2px;
+}
+
+.pair-tab {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    max-width: 160px;
+    margin-right: 1px;
+    border-radius: 3px 3px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    color: #787b86;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pair-tab:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #d1d4dc;
+}
+
+.pair-tab--active {
+    background: #1e222d;
+    border-color: #2a2e39;
+    color: #d1d4dc;
+    box-shadow: 0 1px 0 #1e222d;
+    position: relative;
+    z-index: 1;
+}
+
+.pair-tab--active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: #2962ff;
+    border-radius: 1px 1px 0 0;
+}
+
+.pair-tab__label {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 4px 7px 10px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-family: 'Trebuchet MS', Roboto, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pair-tab__close {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 100%;
+    min-height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #5d606b;
+    cursor: pointer;
+    border-radius: 0 2px 0 0;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.pair-tab__close:hover {
+    color: #d1d4dc;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.pair-tab--active .pair-tab__close {
+    color: #787b86;
+}
+
+.pair-tab--active .pair-tab__close:hover {
+    color: #f23645;
+    background: rgba(242, 54, 69, 0.12);
+}
+
 .price-animated {
     transition: all 0.3s ease-in-out;
 }

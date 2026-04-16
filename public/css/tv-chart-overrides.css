@@ -1,0 +1,11 @@
+/* Скрыть логотипы инструментов (crypto/stock) из CDN TradingView в легенде графика */
+img[src*="s3-symbol-logo.tradingview.com"],
+img[src*="symbol-logo"] {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Запасной вариант: кнопка LineTool «Icon» (если drawings_access не сработает) */
+

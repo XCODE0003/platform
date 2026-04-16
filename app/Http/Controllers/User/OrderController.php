@@ -48,8 +48,14 @@ class OrderController extends Controller
         $pair = Pair::query()->whereKey($validated['pair_id'])->firstOrFail();
 
         $order = $this->service->createOrder(userId: $user->id, bill: $bill, pair: $pair, data: $validated);
+
+        // Market orders are filled immediately at the requested price to open a position
+        if ($order->type === 'market' && !empty($validated['price'])) {
+            $order = $this->service->fillOrder($order->fresh(), (string) $validated['price']);
+        }
+
         return response()->json([
-            'order' => $order,
+            'order' => $order->fresh(),
             'bills' => $this->serializeBills($user),
         ], 201);
     }
@@ -97,9 +103,8 @@ class OrderController extends Controller
 
         foreach ($open as $order) {
             $shouldFill = false;
-            if ($order->type === 'market') {
-                $shouldFill = true; // immediate fill
-            } elseif ($order->type === 'limit') {
+            // Market orders are filled immediately on placement — skip them here
+            if ($order->type === 'limit') {
                 if ($order->side === 'buy' && bccomp($price, (string) $order->price, 10) <= 0) $shouldFill = true;
                 if ($order->side === 'sell' && bccomp($price, (string) $order->price, 10) >= 0) $shouldFill = true;
             } elseif ($order->type === 'stop') {

@@ -7,8 +7,9 @@ const props = defineProps({
   interval: { type: String, default: '1' },
   theme: { type: String, default: 'dark' },
   autosize: { type: Boolean, default: true },
-  position: { type: Object, default: null }, // { price, side, amount, created_at }
-  closedPosition: { type: Object, default: null }, // { entry_price, close_price, side, amount, closed_at }
+  position: { type: Object, default: null },       // { price, side, amount, created_at }
+  closedPosition: { type: Object, default: null },  // { entry_price, close_price, side, amount, closed_at }
+  historicalTrade: { type: Object, default: null }, // Position row from history { entry_price, close_price, side, created_at, updated_at }
 })
 
 const containerRef = ref(null)
@@ -19,7 +20,44 @@ let exitArrow = null
 let hideTimer = null
 let lastPositionKey = null
 let lastExitKey = null
+// Historical trade shapes
+let histEntryLine = null
+let histEntryArrow = null
+let histExitArrow = null
+let lastHistKey = null
+let chartLogoObserver = null
 const isReady = ref(false)
+
+function disconnectLogoObserver() {
+  if (chartLogoObserver) {
+    try {
+      chartLogoObserver.disconnect()
+    } catch (_) {}
+    chartLogoObserver = null
+  }
+}
+
+/** Скрывает иконки символов с CDN TradingView (featuresets их не отключают). */
+function installSymbolLogoHiding(root) {
+  if (!root || typeof MutationObserver === 'undefined') {
+    return
+  }
+  disconnectLogoObserver()
+  const strip = () => {
+    root.querySelectorAll('img').forEach((img) => {
+      const src = String(img.getAttribute('src') || img.src || '')
+      if (
+        src.includes('s3-symbol-logo') ||
+        src.includes('symbol-logo')
+      ) {
+        img.style.setProperty('display', 'none', 'important')
+      }
+    })
+  }
+  strip()
+  chartLogoObserver = new MutationObserver(strip)
+  chartLogoObserver.observe(root, { childList: true, subtree: true })
+}
 
 const TV_SCRIPT_ID = 'tv-charting-library'
 
@@ -51,6 +89,7 @@ function loadWidget() {
   if (!containerRef.value) return
   const tv = window.TradingView
   if (!tv || !tv.widget) return
+  disconnectLogoObserver()
   isReady.value = false
   // reset memoized keys on new widget
   lastPositionKey = null
@@ -66,10 +105,20 @@ function loadWidget() {
       'use_localstorage_for_settings',
       'header_symbol_search',
       'symbol_search_hot_key',
+      'header_compare',
+      'show_symbol_logos',
+      'show_exchange_logos',
+      'show_symbol_logo_in_legend',
+      'show_symbol_logo_for_compare_studies',
     ],
     enabled_features: [],
     charts_storage_url: 'https://saveload.tradingview.com',
     charts_storage_api_version: '1.1',
+    /** Скрыть кнопку «Icon» (эмодзи/стикер) на панели рисования */
+    drawings_access: {
+      type: 'black',
+      tools: [{ name: 'Icon' }],
+    },
     client_id: 'tradingview.com',
     user_id: 'public_user_id',
     fullscreen: false,
@@ -78,6 +127,7 @@ function loadWidget() {
     supports_marks: false,
     supports_timescale_marks: false,
     theme: props.theme,
+    custom_css_url: '/css/tv-chart-overrides.css',
     overrides: {
       'mainSeriesProperties.statusViewStyle.showInterval': true,
       'mainSeriesProperties.statusViewStyle.symbolTextSource': 'ticker',
@@ -86,8 +136,10 @@ function loadWidget() {
   tvWidget = new tv.widget(options)
   tvWidget.onChartReady(() => {
     isReady.value = true
+    installSymbolLogoHiding(containerRef.value)
     drawPosition()
     drawClosedTrade()
+    drawHistoricalTrade()
   })
 }
 
@@ -125,9 +177,13 @@ function drawPosition() {
       const isBuy = side === 'buy'
       const color = isBuy ? '#79F995' : '#F44B4B'
       const label = `${side.toUpperCase()} ${props.position.amount || ''}`
+      const entryTime = props.position.created_at
+        ? Math.floor(new Date(props.position.created_at).getTime() / 1000)
+        : Math.floor(Date.now() / 1000)
 
-      // Horizontal line at entry price
+      // Horizontal line at entry price — time is required by some library versions
       positionShape = chart.createShape({
+        time: entryTime,
         price: price,
       }, {
         shape: 'horizontal_line',
@@ -140,20 +196,17 @@ function drawPosition() {
         },
       })
 
-      // Entry arrow (at time of creation if available)
-      if (props.position.created_at) {
-        const entryTime = Math.floor(new Date(props.position.created_at).getTime() / 1000)
-        entryArrow = chart.createShape(
-          { time: entryTime, price: price },
-          {
-            shape: isBuy ? 'arrow_up' : 'arrow_down',
-            text: 'Entry',
-            overrides: { color: color },
-            disableSelection: true,
-            lock: true,
-          }
-        )
-      }
+      // Entry arrow at the entry candle
+      entryArrow = chart.createShape(
+        { time: entryTime, price: price },
+        {
+          shape: isBuy ? 'arrow_up' : 'arrow_down',
+          text: 'Entry',
+          overrides: { color: color },
+          disableSelection: true,
+          lock: true,
+        }
+      )
       lastPositionKey = newKey
     }
   } catch (e) {
@@ -174,18 +227,19 @@ function drawClosedTrade() {
     try { console.log('[TvChart] drawClosedTrade called', props.closedPosition) } catch (_) {}
     // Remove old exit arrow
     const symbolKey = String(props.symbol || '')
-    if (!props.closedPosition || !props.closedPosition.close_price || !props.closedPosition.closed_at) {
+    const closedAt = props.closedPosition?.closed_at || props.closedPosition?.updated_at
+    if (!props.closedPosition || !props.closedPosition.close_price || !closedAt) {
       if (exitArrow && exitArrow.remove) { exitArrow.remove(); exitArrow = null }
       lastExitKey = null
       return
     }
 
     // Draw exit arrow for last closed position
-    if (props.closedPosition && props.closedPosition.close_price && props.closedPosition.closed_at) {
+    if (props.closedPosition && props.closedPosition.close_price && closedAt) {
       const closePrice = Number(props.closedPosition.close_price)
       const side = props.closedPosition.side || 'buy'
       const isBuy = side === 'buy'
-      const closeTime = Math.floor(new Date(props.closedPosition.closed_at).getTime() / 1000)
+      const closeTime = Math.floor(new Date(closedAt).getTime() / 1000)
       const color = isBuy ? '#79F995' : '#F44B4B'
       const newExitKey = symbolKey + '|' + side + '|' + String(closePrice) + '|' + String(closeTime)
       if (lastExitKey === newExitKey && exitArrow) {
@@ -219,6 +273,90 @@ function drawClosedTrade() {
   }
 }
 
+function clearHistoricalShapes() {
+  try { if (histEntryLine && histEntryLine.remove) histEntryLine.remove() } catch (_) {}
+  try { if (histEntryArrow && histEntryArrow.remove) histEntryArrow.remove() } catch (_) {}
+  try { if (histExitArrow && histExitArrow.remove) histExitArrow.remove() } catch (_) {}
+  histEntryLine = null
+  histEntryArrow = null
+  histExitArrow = null
+  lastHistKey = null
+}
+
+function drawHistoricalTrade() {
+  if (!tvWidget || !isReady.value) return
+  let chart
+  try { chart = tvWidget.chart() } catch { return }
+
+  const t = props.historicalTrade
+  if (!t || !t.entry_price || !t.close_price) {
+    clearHistoricalShapes()
+    return
+  }
+
+  const entryPrice = Number(t.entry_price)
+  const closePrice = Number(t.close_price)
+  if (!Number.isFinite(entryPrice) || !Number.isFinite(closePrice)) {
+    clearHistoricalShapes()
+    return
+  }
+
+  const newKey = String(t.id) + '|' + entryPrice + '|' + closePrice
+  if (lastHistKey === newKey) return  // уже нарисовано — пропускаем
+
+  clearHistoricalShapes()  // убираем предыдущую сделку перед рисованием новой
+  lastHistKey = newKey
+
+  const side = t.side || 'buy'
+  const isBuy = side === 'buy'
+  const color = isBuy ? '#79F995' : '#F44B4B'
+
+  const entryTime = t.created_at
+    ? Math.floor(new Date(t.created_at).getTime() / 1000)
+    : Math.floor(Date.now() / 1000)
+  const exitTime = (t.updated_at || t.closed_at)
+    ? Math.floor(new Date(t.updated_at || t.closed_at).getTime() / 1000)
+    : entryTime + 60
+
+  try {
+    // Horizontal line at entry price
+    histEntryLine = chart.createShape(
+      { time: entryTime, price: entryPrice },
+      {
+        shape: 'horizontal_line',
+        disableSelection: true,
+        lock: true,
+        text: `${side.toUpperCase()} entry`,
+        overrides: { linecolor: color, linewidth: 1, linestyle: 2 /* dashed */ },
+      }
+    )
+    // Entry arrow
+    histEntryArrow = chart.createShape(
+      { time: entryTime, price: entryPrice },
+      {
+        shape: isBuy ? 'arrow_up' : 'arrow_down',
+        text: 'Entry',
+        overrides: { color: color },
+        disableSelection: true,
+        lock: true,
+      }
+    )
+    // Exit arrow
+    histExitArrow = chart.createShape(
+      { time: exitTime, price: closePrice },
+      {
+        shape: isBuy ? 'arrow_down' : 'arrow_up',
+        text: 'Exit',
+        overrides: { color: color },
+        disableSelection: true,
+        lock: true,
+      }
+    )
+  } catch (e) {
+    console.warn('[TvChart] drawHistoricalTrade error', e)
+  }
+}
+
 onMounted(async () => {
   try {
     await loadTradingViewScript()
@@ -230,11 +368,13 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  disconnectLogoObserver()
   unsubscribeAll()
   try { if (positionShape && positionShape.remove) positionShape.remove() } catch (_) {}
   try { if (entryArrow && entryArrow.remove) entryArrow.remove() } catch (_) {}
   try { if (exitArrow && exitArrow.remove) exitArrow.remove() } catch (_) {}
   try { if (hideTimer) clearTimeout(hideTimer) } catch (_) {}
+  clearHistoricalShapes()
   lastPositionKey = null
   lastExitKey = null
   if (tvWidget && tvWidget.remove) tvWidget.remove()
@@ -242,6 +382,7 @@ onBeforeUnmount(() => {
 
 watch(() => [props.symbol, props.interval, props.theme, props.autosize], async () => {
   unsubscribeAll()
+  clearHistoricalShapes()
   if (tvWidget && tvWidget.remove) tvWidget.remove()
   tvWidget = null
   isReady.value = false
@@ -259,6 +400,10 @@ watch(() => props.position, () => {
 
 watch(() => props.closedPosition, () => {
   drawClosedTrade()
+}, { deep: true })
+
+watch(() => props.historicalTrade, () => {
+  drawHistoricalTrade()
 }, { deep: true })
 </script>
 

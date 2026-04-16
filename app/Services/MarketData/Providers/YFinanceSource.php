@@ -10,7 +10,7 @@ class YFinanceSource implements MarketDataSource
 {
     public function supports(string $assetClass): bool
     {
-        return in_array($assetClass, ['stock', 'forex', 'metal', 'fiat', 'index'], true);
+        return in_array($assetClass, ['stock', 'forex', 'metal', 'fiat', 'index', 'commodity'], true);
     }
 
     public function search(string $query): array

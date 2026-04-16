@@ -19,6 +19,7 @@ export const useTradeStore = defineStore('trade', {
         positions: [],
         lastClosedPosition: null,
         hiddenOpenPairId: null,
+        selectedHistoricalTrade: null,
     }),
 
     getters: {
@@ -57,38 +58,7 @@ export const useTradeStore = defineStore('trade', {
             return data?.order ?? data;
         },
         async cancelOrder(id) {
-            // Try to capture order/position context before cancellation
-            const order = this.orders.find((o) => o.id === id) || null;
-            const pairId = order?.pair_id ?? this.selectedPair?.id ?? null;
-            const openPos = pairId
-                ? this.positions.find((p) => p.pair_id === pairId && p.status === 'open')
-                : null;
-
             const { data } = await axiosClient.post(`/api/trade/orders/${id}/cancel`);
-
-            // Show temporary exit arrow (5s) at current price
-            const nowIso = new Date().toISOString();
-            const closePrice = this.price ?? openPos?.entry_price ?? null;
-            if (pairId && closePrice !== null) {
-                this.lastClosedPosition = {
-                    pair_id: pairId,
-                    entry_price: openPos?.entry_price ?? null,
-                    close_price: Number(closePrice),
-                    side: openPos?.side ?? order?.side ?? 'buy',
-                    quantity: openPos?.quantity ?? order?.amount ?? null,
-                    updated_at: nowIso,
-                    closed_at: nowIso,
-                };
-                setTimeout(() => {
-                    this.lastClosedPosition = null;
-                }, 5000);
-
-                // Hide open position line after 10 seconds for this pair
-                setTimeout(() => {
-                    this.hiddenOpenPairId = pairId;
-                }, 10000);
-            }
-
             await this.fetchOrders();
             if (data?.bills) {
                 this.setBills(data.bills);
@@ -100,10 +70,18 @@ export const useTradeStore = defineStore('trade', {
         },
         async closePosition(id, price) {
             const { data } = await axiosClient.post(`/api/trade/positions/${id}/close`, { price });
+            // Show exit arrow on chart for 5s
             this.lastClosedPosition = data;
             setTimeout(() => {
                 this.lastClosedPosition = null;
             }, 5000);
+            // Hide the open position line once closed
+            if (data?.pair_id) {
+                this.hiddenOpenPairId = data.pair_id;
+                setTimeout(() => {
+                    this.hiddenOpenPairId = null;
+                }, 10000);
+            }
             await this.fetchOrders();
         },
         setBills(bills) {
@@ -135,6 +113,14 @@ export const useTradeStore = defineStore('trade', {
         },
         setVolumeChange(volumeChange) {
             this.volumeChange = volumeChange;
+        },
+        setSelectedHistoricalTrade(trade) {
+            // Toggle off if same trade clicked again
+            if (trade && this.selectedHistoricalTrade?.id === trade.id) {
+                this.selectedHistoricalTrade = null;
+            } else {
+                this.selectedHistoricalTrade = trade;
+            }
         },
     },
 });

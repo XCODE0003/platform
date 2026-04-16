@@ -20,5 +20,6 @@ class DatabaseSeeder extends Seeder
         $this->call(GroupPairSeeder::class);
         $this->call(BinancePairsSeeder::class);
         $this->call(YFinancePairsSeeder::class);
+        $this->call(CommoditiesPairsSeeder::class);
     }
 }

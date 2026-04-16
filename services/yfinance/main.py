@@ -21,14 +21,16 @@ app = FastAPI(title="yfinance-api", version="1.0.0")
 RESOLUTION_MAP = {
     "1":    "1m",
     "2":    "2m",
+    "3":    "5m",    # yfinance no 3m, use 5m
     "5":    "5m",
     "15":   "15m",
     "30":   "30m",
     "60":   "60m",
     "90":   "90m",
+    "120":  "60m",   # yfinance no 2h, use 1h
     "1H":   "60m",
-    "2H":   "60m",   # yfinance нет 2h, используем 1h
-    "4H":   "60m",   # yfinance нет 4h, используем 1h
+    "2H":   "60m",
+    "4H":   "60m",   # yfinance no 4h, use 1h
     "240":  "60m",
     "1D":   "1d",
     "D":    "1d",
