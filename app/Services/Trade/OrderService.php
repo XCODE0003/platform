@@ -150,9 +150,9 @@ class OrderService
         });
     }
 
-    public function closePosition(Position $position, string $closePrice): Position
+    public function closePosition(Position $position, string $closePrice, ?string $closeQty = null): Position
     {
-        return DB::transaction(function () use ($position, $closePrice): Position {
+        return DB::transaction(function () use ($position, $closePrice, $closeQty): Position {
             if ($position->status === 'closed') {
                 return $position;
             }
@@ -162,25 +162,56 @@ class OrderService
                 throw new InvalidArgumentException('Invalid close price');
             }
 
-            $bill = $position->bill()->lockForUpdate()->first();
-            $qty = (string) $position->quantity;
-            $entryTotal = (string) $position->entry_total;
+            $totalQty = (string) $position->quantity;
 
-            // Calculate PnL: for buy (long) -> (close - entry) * qty; for sell (short) -> (entry - close) * qty
+            // Clamp requested close quantity to available quantity
+            if ($closeQty !== null && bccomp($closeQty, '0', 10) > 0) {
+                $qty = bccomp($closeQty, $totalQty, 10) >= 0 ? $totalQty : $closeQty;
+            } else {
+                $qty = $totalQty; // full close
+            }
+
+            $isPartial = bccomp($qty, $totalQty, 10) < 0;
+
+            $bill = $position->bill()->lockForUpdate()->first();
+
+            // PnL for closed portion
             $priceDiff = ($position->side === 'buy')
                 ? bcsub($price, (string) $position->entry_price, 10)
                 : bcsub((string) $position->entry_price, $price, 10);
             $realizedPnl = bcmul($priceDiff, $qty, 10);
 
-            // Refund entry total + PnL to bill
-            $returnAmount = bcadd($entryTotal, $realizedPnl, 10);
+            // Entry cost proportional to closed qty
+            $closedEntryTotal = bcmul((string) $position->entry_price, $qty, 10);
+
+            // Return entry cost + PnL to bill
+            $returnAmount = bcadd($closedEntryTotal, $realizedPnl, 10);
             $bill->balance = bcadd((string) $bill->balance, $returnAmount, 10);
             $bill->save();
 
-            // Update position
-            $position->status = 'closed';
-            $position->close_price = $price;
-            $position->close_total = bcmul($price, $qty, 10);
+            if ($isPartial) {
+                // Reduce open position — keep it open with remaining quantity
+                $remainingQty = bcsub($totalQty, $qty, 10);
+                $position->quantity    = $remainingQty;
+                $position->entry_total = bcmul((string) $position->entry_price, $remainingQty, 10);
+                $position->save();
+
+                // Return a synthetic snapshot of what was closed (not persisted as separate row)
+                $snapshot = new Position($position->toArray());
+                $snapshot->quantity    = $qty;
+                $snapshot->entry_total = $closedEntryTotal;
+                $snapshot->close_price = $price;
+                $snapshot->close_total = bcmul($price, $qty, 10);
+                $snapshot->realized_pnl = $realizedPnl;
+                $snapshot->status = 'partial';
+
+                return $snapshot;
+            }
+
+            // Full close
+            $position->status       = 'closed';
+            $position->close_price  = $price;
+            $position->close_total  = bcmul($price, $qty, 10);
             $position->realized_pnl = $realizedPnl;
             $position->save();
 

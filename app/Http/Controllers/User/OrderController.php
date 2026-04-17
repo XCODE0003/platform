@@ -124,11 +124,16 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $validated = $request->validate([
-            'price' => ['required', 'numeric', 'gt:0'],
+            'price'    => ['required', 'numeric', 'gt:0'],
+            'quantity' => ['sometimes', 'numeric', 'gt:0'],
         ]);
         $position = Position::query()->where('user_id', $user->id)->whereKey($positionId)->firstOrFail();
-        $closed = $this->service->closePosition($position, (string) $validated['price']);
-        return response()->json($closed);
+        $result = $this->service->closePosition(
+            $position,
+            (string) $validated['price'],
+            isset($validated['quantity']) ? (string) $validated['quantity'] : null,
+        );
+        return response()->json($result);
     }
 
     /**

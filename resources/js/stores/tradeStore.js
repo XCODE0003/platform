@@ -68,19 +68,19 @@ export const useTradeStore = defineStore('trade', {
             await axiosClient.post(`/api/trade/orders/${id}/fill`, { price });
             await this.fetchOrders();
         },
-        async closePosition(id, price) {
-            const { data } = await axiosClient.post(`/api/trade/positions/${id}/close`, { price });
-            // Show exit arrow on chart for 5s
-            this.lastClosedPosition = data;
-            setTimeout(() => {
-                this.lastClosedPosition = null;
-            }, 5000);
-            // Hide the open position line once closed
-            if (data?.pair_id) {
+        async closePosition(id, price, quantity = null) {
+            const payload = { price };
+            if (quantity !== null) payload.quantity = quantity;
+            const { data } = await axiosClient.post(`/api/trade/positions/${id}/close`, payload);
+            // Show exit arrow on chart for 5s (only for full close)
+            if (data?.status === 'closed' || data?.status === 'partial') {
+                this.lastClosedPosition = data;
+                setTimeout(() => { this.lastClosedPosition = null; }, 5000);
+            }
+            // Hide open position line only on full close
+            if (data?.status === 'closed' && data?.pair_id) {
                 this.hiddenOpenPairId = data.pair_id;
-                setTimeout(() => {
-                    this.hiddenOpenPairId = null;
-                }, 10000);
+                setTimeout(() => { this.hiddenOpenPairId = null; }, 10000);
             }
             await this.fetchOrders();
         },

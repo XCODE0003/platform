@@ -24,13 +24,31 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           password: ${{ secrets.DEPLOY_PASSWORD }}
           command_timeout: 30m
-          script_stop: true
           script: |
-            set -euo pipefail
+            set -eo pipefail
             cd /var/www/www-root/data/www/trade.rev-coin.ltd
+
+            # SSH без login-shell не подхватывает .bashrc → npm из nvm/fnm «не виден»
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              . "$HOME/.nvm/nvm.sh"
+            fi
+            if [ -s /root/.nvm/nvm.sh ]; then
+              . /root/.nvm/nvm.sh
+            fi
+            if command -v fnm >/dev/null 2>&1; then
+              eval "$(fnm env)"
+            elif [ -x "$HOME/.local/share/fnm/fnm" ]; then
+              eval "$("$HOME/.local/share/fnm/fnm" env)"
+            fi
+            export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+            set -u
+
             git fetch origin main
             git checkout main
             git reset --hard origin/main
+            composer install --no-dev --optimize-autoloader --no-interaction
+            npm ci
             npm run build
             php artisan migrate --force
             php artisan optimize

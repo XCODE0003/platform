@@ -2,12 +2,44 @@
 import { ref, computed, onMounted } from 'vue';
 import { useTradeStore } from '@/stores/tradeStore.js';
 import { useToast } from '@/composables/useToast.js';
+import ClosePositionModal from '@/components/Modals/Trade/ClosePositionModal.vue';
 
 const tradeStore = useTradeStore();
 const toast = useToast();
 const activeHistoryTab = ref('openOrders');
 const cancellingOrders = ref(new Set());
 const closingPositions = ref(new Set());
+
+// Close position modal
+const closingPosition = ref(null); // position object being closed
+
+function openCloseModal(pos) {
+    closingPosition.value = pos;
+}
+
+function onCloseModalDismiss() {
+    closingPosition.value = null;
+}
+
+async function onCloseConfirm({ quantity }) {
+    const pos = closingPosition.value;
+    if (!pos) return;
+    const price = tradeStore.price;
+    if (!price) {
+        toast.showError('No market price available');
+        return;
+    }
+    closingPositions.value.add(pos.id);
+    closingPosition.value = null;
+    try {
+        await tradeStore.closePosition(pos.id, price, quantity ?? null);
+        toast.showSuccess(quantity ? 'Partial close executed' : 'Position closed');
+    } catch (e) {
+        toast.showError(e?.response?.data?.message || 'Failed to close position');
+    } finally {
+        closingPositions.value.delete(pos.id);
+    }
+}
 
 function switchHistoryTab(tab) {
     activeHistoryTab.value = tab;
@@ -26,23 +58,6 @@ async function handleCancel(orderId) {
     }
 }
 
-async function handleClosePosition(positionId) {
-    if (closingPositions.value.has(positionId)) return;
-    const price = tradeStore.price;
-    if (!price) {
-        toast.showError('No market price available');
-        return;
-    }
-    closingPositions.value.add(positionId);
-    try {
-        await tradeStore.closePosition(positionId, price);
-        toast.showSuccess('Position closed');
-    } catch (e) {
-        toast.showError(e?.response?.data?.message || 'Failed to close position');
-    } finally {
-        closingPositions.value.delete(positionId);
-    }
-}
 
 // Pending limit/stop orders waiting to be filled
 const openOrders = computed(() => tradeStore.orders.filter(o => o.status === 'queued'));
@@ -121,7 +136,7 @@ onMounted(() => {
                                     <span v-if="!pos.take_profit && !pos.stop_loss">—</span>
                                 </div>
                                 <div>
-                                    <button class="icon-btn" @click="handleClosePosition(pos.id)" :disabled="closingPositions.has(pos.id)" title="Close position">
+                                    <button class="icon-btn" @click="openCloseModal(pos)" :disabled="closingPositions.has(pos.id)" title="Close position">
                                         <span v-if="closingPositions.has(pos.id)" class="btn-loader-sm"></span>
                                         <svg v-else width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                                             <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -235,6 +250,13 @@ onMounted(() => {
             </div>
         </div>
     </div>
+
+    <ClosePositionModal
+        :position="closingPosition"
+        :currentPrice="tradeStore.price"
+        @close="onCloseModalDismiss"
+        @confirm="onCloseConfirm"
+    />
 </template>
 
 <style scoped>
