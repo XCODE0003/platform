@@ -125,57 +125,20 @@ class OrderService
             $amount = (string) $order->amount; // base qty
             $total = $order->total ? (string) $order->total : bcmul($amount, $price, 10); // quote amount
 
-            // Create/merge position on fill (USD-only model)
-            $position = Position::query()
-                ->where('user_id', $order->user_id)
-                ->where('pair_id', $order->pair_id)
-                ->where('bill_id', $order->bill_id)
-                ->where('status', 'open')
-                ->first();
-
-            if (!$position) {
-                $position = new Position([
-                    'user_id' => $order->user_id,
-                    'pair_id' => $order->pair_id,
-                    'bill_id' => $order->bill_id,
-                    'side' => $order->side,
-                    'entry_price' => $price,
-                    'quantity' => $amount,
-                    'entry_total' => $total,
-                    'take_profit' => $order->take_profit,
-                    'stop_loss' => $order->stop_loss,
-                    'status' => 'open',
-                ]);
-                $position->save();
-            } else {
-                // simple average price merge for same side; if different side, reduce/flip later
-                if ($position->side === $order->side) {
-                    $newQty = bcadd((string) $position->quantity, $amount, 10);
-                    $newCost = bcadd((string) $position->entry_total, $total, 10);
-                    $position->quantity = $newQty;
-                    $position->entry_total = $newCost;
-                    $position->entry_price = bcdiv($newCost, $newQty, 10);
-                    $position->save();
-                } else {
-                    // opposite side -> reduce position (partial close)
-                    $reduceQty = min((float) $position->quantity, (float) $amount);
-                    $reduceQtyStr = (string) $reduceQty;
-                    // realized pnl = (closePrice - entryPrice) * qty for long; reversed for short
-                    $priceDiff = ($position->side === 'buy')
-                        ? bcsub($price, (string) $position->entry_price, 10)
-                        : bcsub((string) $position->entry_price, $price, 10);
-                    $realized = bcmul($priceDiff, $reduceQtyStr, 10);
-                    $position->quantity = bcsub((string) $position->quantity, $reduceQtyStr, 10);
-                    $position->entry_total = bcmul((string) $position->entry_price, (string) $position->quantity, 10);
-                    if (bccomp((string) $position->quantity, '0', 10) <= 0) {
-                        $position->status = 'closed';
-                        $position->close_price = $price;
-                        $position->close_total = bcmul($price, $reduceQtyStr, 10);
-                        $position->realized_pnl = $realized;
-                    }
-                    $position->save();
-                }
-            }
+            // Each filled order creates its own independent position
+            $position = new Position([
+                'user_id'      => $order->user_id,
+                'pair_id'      => $order->pair_id,
+                'bill_id'      => $order->bill_id,
+                'side'         => $order->side,
+                'entry_price'  => $price,
+                'quantity'     => $amount,
+                'entry_total'  => $total,
+                'take_profit'  => $order->take_profit,
+                'stop_loss'    => $order->stop_loss,
+                'status'       => 'open',
+            ]);
+            $position->save();
 
             // update order as filled with final price/total
             $order->price = $order->price ?: $price;

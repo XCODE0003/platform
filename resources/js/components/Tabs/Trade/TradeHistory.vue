@@ -60,6 +60,23 @@ function selectHistoricalTrade(pos) {
     tradeStore.setSelectedHistoricalTrade(pos);
 }
 
+// pair_id -> "BTC/USDT" lookup from store
+const pairLabelMap = computed(() => {
+    const map = {};
+    for (const group of tradeStore.tradingPairs) {
+        for (const pair of group.pairs ?? []) {
+            const base = pair.currency_in?.symbol ?? '?';
+            const quote = pair.currency_out?.symbol ?? '?';
+            map[pair.id] = `${base}/${quote}`;
+        }
+    }
+    return map;
+});
+
+function pairLabel(pairId) {
+    return pairLabelMap.value[pairId] ?? `PAIR:${pairId}`;
+}
+
 onMounted(() => {
     tradeStore.fetchOrders();
 });
@@ -85,14 +102,14 @@ onMounted(() => {
                             <div>Side</div>
                             <div>Entry price</div>
                             <div>Quantity</div>
-                            <div>Total (USDT)</div>
+                            <div>Total (USD)</div>
                             <div>TP / SL</div>
                             <div>Close</div>
                         </div>
                         <div class="overflow">
                             <div v-for="pos in openPositions" :key="'pos-' + pos.id" class="grid-line active">
                                 <div>{{ new Date(pos.created_at).toLocaleString() }}</div>
-                                <div>PAIR:{{ pos.pair_id }}</div>
+                                <div>{{ pairLabel(pos.pair_id) }}</div>
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
                                 <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
                                 <div>{{ pos.quantity }}</div>
@@ -124,13 +141,13 @@ onMounted(() => {
                             <div>Side</div>
                             <div>Price</div>
                             <div>Quantity</div>
-                            <div>Total (USDT)</div>
+                            <div>Total (USD)</div>
                             <div>Cancel</div>
                         </div>
                         <div class="overflow" id="openOrders">
                             <div v-for="ord in openOrders" :key="ord.id" class="grid-line active">
                                 <div>{{ new Date(ord.created_at).toLocaleString() }}</div>
-                                <div>PAIR:{{ ord.pair_id }}</div>
+                                <div>{{ pairLabel(ord.pair_id) }}</div>
                                 <div>{{ ord.type }}</div>
                                 <div>{{ ord.side }}</div>
                                 <div>{{ ord.price ? Number(ord.price).toFixed(4) : (ord.stop_price ? Number(ord.stop_price).toFixed(4) : '—') }}</div>
@@ -173,7 +190,7 @@ onMounted(() => {
                                 title="Click to show on chart"
                             >
                                 <div>{{ new Date(pos.updated_at || pos.created_at).toLocaleString() }}</div>
-                                <div>PAIR:{{ pos.pair_id }}</div>
+                                <div>{{ pairLabel(pos.pair_id) }}</div>
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
                                 <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
                                 <div>{{ pos.close_price ? Number(pos.close_price).toFixed(4) : '—' }}</div>
@@ -200,7 +217,7 @@ onMounted(() => {
                         <div class="overflow">
                             <div v-for="ord in closedOrders" :key="'co-' + ord.id" class="grid-line active">
                                 <div>{{ new Date(ord.updated_at || ord.created_at).toLocaleString() }}</div>
-                                <div>PAIR:{{ ord.pair_id }}</div>
+                                <div>{{ pairLabel(ord.pair_id) }}</div>
                                 <div>{{ ord.type }}</div>
                                 <div>{{ ord.side }}</div>
                                 <div>{{ ord.price ? Number(ord.price).toFixed(4) : (ord.stop_price ? Number(ord.stop_price).toFixed(4) : '—') }}</div>

@@ -130,9 +130,9 @@ watch(basePrice, () => {
                 </div>
                 <div v-if="activeTab === 'orderBook'" class="tabs__content-item tabs__content-item-2 orderBook">
                     <div class="grid-head">
-                        <div>Price (USDT)</div>
+                        <div>Price (USD)</div>
                         <div>Quantity</div>
-                        <div>Total (USDT)</div>
+                        <div>Total (USD)</div>
                     </div>
                     <div id="OrderBookBuy">
                         <div
