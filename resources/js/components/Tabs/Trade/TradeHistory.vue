@@ -106,7 +106,7 @@ onMounted(() => {
                             <div>TP / SL</div>
                             <div>Close</div>
                         </div>
-                        <div class="overflow">
+                        <div class="overflow md:overflow-x-hidden">
                             <div v-for="pos in openPositions" :key="'pos-' + pos.id" class="grid-line active">
                                 <div>{{ new Date(pos.created_at).toLocaleString() }}</div>
                                 <div>{{ pairLabel(pos.pair_id) }}</div>
@@ -144,7 +144,7 @@ onMounted(() => {
                             <div>Total (USD)</div>
                             <div>Cancel</div>
                         </div>
-                        <div class="overflow" id="openOrders">
+                        <div class="overflow md:overflow-x-hidden" id="openOrders">
                             <div v-for="ord in openOrders" :key="ord.id" class="grid-line active">
                                 <div>{{ new Date(ord.created_at).toLocaleString() }}</div>
                                 <div>{{ pairLabel(ord.pair_id) }}</div>
@@ -180,7 +180,7 @@ onMounted(() => {
                             <div>PnL</div>
                             <div>Total</div>
                         </div>
-                        <div class="overflow" id="closedPositions">
+                        <div class="overflow md:overflow-x-hidden" id="closedPositions">
                             <div
                                 v-for="pos in closedPositions"
                                 :key="'cp-' + pos.id"
@@ -214,7 +214,7 @@ onMounted(() => {
                             <div>Total</div>
                             <div>Status</div>
                         </div>
-                        <div class="overflow">
+                        <div class="overflow md:overflow-x-hidden">
                             <div v-for="ord in closedOrders" :key="'co-' + ord.id" class="grid-line active">
                                 <div>{{ new Date(ord.updated_at || ord.created_at).toLocaleString() }}</div>
                                 <div>{{ pairLabel(ord.pair_id) }}</div>
