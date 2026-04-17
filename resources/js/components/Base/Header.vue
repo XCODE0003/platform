@@ -65,7 +65,7 @@ const isAuth = ref(page.props.auth.user);
             <div class="dropdown">
 
               <Link href="/account" class="link_12 settings">Settings</Link>
-              <Link href="/logout"  class="link_12 pointer">Log out</Link>
+              <Link href="/logout" method="post" class="link_12 pointer">Log out</Link>
             </div>
           </div>
         </div>

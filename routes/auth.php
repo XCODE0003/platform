@@ -47,6 +47,5 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:6,1')
         ->name('verification.send');
 
-    Route::get('logout', [AuthenticatedSessionController::class, 'destroy'])
-        ->name('logout');
+    // Выход: только POST /logout (Laravel Fortify). Дубликат GET + имя logout ломает route:cache.
 });
