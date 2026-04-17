@@ -49,13 +49,30 @@ const STORAGE_KEY_RECENT = 'platform.trade.recentPairIds';
 const STORAGE_KEY_SELECTED = 'platform.trade.selectedPairId';
 
 const MAX_RECENT_PAIRS = 6;
-const recentPairs = ref([]);
 
 function flattenTradingPairs(groups) {
-    if (!groups?.length) {
+    if (!groups?.length) return [];
+    return groups.flatMap((g) => g.pairs ?? []);
+}
+
+function loadRecentPairIdsFromStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY_RECENT);
+        if (!raw) return [];
+        const ids = JSON.parse(raw);
+        return Array.isArray(ids) ? ids : [];
+    } catch {
         return [];
     }
-    return groups.flatMap((g) => g.pairs ?? []);
+}
+
+function resolvePairsFromIds(ids, flat) {
+    const out = [];
+    for (const id of ids) {
+        const p = flat.find((x) => Number(x.id) === Number(id));
+        if (p) out.push(p);
+    }
+    return out.slice(0, MAX_RECENT_PAIRS);
 }
 
 function persistTradeTabs() {
@@ -73,65 +90,57 @@ function persistTradeTabs() {
     }
 }
 
-function loadRecentPairIdsFromStorage() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY_RECENT);
-        if (!raw) {
-            return [];
-        }
-        const ids = JSON.parse(raw);
-        return Array.isArray(ids) ? ids : [];
-    } catch {
-        return [];
-    }
-}
-
-function resolvePairsFromIds(ids, flat) {
-    const out = [];
-    for (const id of ids) {
-        const p = flat.find((x) => Number(x.id) === Number(id));
-        if (p) {
-            out.push(p);
-        }
-    }
-    return out.slice(0, MAX_RECENT_PAIRS);
-}
+// Инициализируем сразу из store — при SPA-навигации store уже содержит пары,
+// поэтому watch(selectedPair, { immediate: true }) видит восстановленный список
+// и не затирает его вызовом persistTradeTabs() с пустым массивом.
+const recentPairs = ref(
+    resolvePairsFromIds(
+        loadRecentPairIdsFromStorage(),
+        flattenTradingPairs(tradeStore.tradingPairs),
+    ),
+);
 
 onMounted(() => {
     tradeStore.setTradingPairs(props.tradingPairs);
     const flat = flattenTradingPairs(tradingPairs.value);
     const defaultPair = flat[0] ?? null;
 
-    const storedIds = loadRecentPairIdsFromStorage();
-    const restored = resolvePairsFromIds(storedIds, flat);
-    if (restored.length) {
-        recentPairs.value = restored;
-    }
-
-    let savedSelectedId = null;
-    try {
-        const s = localStorage.getItem(STORAGE_KEY_SELECTED);
-        if (s !== null && s !== '') {
-            const n = Number(s);
-            savedSelectedId = Number.isNaN(n) ? null : n;
+    // Восстанавливаем табы только если они ещё не были загружены из store
+    // (при SPA-навигации recentPairs уже заполнен в момент setup)
+    if (recentPairs.value.length === 0) {
+        const storedIds = loadRecentPairIdsFromStorage();
+        const restored = resolvePairsFromIds(storedIds, flat);
+        if (restored.length) {
+            recentPairs.value = restored;
         }
-    } catch {
-        savedSelectedId = null;
     }
 
-    let initialPair = null;
-    if (savedSelectedId != null) {
-        initialPair =
-            flat.find((p) => Number(p.id) === savedSelectedId) ?? null;
-    }
-    if (!initialPair && restored.length) {
-        initialPair = restored[0];
-    }
-    if (!initialPair) {
-        initialPair = defaultPair;
-    }
-    if (initialPair) {
-        tradeStore.setSelectedPair(initialPair);
+    // Не меняем selectedPair если он уже установлен (SPA-навигация)
+    if (!tradeStore.selectedPair) {
+        let savedSelectedId = null;
+        try {
+            const s = localStorage.getItem(STORAGE_KEY_SELECTED);
+            if (s !== null && s !== '') {
+                const n = Number(s);
+                savedSelectedId = Number.isNaN(n) ? null : n;
+            }
+        } catch {
+            savedSelectedId = null;
+        }
+
+        let initialPair = null;
+        if (savedSelectedId != null) {
+            initialPair = flat.find((p) => Number(p.id) === savedSelectedId) ?? null;
+        }
+        if (!initialPair && recentPairs.value.length) {
+            initialPair = recentPairs.value[0];
+        }
+        if (!initialPair) {
+            initialPair = defaultPair;
+        }
+        if (initialPair) {
+            tradeStore.setSelectedPair(initialPair);
+        }
     }
 
     tradeStore.setBills(props.bills);

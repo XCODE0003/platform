@@ -13,6 +13,25 @@ const props = defineProps({
   historicalTrade: { type: Object, default: null }, // Position row from history { entry_price, close_price, side, created_at, updated_at }
 })
 
+const STORAGE_KEY_CHART_TYPE = 'platform.trade.chartType'
+
+function intervalKey(symbol) {
+  // symbol = "PAIR:123" → key = "platform.trade.chartInterval.PAIR:123"
+  return 'platform.trade.chartInterval.' + String(symbol || '')
+}
+function getSavedInterval(symbol) {
+  try { return localStorage.getItem(intervalKey(symbol)) || props.interval } catch { return props.interval }
+}
+function saveInterval(symbol, v) {
+  try { if (v) localStorage.setItem(intervalKey(symbol), String(v)) } catch {}
+}
+function getSavedChartType() {
+  try { const v = localStorage.getItem(STORAGE_KEY_CHART_TYPE); return v ? Number(v) : null } catch { return null }
+}
+function saveChartType(v) {
+  try { localStorage.setItem(STORAGE_KEY_CHART_TYPE, String(v)) } catch {}
+}
+
 const containerRef = ref(null)
 let tvWidget = null
 let positionShape = null
@@ -100,7 +119,7 @@ function loadWidget() {
     datafeed: UnifiedDatafeed,
     container: containerRef.value,
     library_path: '/charting_library/',
-    interval: props.interval,
+    interval: getSavedInterval(props.symbol),
     locale: 'en',
     disabled_features: [
       'use_localstorage_for_settings',
@@ -138,6 +157,28 @@ function loadWidget() {
   tvWidget.onChartReady(() => {
     isReady.value = true
     installSymbolLogoHiding(containerRef.value)
+
+    // Restore chart type (candles/bars/area etc.) if previously saved
+    try {
+      const savedType = getSavedChartType()
+      if (savedType !== null) tvWidget.chart().setChartType(savedType)
+    } catch (_) {}
+
+    // Persist interval changes per symbol
+    try {
+      const sym = props.symbol
+      tvWidget.chart().onIntervalChanged().subscribe(null, (interval) => {
+        saveInterval(sym, interval)
+      })
+    } catch (_) {}
+
+    // Persist chart type changes
+    try {
+      tvWidget.chart().onChartTypeChanged().subscribe(null, (type) => {
+        saveChartType(type)
+      })
+    } catch (_) {}
+
     drawPosition()
     drawClosedTrade()
     drawHistoricalTrade()
