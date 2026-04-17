@@ -1,0 +1,38 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+
+# Один активный деплой за раз (следующий ждёт очереди).
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Не деплоим из форков (секретов нет).
+    if: github.event.repository.fork == false
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          command_timeout: 30m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /var/www/www-root/data/www/trade.rev-coin.ltd
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
+            composer install --no-dev --optimize-autoloader --no-interaction
+            npm ci
+            npm run build
+            php artisan migrate --force
+            php artisan optimize
