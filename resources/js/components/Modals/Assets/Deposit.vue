@@ -88,13 +88,13 @@ const minDeposit = computed(() => selectedCurrency.value?.currency?.min_deposit_
 const currencySymbol = computed(() => selectedCurrency.value?.currency?.symbol ?? '');
 const currencyIcon = computed(() => {
     const icon = selectedCurrency.value?.currency?.icon ?? selectedCurrency.value?.currency?.symbol;
-    return icon ? `/images/coin_icons/${String(icon).toLowerCase()}.svg` : null;
+    return icon ? `/images/coin_icons/${String(icon).toUpperCase()}.svg` : null;
 });
 
 function iconPathFor(wallet) {
     const icon = wallet.currency?.icon ?? wallet.currency?.symbol;
     if (!icon) return null;
-    return `/images/coin_icons/${String(icon).toLowerCase()}.svg`;
+    return `/images/coin_icons/${String(icon).toUpperCase()}.svg`;
 }
 
 </script>

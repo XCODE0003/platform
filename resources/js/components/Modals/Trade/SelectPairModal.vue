@@ -29,6 +29,26 @@ const handleSelectPair = (pair) => {
     tradeStore.setSelectedPair(pair);
     isOpen.value = false;
 };
+
+/** Ключ для кэша «иконка не загрузилась» (один символ — один путь к файлу). */
+function coinIconKey(symbol) {
+    return String(symbol ?? '').toUpperCase();
+}
+
+const brokenCoinIcons = ref({});
+
+function onCoinIconError(symbol) {
+    const k = coinIconKey(symbol);
+    if (!k) {
+        return;
+    }
+    brokenCoinIcons.value = { ...brokenCoinIcons.value, [k]: true };
+}
+
+function coinInitial(symbol) {
+    const s = String(symbol ?? '').trim();
+    return s ? s.charAt(0).toUpperCase() : '?';
+}
 </script>
 
 <template>
@@ -57,11 +77,39 @@ const handleSelectPair = (pair) => {
                 <div :class="{ 'grid grid-cols-4 gap-3': selectedGroup !== null && selectedGroup.pairs.length > 0 }" class=" items-center gap-2">
                     <div v-if="selectedGroup !== null && selectedGroup.pairs.length > 0" v-for="pair in selectedGroup?.pairs" class="bg-[#1D323E] p-2 rounded-lg cursor-pointer hover:bg-[#273D4A] transition-all duration-300 hover:shadow-md hover:!text-white" @click="handleSelectPair(pair)">
                         <div class="flex items-center gap-2 ">
-                            <img :src="`/images/coin_icons/${pair.currency_in?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" @error="e => e.target.style.display='none'" />
+                            <template v-if="!brokenCoinIcons[coinIconKey(pair.currency_in?.symbol)]">
+                                <img
+                                    :src="`/images/coin_icons/${(pair.currency_in?.symbol || '').toUpperCase()}.png`"
+                                    class="h-6 w-6 shrink-0 rounded-full object-cover"
+                                    alt=""
+                                    @error="onCoinIconError(pair.currency_in?.symbol)"
+                                />
+                            </template>
+                            <div
+                                v-else
+                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-[10px] font-semibold uppercase text-white"
+                                aria-hidden="true"
+                            >
+                                {{ coinInitial(pair.currency_in?.symbol) }}
+                            </div>
                             <div class="text-white text-sm text-nowrap">
                              {{ pair.currency_in?.symbol }} <span class="text-white/50">/</span> {{ pair.currency_out?.symbol }}
                             </div>
-                            <img :src="`/images/coin_icons/${pair.currency_out?.symbol.toLowerCase()}.svg`" class="w-6 h-6 rounded-full" alt="" @error="e => e.target.style.display='none'" />
+                            <template v-if="!brokenCoinIcons[coinIconKey(pair.currency_out?.symbol)]">
+                                <img
+                                    :src="`/images/coin_icons/${(pair.currency_out?.symbol || '').toUpperCase()}.png`"
+                                    class="h-6 w-6 shrink-0 rounded-full object-cover"
+                                    alt=""
+                                    @error="onCoinIconError(pair.currency_out?.symbol)"
+                                />
+                            </template>
+                            <div
+                                v-else
+                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-[10px] font-semibold uppercase text-white"
+                                aria-hidden="true"
+                            >
+                                {{ coinInitial(pair.currency_out?.symbol) }}
+                            </div>
                         </div>
                     </div>
                     <div v-else class="bg-[#1D323E] text-white p-2 rounded-lg cursor-pointer text-center transition-all duration-300  w-full">
