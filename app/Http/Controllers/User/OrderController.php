@@ -120,6 +120,26 @@ class OrderController extends Controller
         return response()->json(['filled' => true]);
     }
 
+    public function updateTpSl(Request $request, int $positionId): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'take_profit' => ['nullable', 'numeric', 'gt:0'],
+            'stop_loss'   => ['nullable', 'numeric', 'gt:0'],
+        ]);
+        $position = Position::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'open')
+            ->whereKey($positionId)
+            ->firstOrFail();
+
+        $position->take_profit = $validated['take_profit'] ?? null;
+        $position->stop_loss   = $validated['stop_loss']   ?? null;
+        $position->save();
+
+        return response()->json($position);
+    }
+
     public function closePosition(Request $request, int $positionId): JsonResponse
     {
         $user = $request->user();

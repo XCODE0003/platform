@@ -68,6 +68,13 @@ export const useTradeStore = defineStore('trade', {
             await axiosClient.post(`/api/trade/orders/${id}/fill`, { price });
             await this.fetchOrders();
         },
+        async updateTpSl(id, takeProfit, stopLoss) {
+            await axiosClient.patch(`/api/trade/positions/${id}/tpsl`, {
+                take_profit: takeProfit || null,
+                stop_loss:   stopLoss   || null,
+            });
+            await this.fetchOrders();
+        },
         async closePosition(id, price, quantity = null) {
             const payload = { price };
             if (quantity !== null) payload.quantity = quantity;

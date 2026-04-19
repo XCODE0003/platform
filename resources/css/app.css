@@ -1284,10 +1284,7 @@ section.trade {
     margin-bottom: 7px;
 }
 
-.trade-history .grid-head>*,
-.trade-history .grid-line>* {
-    min-width: 80px;
-}
+
 
 .trade-history .grid-head> :last-child,
 .trade-history .grid-line> :last-child {

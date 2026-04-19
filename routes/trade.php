@@ -28,3 +28,8 @@ Route::post('/api/quotes/ensure', [App\Http\Controllers\User\QuotesController::c
 Route::post('/api/trade/positions/{positionId}/close', [App\Http\Controllers\User\OrderController::class, 'closePosition'])
 ->middleware('auth')
 ->name('trade.positions.close');
+
+// Update TP / SL on open position
+Route::patch('/api/trade/positions/{positionId}/tpsl', [App\Http\Controllers\User\OrderController::class, 'updateTpSl'])
+->middleware('auth')
+->name('trade.positions.tpsl');

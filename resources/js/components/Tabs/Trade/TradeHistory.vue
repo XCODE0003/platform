@@ -10,6 +10,41 @@ const activeHistoryTab = ref('openOrders');
 const cancellingOrders = ref(new Set());
 const closingPositions = ref(new Set());
 
+// TP/SL inline editing
+const editingTpSl = ref(null); // position id being edited
+const tpSlDraft = ref({ tp: '', sl: '' });
+const savingTpSl = ref(new Set());
+
+function openTpSlEdit(pos) {
+    editingTpSl.value = pos.id;
+    tpSlDraft.value = {
+        tp: pos.take_profit ? String(pos.take_profit) : '',
+        sl: pos.stop_loss   ? String(pos.stop_loss)   : '',
+    };
+}
+
+function cancelTpSlEdit() {
+    editingTpSl.value = null;
+}
+
+async function saveTpSl(posId) {
+    if (savingTpSl.value.has(posId)) return;
+    savingTpSl.value.add(posId);
+    try {
+        await tradeStore.updateTpSl(
+            posId,
+            tpSlDraft.value.tp || null,
+            tpSlDraft.value.sl || null,
+        );
+        editingTpSl.value = null;
+        toast.showSuccess('TP/SL updated');
+    } catch (e) {
+        toast.showError(e?.response?.data?.message || 'Failed to update TP/SL');
+    } finally {
+        savingTpSl.value.delete(posId);
+    }
+}
+
 // Close position modal
 const closingPosition = ref(null); // position object being closed
 
@@ -130,10 +165,49 @@ onMounted(() => {
                                 <div>{{ pos.quantity }}</div>
                                 <div>{{ pos.entry_total ? Number(pos.entry_total).toFixed(4) : '—' }}</div>
                                 <div>
-                                    <span v-if="pos.take_profit">TP {{ Number(pos.take_profit).toFixed(4) }}</span>
-                                    <span v-if="pos.take_profit && pos.stop_loss"> / </span>
-                                    <span v-if="pos.stop_loss">SL {{ Number(pos.stop_loss).toFixed(4) }}</span>
-                                    <span v-if="!pos.take_profit && !pos.stop_loss">—</span>
+                                    <!-- Inline TP/SL editor -->
+                                    <template v-if="editingTpSl === pos.id">
+                                        <div class="tpsl-edit">
+                                            <input
+                                                v-model="tpSlDraft.tp"
+                                                type="number"
+                                                step="any"
+                                                placeholder="TP"
+                                                class="tpsl-input"
+                                            />
+                                            <input
+                                                v-model="tpSlDraft.sl"
+                                                type="number"
+                                                step="any"
+                                                placeholder="SL"
+                                                class="tpsl-input"
+                                            />
+                                            <button
+                                                class="tpsl-btn tpsl-btn--save"
+                                                :disabled="savingTpSl.has(pos.id)"
+                                                @click="saveTpSl(pos.id)"
+                                                title="Save"
+                                            >
+                                                <span v-if="savingTpSl.has(pos.id)" class="btn-loader-sm"></span>
+                                                <svg v-else width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </button>
+                                            <button class="tpsl-btn tpsl-btn--cancel" @click="cancelTpSlEdit" title="Cancel">
+                                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <span
+                                            class="tpsl-display"
+                                            @click="openTpSlEdit(pos)"
+                                            title="Click to edit TP/SL"
+                                        >
+                                            <span v-if="pos.take_profit" class="text-green-300">TP {{ Number(pos.take_profit).toFixed(4) }}</span>
+                                            <span v-if="pos.take_profit && pos.stop_loss" class="text-gray-500"> / </span>
+                                            <span v-if="pos.stop_loss" class="text-red">SL {{ Number(pos.stop_loss).toFixed(4) }}</span>
+                                            <span v-if="!pos.take_profit && !pos.stop_loss" class="tpsl-empty">+ Add</span>
+                                        </span>
+                                    </template>
                                 </div>
                                 <div>
                                     <button class="icon-btn" @click="openCloseModal(pos)" :disabled="closingPositions.has(pos.id)" title="Close position">
@@ -361,6 +435,72 @@ onMounted(() => {
     text-align: center;
     color: #787b86;
     font-size: 13px;
+}
+
+/* TP/SL inline editing */
+.tpsl-display {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
+    transition: background 0.15s;
+}
+.tpsl-display:hover {
+    background: rgba(255,255,255,0.06);
+}
+.tpsl-empty {
+    color: #4b5563;
+    font-size: 11px;
+}
+.tpsl-display:hover .tpsl-empty {
+    color: #2962ff;
+}
+
+.tpsl-edit {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.tpsl-input {
+    width: 72px;
+    background: #1e222d;
+    border: 1px solid #2a2e39;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: #d1d4dc;
+    outline: none;
+}
+.tpsl-input:focus {
+    border-color: #2962ff;
+}
+.tpsl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.tpsl-btn--save {
+    background: rgba(41, 98, 255, 0.2) !important;
+    color: #2962ff !important;
+}
+.tpsl-btn--save:hover:not(:disabled) {
+    background: rgba(41, 98, 255, 0.4) !important;
+}
+.tpsl-btn--cancel {
+    background: rgba(242, 54, 69, 0.15) !important;
+    color: #f23645 !important;
+}
+.tpsl-btn--cancel:hover {
+    background: rgba(242, 54, 69, 0.3) !important;
 }
 
 .mt-2 {
