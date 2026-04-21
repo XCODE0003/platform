@@ -117,6 +117,30 @@ class OrderController extends Controller
             }
         }
 
+        // Check open positions for TP/SL triggers
+        $positions = Position::query()
+            ->where('pair_id', $pairId)
+            ->where('status', 'open')
+            ->where(function ($q): void {
+                $q->whereNotNull('take_profit')->orWhereNotNull('stop_loss');
+            })
+            ->get();
+
+        foreach ($positions as $position) {
+            $reason = null;
+            if ($position->take_profit) {
+                if ($position->side === 'buy' && bccomp($price, (string) $position->take_profit, 10) >= 0) $reason = 'take_profit';
+                if ($position->side === 'sell' && bccomp($price, (string) $position->take_profit, 10) <= 0) $reason = 'take_profit';
+            }
+            if ($reason === null && $position->stop_loss) {
+                if ($position->side === 'buy' && bccomp($price, (string) $position->stop_loss, 10) <= 0) $reason = 'stop_loss';
+                if ($position->side === 'sell' && bccomp($price, (string) $position->stop_loss, 10) >= 0) $reason = 'stop_loss';
+            }
+            if ($reason !== null) {
+                $this->service->closePosition($position, $price, null, $reason);
+            }
+        }
+
         return response()->json(['filled' => true]);
     }
 
@@ -153,7 +177,10 @@ class OrderController extends Controller
             (string) $validated['price'],
             isset($validated['quantity']) ? (string) $validated['quantity'] : null,
         );
-        return response()->json($result);
+        return response()->json([
+            ...$result->toArray(),
+            'bills' => $this->serializeBills($user),
+        ]);
     }
 
     /**

@@ -10,7 +10,12 @@ class Position extends Model
 {
     protected $fillable = [
         'user_id', 'pair_id', 'bill_id', 'side', 'entry_price', 'quantity', 'entry_total',
-        'take_profit', 'stop_loss', 'status', 'close_price', 'close_total', 'realized_pnl',
+        'take_profit', 'stop_loss', 'status', 'closed_at', 'close_reason',
+        'close_price', 'close_total', 'realized_pnl', 'swap',
+    ];
+
+    protected $casts = [
+        'closed_at' => 'datetime',
     ];
 
     public function user() { return $this->belongsTo(User::class); }

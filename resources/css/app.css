@@ -1263,32 +1263,37 @@ section.trade {
 .trade-history .grid-head,
 .trade-history .grid-line {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr min-content;
     grid-template-rows: 1fr;
-    gap: 0px 10px;
-    grid-template-areas:
-        ". . . . . . . .";
+    align-items: center;
+    gap: 0 10px;
+    padding: 5px 14px;
+    white-space: nowrap;
+}
 
+/* Open positions: Date | Pair | Side | Entry | Qty | Total | Swap | Profit | TP/SL | × */
+.trade-history .grid-open-pos {
+    grid-template-columns: 1.4fr 1fr 0.55fr 1fr 0.85fr 0.9fr 0.8fr 1fr 1.9fr 0.4fr;
+}
+
+/* Pending / cancelled orders: Date | Pair | Type | Side | Price | Qty | Total | Action */
+.trade-history .grid-pending {
+    grid-template-columns: 1.4fr 1fr 0.75fr 0.55fr 1fr 0.85fr 0.9fr 0.85fr;
+}
+
+/* Closed positions: Opened | Closed | Pair | Side | Entry | Exit | Swap | PnL | Comment */
+.trade-history .grid-closed-pos {
+    grid-template-columns: 1.3fr 1.3fr 1fr 0.55fr 1fr 1fr 0.85fr 1fr 1.1fr;
 }
 
 .trade-history .grid-line {
     border-radius: 3px;
     background: var(--Dark_2, #0A1F2B);
-    padding: 5px 15px;
     border-bottom: none;
     color: var(--White, #FFF);
     font-size: 12px;
     font-weight: 500;
     min-height: 32px;
-    align-items: center;
     margin-bottom: 7px;
-}
-
-
-
-.trade-history .grid-head> :last-child,
-.trade-history .grid-line> :last-child {
-    text-align: right;
 }
 
 .trade-history .grid-head {
@@ -1298,8 +1303,6 @@ section.trade {
     font-weight: 400;
     line-height: 100%;
     border-bottom: none;
-    padding-right: 35px;
-    padding-left: 35px;
 }
 
 .overflow {
@@ -1322,7 +1325,7 @@ section.trade {
 
 .trade-history .overflow {
     max-height: 230px;
-    padding: 0 0 0 20px;
+    padding: 0;
 }
 
 .grid-head {
@@ -2285,7 +2288,7 @@ button.clear {
 
 .trade-history {
     border-radius: 15px;
-    max-width: 1000px;
+    /* max-width: 1000px; */
     width: 100%;
     background: var(--Dark_4, #061B27);
     /* padding: 20px; */

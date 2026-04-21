@@ -104,10 +104,19 @@ const closedPositions = computed(() => [...tradeStore.positions]
     .sort((a, b) => b.id - a.id));
 const closedOrders = computed(() => tradeStore.orders.filter(o => o.status === 'cancelled' || o.status === 'rejected'));
 
-const selectedId = computed(() => tradeStore.selectedHistoricalTrade?.id ?? null);
+const selectedHistId = computed(() => tradeStore.selectedHistoricalTrade?.id ?? null);
+const selectedOpenId = computed(() => tradeStore.selectedOpenPositionId ?? null);
 
 function selectHistoricalTrade(pos) {
     tradeStore.setSelectedHistoricalTrade(pos);
+}
+
+function selectOpenPosition(pos) {
+    if (tradeStore.selectedOpenPositionId === pos.id) {
+        tradeStore.setSelectedOpenPosition(null);
+    } else {
+        tradeStore.setSelectedOpenPosition(pos.id);
+    }
 }
 
 // pair_id -> "BTC/USDT" lookup from store
@@ -125,6 +134,25 @@ const pairLabelMap = computed(() => {
 
 function pairLabel(pairId) {
     return pairLabelMap.value[pairId] ?? `PAIR:${pairId}`;
+}
+
+function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const da = String(dt.getDate()).padStart(2, '0');
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mm = String(dt.getMinutes()).padStart(2, '0');
+    return `${da}.${mo} ${hh}:${mm}`;
+}
+
+function unrealizedPnl(pos) {
+    const currentPrice = tradeStore.prices[pos.pair_id];
+    if (!currentPrice) return null;
+    const diff = pos.side === 'buy'
+        ? currentPrice - Number(pos.entry_price)
+        : Number(pos.entry_price) - currentPrice;
+    return diff * Number(pos.quantity);
 }
 
 onMounted(() => {
@@ -146,24 +174,42 @@ onMounted(() => {
                 <div v-if="activeHistoryTab === 'openOrders'" class="tabs__content-item tabs__content-item-1 hide-scroll openOrders">
                     <!-- Open Positions (market orders) -->
                     <template v-if="openPositions.length > 0">
-                        <div class="grid-head">
-                            <div>Date, time</div>
+                        <div class="grid-head grid-open-pos">
+                            <div>Date</div>
                             <div>Pair</div>
                             <div>Side</div>
-                            <div>Entry price</div>
-                            <div>Quantity</div>
-                            <div>Total (USD)</div>
+                            <div>Entry</div>
+                            <div>Qty</div>
+                            <div>Total</div>
+                            <div>Swap</div>
+                            <div>Profit</div>
                             <div>TP / SL</div>
-                            <div>Close</div>
+                            <div>×</div>
                         </div>
-                        <div class="overflow md:overflow-x-hidden">
-                            <div v-for="pos in openPositions" :key="'pos-' + pos.id" class="grid-line active">
-                                <div>{{ new Date(pos.created_at).toLocaleString() }}</div>
+                        <div class="overflow">
+                            <div
+                                v-for="pos in openPositions"
+                                :key="'pos-' + pos.id"
+                                class="grid-line active grid-open-pos history-row"
+                                :class="{ 'history-row--selected': selectedOpenId === pos.id }"
+                                @click.self="selectOpenPosition(pos)"
+                                title="Click to show on chart"
+                            >
+                                <div>{{ fmtDate(pos.created_at) }}</div>
                                 <div>{{ pairLabel(pos.pair_id) }}</div>
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
                                 <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
                                 <div>{{ pos.quantity }}</div>
-                                <div>{{ pos.entry_total ? Number(pos.entry_total).toFixed(4) : '—' }}</div>
+                                <div>{{ pos.entry_total ? Number(pos.entry_total).toFixed(2) : '—' }}</div>
+                                <div :class="Number(pos.swap) > 0 ? 'text-red' : ''">
+                                    {{ Number(pos.swap) > 0 ? '-' + Number(pos.swap).toFixed(4) : '—' }}
+                                </div>
+                                <div :class="unrealizedPnl(pos) === null ? '' : unrealizedPnl(pos) >= 0 ? 'text-green-300' : 'text-red'">
+                                    <template v-if="unrealizedPnl(pos) !== null">
+                                        {{ unrealizedPnl(pos) >= 0 ? '+' : '' }}{{ unrealizedPnl(pos).toFixed(4) }}
+                                    </template>
+                                    <template v-else>—</template>
+                                </div>
                                 <div>
                                     <!-- Inline TP/SL editor -->
                                     <template v-if="editingTpSl === pos.id">
@@ -202,9 +248,9 @@ onMounted(() => {
                                             @click="openTpSlEdit(pos)"
                                             title="Click to edit TP/SL"
                                         >
-                                            <span v-if="pos.take_profit" class="text-green-300">TP {{ Number(pos.take_profit).toFixed(4) }}</span>
-                                            <span v-if="pos.take_profit && pos.stop_loss" class="text-gray-500"> / </span>
-                                            <span v-if="pos.stop_loss" class="text-red">SL {{ Number(pos.stop_loss).toFixed(4) }}</span>
+                                            <span v-if="pos.take_profit" class="text-green-300">TP&nbsp;{{ Number(pos.take_profit).toFixed(2) }}</span>
+                                            <span v-if="pos.take_profit && pos.stop_loss" class="text-gray-500">&nbsp;/&nbsp;</span>
+                                            <span v-if="pos.stop_loss" class="text-red">SL&nbsp;{{ Number(pos.stop_loss).toFixed(2) }}</span>
                                             <span v-if="!pos.take_profit && !pos.stop_loss" class="tpsl-empty">+ Add</span>
                                         </span>
                                     </template>
@@ -223,19 +269,19 @@ onMounted(() => {
 
                     <!-- Pending Limit / Stop Orders -->
                     <template v-if="openOrders.length > 0">
-                        <div class="grid-head" :class="{ 'mt-2': openPositions.length > 0 }">
-                            <div>Date, time</div>
+                        <div class="grid-head grid-pending" :class="{ 'mt-2': openPositions.length > 0 }">
+                            <div>Date</div>
                             <div>Pair</div>
                             <div>Type</div>
                             <div>Side</div>
                             <div>Price</div>
-                            <div>Quantity</div>
-                            <div>Total (USD)</div>
+                            <div>Qty</div>
+                            <div>Total</div>
                             <div>Cancel</div>
                         </div>
-                        <div class="overflow md:overflow-x-hidden" id="openOrders">
-                            <div v-for="ord in openOrders" :key="ord.id" class="grid-line active">
-                                <div>{{ new Date(ord.created_at).toLocaleString() }}</div>
+                        <div class="overflow" id="openOrders">
+                            <div v-for="ord in openOrders" :key="ord.id" class="grid-line active grid-pending">
+                                <div>{{ fmtDate(ord.created_at) }}</div>
                                 <div>{{ pairLabel(ord.pair_id) }}</div>
                                 <div>{{ ord.type }}</div>
                                 <div>{{ ord.side }}</div>
@@ -260,52 +306,62 @@ onMounted(() => {
                 <div v-if="activeHistoryTab === 'tradeHistory'" class="tabs__content-item tabs__content-item-1 hide-scroll tradeHistory">
                     <!-- Closed positions: clickable rows show entry/exit on chart -->
                     <template v-if="closedPositions.length > 0">
-                        <div class="grid-head">
-                            <div>Date, time</div>
+                        <div class="grid-head grid-closed-pos">
+                            <div>Opened</div>
+                            <div>Closed</div>
                             <div>Pair</div>
                             <div>Side</div>
                             <div>Entry</div>
                             <div>Exit</div>
+                            <div>Swap</div>
                             <div>PnL</div>
-                            <div>Total</div>
+                            <div>Comment</div>
                         </div>
-                        <div class="overflow md:overflow-x-hidden" id="closedPositions">
+                        <div class="overflow" id="closedPositions">
                             <div
                                 v-for="pos in closedPositions"
                                 :key="'cp-' + pos.id"
-                                class="grid-line active history-row"
-                                :class="{ 'history-row--selected': selectedId === pos.id }"
+                                class="grid-line active history-row grid-closed-pos"
+                                :class="{ 'history-row--selected': selectedHistId === pos.id }"
                                 @click="selectHistoricalTrade(pos)"
                                 title="Click to show on chart"
                             >
-                                <div>{{ new Date(pos.updated_at || pos.created_at).toLocaleString() }}</div>
+                                <div>{{ fmtDate(pos.created_at) }}</div>
+                                <div>{{ fmtDate(pos.closed_at) }}</div>
                                 <div>{{ pairLabel(pos.pair_id) }}</div>
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
                                 <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
                                 <div>{{ pos.close_price ? Number(pos.close_price).toFixed(4) : '—' }}</div>
+                                <div :class="Number(pos.swap) > 0 ? 'text-red' : ''">
+                                    {{ Number(pos.swap) > 0 ? '-' + Number(pos.swap).toFixed(4) : '—' }}
+                                </div>
                                 <div :class="{ 'text-green-300': Number(pos.realized_pnl) > 0, 'text-red': Number(pos.realized_pnl) < 0 }">
                                     {{ pos.realized_pnl ? (Number(pos.realized_pnl) > 0 ? '+' : '') + Number(pos.realized_pnl).toFixed(4) : '—' }}
                                 </div>
-                                <div>{{ pos.entry_total ? Number(pos.entry_total).toFixed(4) : '—' }}</div>
+                                <div>
+                                    <span v-if="pos.close_reason === 'take_profit'" class="reason-badge reason-badge--tp">Take Profit</span>
+                                    <span v-else-if="pos.close_reason === 'stop_loss'" class="reason-badge reason-badge--sl">Stop Loss</span>
+                                    <span v-else class="reason-badge reason-badge--manual">Manual</span>
+                                </div>
                             </div>
                         </div>
                     </template>
 
                     <!-- Cancelled / rejected orders -->
                     <template v-if="closedOrders.length > 0">
-                        <div class="grid-head" :class="{ 'mt-2': closedPositions.length > 0 }">
-                            <div>Date, time</div>
+                        <div class="grid-head grid-pending" :class="{ 'mt-2': closedPositions.length > 0 }">
+                            <div>Date</div>
                             <div>Pair</div>
                             <div>Type</div>
                             <div>Side</div>
                             <div>Price</div>
-                            <div>Quantity</div>
+                            <div>Qty</div>
                             <div>Total</div>
                             <div>Status</div>
                         </div>
-                        <div class="overflow md:overflow-x-hidden">
-                            <div v-for="ord in closedOrders" :key="'co-' + ord.id" class="grid-line active">
-                                <div>{{ new Date(ord.updated_at || ord.created_at).toLocaleString() }}</div>
+                        <div class="overflow">
+                            <div v-for="ord in closedOrders" :key="'co-' + ord.id" class="grid-line active grid-pending">
+                                <div>{{ fmtDate(ord.updated_at || ord.created_at) }}</div>
                                 <div>{{ pairLabel(ord.pair_id) }}</div>
                                 <div>{{ ord.type }}</div>
                                 <div>{{ ord.side }}</div>
@@ -341,7 +397,6 @@ onMounted(() => {
 
 .grid-line:hover {
     background: rgba(255, 255, 255, 0.03);
-    transform: translateX(2px);
 }
 
 .history-row {
@@ -465,7 +520,7 @@ onMounted(() => {
     gap: 4px;
 }
 .tpsl-input {
-    width: 72px;
+    width: 62px;
     background: #1e222d;
     border: 1px solid #2a2e39;
     border-radius: 4px;
@@ -505,6 +560,28 @@ onMounted(() => {
 
 .mt-2 {
     margin-top: 8px;
+}
+
+.reason-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+.reason-badge--tp {
+    background: rgba(121, 249, 149, 0.12) !important;
+    color: #79F995 !important;
+}
+.reason-badge--sl {
+    background: rgba(244, 75, 75, 0.12) !important;
+    color: #F44B4B !important;
+}
+.reason-badge--manual {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #787b86 !important;
 }
 
 /* Profit/Loss colors with smooth transitions */

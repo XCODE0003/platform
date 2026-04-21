@@ -16,3 +16,6 @@ Schedule::command('trade:check-limit-orders')->everyMinute()->withoutOverlapping
 
 // Keep exchange rates current for portfolio valuation
 Schedule::command('rates:update')->everyMinute()->withoutOverlapping();
+
+// Charge overnight swap on open positions — runs daily at server midnight
+Schedule::command('trade:apply-swap')->dailyAt('00:00')->withoutOverlapping();

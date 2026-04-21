@@ -150,9 +150,29 @@ class OrderService
         });
     }
 
-    public function closePosition(Position $position, string $closePrice, ?string $closeQty = null): Position
+    public function applySwap(Position $position): void
     {
-        return DB::transaction(function () use ($position, $closePrice, $closeQty): Position {
+        DB::transaction(function () use ($position): void {
+            $pair = $position->pair()->first();
+            $rate = (string) ($pair?->swap_rate ?? '0.0003');
+            if (bccomp($rate, '0', 10) <= 0) {
+                return;
+            }
+
+            $swapAmount = bcmul((string) $position->entry_total, $rate, 10);
+
+            $bill = $position->bill()->lockForUpdate()->first();
+            $bill->balance = bcsub((string) $bill->balance, $swapAmount, 10);
+            $bill->save();
+
+            $position->swap = bcadd((string) $position->swap, $swapAmount, 10);
+            $position->save();
+        });
+    }
+
+    public function closePosition(Position $position, string $closePrice, ?string $closeQty = null, string $reason = 'manual'): Position
+    {
+        return DB::transaction(function () use ($position, $closePrice, $closeQty, $reason): Position {
             if ($position->status === 'closed') {
                 return $position;
             }
@@ -209,10 +229,12 @@ class OrderService
             }
 
             // Full close
-            $position->status       = 'closed';
-            $position->close_price  = $price;
-            $position->close_total  = bcmul($price, $qty, 10);
-            $position->realized_pnl = $realizedPnl;
+            $position->status        = 'closed';
+            $position->closed_at     = now();
+            $position->close_reason  = $reason;
+            $position->close_price   = $price;
+            $position->close_total   = bcmul($price, $qty, 10);
+            $position->realized_pnl  = $realizedPnl;
             $position->save();
 
             return $position;

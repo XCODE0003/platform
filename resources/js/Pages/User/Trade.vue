@@ -197,20 +197,57 @@ const tvSymbol = computed(() => {
     return pair ? `PAIR:${pair.id}` : 'PAIR:1';
 });
 
-const openPosition = computed(() => {
+// All open positions for the current pair (multiple trades allowed)
+const pairPositions = computed(() => {
     const pair = selectedPair.value;
-    if (!pair) return null;
-    // If we've been asked to hide open position for this pair (e.g., after cancel), suppress it
-    if (tradeStore.hiddenOpenPairId && Number(tradeStore.hiddenOpenPairId) === Number(pair.id)) {
-        return null;
+    if (!pair) return [];
+    if (tradeStore.hiddenOpenPairId && Number(tradeStore.hiddenOpenPairId) === Number(pair.id)) return [];
+    return tradeStore.positions.filter((p) => p.pair_id === pair.id && p.status === 'open');
+});
+
+// Index of the position currently shown on the chart
+const selectedPositionIdx = ref(0);
+
+// Sync index when store's selectedOpenPositionId changes (e.g. clicked from TradeHistory)
+watch(() => tradeStore.selectedOpenPositionId, (id) => {
+    if (id === null) return;
+    const idx = pairPositions.value.findIndex((p) => p.id === id);
+    if (idx !== -1) selectedPositionIdx.value = idx;
+});
+
+// Reset index when pair changes or positions shrink
+watch(pairPositions, (positions) => {
+    if (selectedPositionIdx.value >= positions.length) {
+        selectedPositionIdx.value = Math.max(0, positions.length - 1);
     }
-    const pos = tradeStore.positions.find((p) => p.pair_id === pair.id && p.status === 'open');
+});
+
+function prevPosition() {
+    if (selectedPositionIdx.value > 0) {
+        selectedPositionIdx.value--;
+        tradeStore.setSelectedOpenPosition(pairPositions.value[selectedPositionIdx.value]?.id ?? null);
+    }
+}
+function nextPosition() {
+    if (selectedPositionIdx.value < pairPositions.value.length - 1) {
+        selectedPositionIdx.value++;
+        tradeStore.setSelectedOpenPosition(pairPositions.value[selectedPositionIdx.value]?.id ?? null);
+    }
+}
+
+const openPosition = computed(() => {
+    // While viewing a historical trade, suppress open-position lines entirely
+    if (tradeStore.selectedHistoricalTrade) return null;
+    const pos = pairPositions.value[selectedPositionIdx.value];
     if (!pos) return null;
     return {
+        id: pos.id,
         price: pos.entry_price,
         side: pos.side,
         amount: pos.quantity,
         created_at: pos.created_at,
+        take_profit: pos.take_profit,
+        stop_loss: pos.stop_loss,
     };
 });
 
@@ -314,14 +351,29 @@ onBeforeUnmount(() => {
                                         </button>
                                     </div>
                                 </div>
-                                <TvChart :symbol="tvSymbol" :pair="selectedPair" :position="openPosition" :closedPosition="closedPosition" :historicalTrade="historicalTrade" interval="5" theme="dark" />
+                                <div class="chart-wrap">
+                                    <TvChart :symbol="tvSymbol" :pair="selectedPair" :position="openPosition" :closedPosition="closedPosition" :historicalTrade="historicalTrade" :currentPrice="tradeStore.price" interval="5" theme="dark" />
+                                    <!-- Position switcher overlay -->
+                                    <div v-if="pairPositions.length > 0" class="pos-switcher">
+                                        <button class="pos-nav" :disabled="selectedPositionIdx === 0" @click="prevPosition">‹</button>
+                                        <div class="pos-info">
+                                            <span :class="openPosition.side === 'buy' ? 'pos-side--buy' : 'pos-side--sell'">
+                                                {{ openPosition.side.toUpperCase() }}
+                                            </span>
+                                            <span class="pos-price">@ {{ Number(openPosition.price).toFixed(4) }}</span>
+                                            <span class="pos-count">{{ selectedPositionIdx + 1 }}/{{ pairPositions.length }}</span>
+                                        </div>
+                                        <button class="pos-nav" :disabled="selectedPositionIdx === pairPositions.length - 1" @click="nextPosition">›</button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <TradeHistory />
+
                         </div>
 
                         <TradeRight :bill="selectedBill" />
                     </div>
+                    <TradeHistory />
                 </div>
             </section>
         </main>
@@ -512,4 +564,57 @@ onBeforeUnmount(() => {
         transform: rotate(360deg);
     }
 }
+
+.chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.pos-switcher {
+    position: absolute;
+    bottom: 36px;
+    left: 12px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(10, 14, 23, 0.82);
+    backdrop-filter: blur(4px);
+    border: 1px solid #2a2e39;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: #d1d4dc;
+    user-select: none;
+}
+
+.pos-nav {
+    background: none !important;
+    border: none !important;
+    color: #787b86 !important;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.15s;
+}
+.pos-nav:not(:disabled):hover {
+    color: #d1d4dc !important;
+}
+.pos-nav:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.pos-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pos-side--buy  { color: #79F995; font-weight: 600; }
+.pos-side--sell { color: #F44B4B; font-weight: 600; }
+.pos-price      { color: #d1d4dc; }
+.pos-count      { color: #4b5563; font-size: 10px; }
 </style>

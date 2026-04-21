@@ -6,6 +6,7 @@ export const useTradeStore = defineStore('trade', {
     state: () => ({
         tradingPairs: [],
         price: null,
+        prices: {}, // pair_id -> latest price
         volumeChange: null,
         volume: null,
         high: null,
@@ -20,6 +21,7 @@ export const useTradeStore = defineStore('trade', {
         lastClosedPosition: null,
         hiddenOpenPairId: null,
         selectedHistoricalTrade: null,
+        selectedOpenPositionId: null,  // open position shown on chart
     }),
 
     getters: {
@@ -79,6 +81,9 @@ export const useTradeStore = defineStore('trade', {
             const payload = { price };
             if (quantity !== null) payload.quantity = quantity;
             const { data } = await axiosClient.post(`/api/trade/positions/${id}/close`, payload);
+            if (data?.bills) {
+                this.setBills(data.bills);
+            }
             // Show exit arrow on chart for 5s (only for full close)
             if (data?.status === 'closed' || data?.status === 'partial') {
                 this.lastClosedPosition = data;
@@ -108,6 +113,9 @@ export const useTradeStore = defineStore('trade', {
         },
         setPrice(price) {
             this.price = price;
+            if (price !== null && this.selectedPair?.id) {
+                this.prices = { ...this.prices, [this.selectedPair.id]: price };
+            }
         },
         setVolume(volume) {
             this.volume = volume;
@@ -122,12 +130,16 @@ export const useTradeStore = defineStore('trade', {
             this.volumeChange = volumeChange;
         },
         setSelectedHistoricalTrade(trade) {
-            // Toggle off if same trade clicked again
             if (trade && this.selectedHistoricalTrade?.id === trade.id) {
                 this.selectedHistoricalTrade = null;
             } else {
                 this.selectedHistoricalTrade = trade;
+                this.selectedOpenPositionId = null; // exit open-position mode
             }
+        },
+        setSelectedOpenPosition(id) {
+            this.selectedOpenPositionId = id;
+            this.selectedHistoricalTrade = null; // exit historical mode
         },
     },
 });
