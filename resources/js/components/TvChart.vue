@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import UnifiedDatafeed, { unsubscribeAll } from './datafeed_unified'
 
 const props = defineProps({
@@ -38,7 +38,10 @@ let hideTimer = null
 let lastPositionKey = null
 let lastHistKey = null
 let lastCurrentPrice = null
-let currentPriceShape = null   // tracked individually — updated every tick, removed before redraw
+/** createShape returns EntityId — use removeEntity(id), not .remove() */
+let currentPriceEntityId = null
+/** Bumps on each overlay draw — stale async createShape completions are ignored */
+let overlayPaintGen = 0
 let chartLogoObserver = null
 const isReady = ref(false)
 
@@ -96,7 +99,7 @@ function loadWidget() {
   lastPositionKey = null
   lastHistKey = null
   lastCurrentPrice = null
-  currentPriceShape = null
+  currentPriceEntityId = null
   const options = {
     symbol: props.symbol,
     datafeed: UnifiedDatafeed,
@@ -154,28 +157,75 @@ function loadWidget() {
 }
 
 function getChart() {
-  try { return tvWidget?.chart() ?? null } catch { return null }
+  try {
+    if (!tvWidget) return null
+    // Docs use activeChart(); chart(0) should match for single layout
+    const ac = tvWidget.activeChart?.()
+    if (ac) return ac
+    return tvWidget.chart?.() ?? null
+  } catch {
+    return null
+  }
+}
+
+/** removeAllShapes() alone can miss async-created lines — second pass via getAllShapes */
+function clearChartOverlays(chart) {
+  if (!chart) return
+  try { chart.removeAllShapes() } catch (_) {}
+  try {
+    const shapes = typeof chart.getAllShapes === 'function' ? chart.getAllShapes() : []
+    for (const s of shapes) {
+      try { chart.removeEntity(s.id) } catch (_) {}
+    }
+  } catch (_) {}
+}
+
+/** createShape may return EntityId or Promise<EntityId> (runtime) */
+async function createShapeAsync(chart, point, options) {
+  const raw = chart.createShape(point, options)
+  return await Promise.resolve(raw)
 }
 
 function clearAll() {
   const chart = getChart()
-  if (chart) {
-    try { chart.removeAllShapes() } catch (_) {}
-  }
+  clearChartOverlays(chart)
   lastPositionKey = null
   lastHistKey = null
   lastCurrentPrice = null
-  currentPriceShape = null   // shape was removed by removeAllShapes — null the ref
+  currentPriceEntityId = null
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
 }
 
-function drawPosition() {
+async function drawCurrentPriceAsync(chart, gen) {
+  const cp = Number(props.currentPrice) || null
+  if (!cp || !Number.isFinite(cp)) return
+  if (gen != null && gen !== overlayPaintGen) return
+  if (cp === lastCurrentPrice && currentPriceEntityId) return
+  if (currentPriceEntityId) {
+    try { chart.removeEntity(currentPriceEntityId) } catch (_) {}
+    currentPriceEntityId = null
+  }
+  lastCurrentPrice = cp
+  const now = Math.floor(Date.now() / 1000)
+  try {
+    const id = await createShapeAsync(chart, { time: now, price: cp }, {
+      shape: 'horizontal_line', disableSelection: true, lock: true,
+      text: `Now ${cp}`,
+      overrides: { linecolor: '#787b86', linewidth: 1, linestyle: 2 },
+    })
+    if (gen != null && gen !== overlayPaintGen) return
+    currentPriceEntityId = id ?? null
+  } catch (_) {}
+}
+
+async function drawPositionAsync() {
+  const gen = ++overlayPaintGen
   if (!tvWidget || !isReady.value) return
   const chart = getChart()
   if (!chart) return
 
   if (!props.position || !props.position.price) {
-    if (lastPositionKey) clearAll()   // only clear if we actually drew something
+    if (lastPositionKey) clearAll()
     return
   }
 
@@ -185,11 +235,12 @@ function drawPosition() {
   const newKey = String(props.symbol) + '|' + posId + '|' + side + '|' + price
 
   if (lastPositionKey === newKey) {
-    drawCurrentPrice(chart)
+    await drawCurrentPriceAsync(chart, gen)
     return
   }
 
   clearAll()
+  if (gen !== overlayPaintGen) return
   lastPositionKey = newKey
 
   const isBuy = side === 'buy'
@@ -199,65 +250,54 @@ function drawPosition() {
     : Math.floor(Date.now() / 1000)
 
   try {
-    chart.createShape({ time: entryTime, price }, {
+    await createShapeAsync(chart, { time: entryTime, price }, {
       shape: 'horizontal_line', disableSelection: true, lock: true,
       text: `${side.toUpperCase()} ${props.position.amount || ''}`.trim(),
       overrides: { linecolor: color, linewidth: 2 },
     })
-    chart.createShape({ time: entryTime, price }, {
+    if (gen !== overlayPaintGen) return
+    await createShapeAsync(chart, { time: entryTime, price }, {
       shape: isBuy ? 'arrow_up' : 'arrow_down',
       text: 'Entry', overrides: { color },
       disableSelection: true, lock: true,
     })
   } catch (e) { console.warn('[TvChart] entry shapes error', e) }
+  if (gen !== overlayPaintGen) return
 
   const tp = Number(props.position.take_profit) || null
   if (tp && Number.isFinite(tp)) {
     try {
-      chart.createShape({ time: entryTime, price: tp }, {
+      await createShapeAsync(chart, { time: entryTime, price: tp }, {
         shape: 'horizontal_line', disableSelection: true, lock: true,
         text: `TP ${tp.toFixed(4)}`,
         overrides: { linecolor: '#79F995', linewidth: 1, linestyle: 1 },
       })
     } catch (_) {}
   }
+  if (gen !== overlayPaintGen) return
 
   const sl = Number(props.position.stop_loss) || null
   if (sl && Number.isFinite(sl)) {
     try {
-      chart.createShape({ time: entryTime, price: sl }, {
+      await createShapeAsync(chart, { time: entryTime, price: sl }, {
         shape: 'horizontal_line', disableSelection: true, lock: true,
         text: `SL ${sl.toFixed(4)}`,
         overrides: { linecolor: '#F44B4B', linewidth: 1, linestyle: 1 },
       })
     } catch (_) {}
   }
+  if (gen !== overlayPaintGen) return
 
-  drawCurrentPrice(chart)
+  await drawCurrentPriceAsync(chart, gen)
 }
 
-function drawCurrentPrice(chart) {
-  const cp = Number(props.currentPrice) || null
-  if (!cp || !Number.isFinite(cp)) return
-  if (cp === lastCurrentPrice && currentPriceShape) return
-  // Remove the previous "Now" line before adding a new one
-  if (currentPriceShape) {
-    try { currentPriceShape.remove() } catch (_) {}
-    currentPriceShape = null
-  }
-  lastCurrentPrice = cp
-  const now = Math.floor(Date.now() / 1000)
-  try {
-    currentPriceShape = chart.createShape({ time: now, price: cp }, {
-      shape: 'horizontal_line', disableSelection: true, lock: true,
-      text: `Now ${cp}`,
-      overrides: { linecolor: '#787b86', linewidth: 1, linestyle: 2 },
-    })
-  } catch (_) {}
+function drawPosition() {
+  void drawPositionAsync()
 }
 
-function drawClosedTrade() {
-  if (!tvWidget || !isReady.value || !props.position) return
+async function drawClosedTradeAsync() {
+  const gen = ++overlayPaintGen
+  if (!tvWidget || !isReady.value) return
   const chart = getChart()
   if (!chart) return
   const closedAt = props.closedPosition?.closed_at || props.closedPosition?.updated_at
@@ -270,37 +310,48 @@ function drawClosedTrade() {
   const color = isBuy ? '#79F995' : '#F44B4B'
 
   try {
-    chart.createShape({ time: closeTime, price: closePrice }, {
+    await createShapeAsync(chart, { time: closeTime, price: closePrice }, {
       shape: isBuy ? 'arrow_down' : 'arrow_up',
       text: 'Exit', overrides: { color },
       disableSelection: true, lock: true,
     })
   } catch (e) { console.warn('[TvChart] exit arrow error', e) }
+  if (gen !== overlayPaintGen) return
 
   if (hideTimer) clearTimeout(hideTimer)
   hideTimer = setTimeout(() => clearAll(), 10000)
 }
 
-function drawHistoricalTrade() {
+function drawClosedTrade() {
+  void drawClosedTradeAsync()
+}
+
+async function drawHistoricalTradeAsync() {
+  const gen = ++overlayPaintGen
   if (!tvWidget || !isReady.value) return
   const chart = getChart()
   if (!chart) return
 
   const t = props.historicalTrade
   if (!t?.entry_price || !t?.close_price) {
-    // Only clear if we had hist shapes — position watcher handles redrawing the position
     if (lastHistKey) clearAll()
+    drawPosition()
     return
   }
 
   const entryPrice = Number(t.entry_price)
   const closePrice = Number(t.close_price)
-  if (!Number.isFinite(entryPrice) || !Number.isFinite(closePrice)) return
+  if (!Number.isFinite(entryPrice) || !Number.isFinite(closePrice)) {
+    if (lastHistKey) clearAll()
+    drawPosition()
+    return
+  }
 
   const newKey = String(t.id) + '|' + entryPrice + '|' + closePrice
   if (lastHistKey === newKey) return
 
   clearAll()
+  if (gen !== overlayPaintGen) return
   lastHistKey = newKey
 
   const side = t.side || 'buy'
@@ -314,22 +365,28 @@ function drawHistoricalTrade() {
     : entryTime + 60
 
   try {
-    chart.createShape({ time: entryTime, price: entryPrice }, {
+    await createShapeAsync(chart, { time: entryTime, price: entryPrice }, {
       shape: 'horizontal_line', disableSelection: true, lock: true,
       text: `${side.toUpperCase()} entry`,
       overrides: { linecolor: color, linewidth: 1, linestyle: 2 },
     })
-    chart.createShape({ time: entryTime, price: entryPrice }, {
+    if (gen !== overlayPaintGen) return
+    await createShapeAsync(chart, { time: entryTime, price: entryPrice }, {
       shape: isBuy ? 'arrow_up' : 'arrow_down',
       text: 'Entry', overrides: { color },
       disableSelection: true, lock: true,
     })
-    chart.createShape({ time: exitTime, price: closePrice }, {
+    if (gen !== overlayPaintGen) return
+    await createShapeAsync(chart, { time: exitTime, price: closePrice }, {
       shape: isBuy ? 'arrow_down' : 'arrow_up',
       text: 'Exit', overrides: { color },
       disableSelection: true, lock: true,
     })
   } catch (e) { console.warn('[TvChart] drawHistoricalTrade error', e) }
+}
+
+function drawHistoricalTrade() {
+  void drawHistoricalTradeAsync()
 }
 
 onMounted(async () => {
@@ -364,13 +421,14 @@ watch(() => props.position, () => {
 
 watch(() => props.currentPrice, () => {
   if (!tvWidget || !isReady.value || !props.position) return
-  let chart
-  try { chart = tvWidget.chart() } catch { return }
-  drawCurrentPrice(chart)
+  const chart = getChart()
+  if (!chart) return
+  void drawCurrentPriceAsync(chart, null)
 })
 
 watch(() => props.closedPosition, () => {
-  drawClosedTrade()
+  // After position cleared, drawPosition runs first and removeAllShapes; defer exit arrow
+  nextTick(() => drawClosedTrade())
 }, { deep: true })
 
 watch(() => props.historicalTrade, () => {
