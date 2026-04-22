@@ -1,6 +1,7 @@
 <script setup>
 import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
 import { calculateInUsd, calculateRate } from '@/utils/rates';
+import { formatAmount } from '@/utils/formatAmount.js';
 import { useModalStore } from '@/stores/modal.js';
 import { defineProps, ref, watch } from 'vue';
 const props = defineProps({
@@ -49,7 +50,7 @@ function searchPortfolioWallets() {
             <div class="text_17 block">
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
-                <span> {{ props.totalBalancePortfolio ?? 0 }} USD</span>
+                <span> {{ formatAmount(props.totalBalancePortfolio, 'USD') }} USD</span>
             </div>
             <button @click="modal.open('invest')" class="btn small_btn btn_16">
                 Invest
@@ -116,13 +117,16 @@ function searchPortfolioWallets() {
                     <span>{{ wallet.currency.name }}</span>
                 </div>
                 <div class="flex-column gap10">
-                    <span class="text_16"> {{ wallet.balance }}</span>
+                    <span class="text_16"> {{ formatAmount(wallet.balance, wallet.currency.symbol) }}</span>
                     <span class="text_small_12 color-gray2">
                         ≈
                         {{
-                            calculateRate(
-                                wallet.balance,
-                                wallet.currency.exchange_rate,
+                            formatAmount(
+                                calculateRate(
+                                    wallet.balance,
+                                    wallet.currency.exchange_rate,
+                                ),
+                                'USD',
                             )
                         }}
                         USD
@@ -130,12 +134,15 @@ function searchPortfolioWallets() {
                 </div>
 
                 <div class="flex-column gap10">
-                    <span class="text_16">{{ wallet.pending_balance }}</span>
+                    <span class="text_16">{{ formatAmount(wallet.pending_balance, wallet.currency.symbol) }}</span>
                     <span class="text_small_12 color-gray2">
                         ≈
                         {{
-                            wallet.currency.exchange_rate *
-                            wallet.pending_balance
+                            formatAmount(
+                                wallet.currency.exchange_rate *
+                                    wallet.pending_balance,
+                                'USD',
+                            )
                         }}
                         USD
                     </span>
@@ -152,9 +159,12 @@ function searchPortfolioWallets() {
                     <span class="text_small_12 color-gray2">
                         ≈
                         {{
-                            calculateRate(
-                                parseFloat(wallet.balance) + parseFloat(wallet.pending_balance),
-                                wallet.currency.exchange_rate,
+                            formatAmount(
+                                calculateRate(
+                                    parseFloat(wallet.balance) + parseFloat(wallet.pending_balance),
+                                    wallet.currency.exchange_rate,
+                                ),
+                                'USD',
                             )
                         }}
                         USD

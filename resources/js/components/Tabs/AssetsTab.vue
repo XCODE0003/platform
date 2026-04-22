@@ -3,6 +3,7 @@ import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
 import { computed, defineProps, ref } from 'vue';
 import { useUserStore } from '@/stores/userStore.js';
 import { useModalStore } from '@/stores/modal.js';
+import { formatAmount } from '@/utils/formatAmount.js';
 
 const props = defineProps({
     totalBalanceAssets: Number,
@@ -47,7 +48,7 @@ const bills = computed(() => {
             <div class="text_17 block">
                 <img src="/images/balance_icon-available.svg" alt="" />
                 <p>Available balance:</p>
-                <span> {{ props.totalBalanceAssets ?? 0 }} USD</span>
+                <span> {{ formatAmount(props.totalBalanceAssets, 'USD') }} USD</span>
 
             </div>
              <button @click="modal.open('bill')" class="btn small_btn btn_16">
@@ -96,17 +97,17 @@ const bills = computed(() => {
                     <span>{{ bill.name ?? bill.bill_name }}</span>
                 </div>
                 <div class="flex-column gap10">
-                    <span class="text_16"> {{ Number(bill.balance ?? 0).toFixed(2) }} {{ bill.currency?.symbol ?? '' }}</span>
+                    <span class="text_16"> {{ formatAmount(bill.balance, bill.currency?.symbol) }} {{ bill.currency?.symbol ?? '' }}</span>
 
                 </div>
 
                 <div class="flex-column gap10">
-                    <span class="text_16">{{ Number(bill.pending_balance ?? 0).toFixed(2) }} {{ bill.currency?.symbol ?? '' }}</span>
+                    <span class="text_16">{{ formatAmount(bill.pending_balance, bill.currency?.symbol) }} {{ bill.currency?.symbol ?? '' }}</span>
 
                 </div>
                 <div class="flex-column gap10">
                     <span class="text_16">
-                        {{ (Number(bill.balance ?? 0) + Number(bill.pending_balance ?? 0)).toFixed(2) }} {{ bill.currency?.symbol ?? '' }}
+                        {{ formatAmount(Number(bill.balance ?? 0) + Number(bill.pending_balance ?? 0), bill.currency?.symbol) }} {{ bill.currency?.symbol ?? '' }}
                     </span>
                 </div>
             </div>

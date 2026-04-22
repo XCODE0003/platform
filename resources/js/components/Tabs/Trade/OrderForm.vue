@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/userStore.js';
 import { useTradeStore } from '@/stores/tradeStore.js';
 import { useToast } from '@/composables/useToast.js';
 import axiosClient from '@/api/axios';
+import { amountDecimals, formatAmount } from '@/utils/formatAmount.js';
 
 const userStore = useUserStore();
 const user = userStore.user;
@@ -53,14 +54,12 @@ function toNum(v) {
     return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function getDecimals(sym) {
-    if (!sym) return 8;
-    const s = String(sym).toUpperCase();
-    return ['USD', 'USDT', 'EUR', 'RUB'].includes(s) ? 2 : 8;
-}
+const quoteDecimals = computed(() => amountDecimals(quoteSymbol.value));
+const baseDecimals = computed(() => amountDecimals(baseSymbol.value));
 
-const quoteDecimals = computed(() => getDecimals(quoteSymbol.value));
-const baseDecimals = computed(() => getDecimals(baseSymbol.value));
+const displayBillBalance = computed(() =>
+    formatAmount(selectedBill.value?.balance, selectedBill.value?.currency?.symbol),
+);
 
 function entryPriceFor(side) {
     if (typeOrder.value === 'market') return livePrice.value;
@@ -321,7 +320,7 @@ watch(typeOrder, () => {
                             </div>
                             <div class="balance">
                                 <span class="text_small_12 color-gray2">Available balance</span>
-                                <span class="balanceUsdt text_16 color-blue">{{ selectedBill?.balance }} {{ selectedBill?.currency?.symbol }}</span>
+                                <span class="balanceUsdt text_16 color-blue">{{ displayBillBalance }} {{ selectedBill?.currency?.symbol }}</span>
                             </div>
                         </div>
 
@@ -482,7 +481,7 @@ watch(typeOrder, () => {
                             </div>
                             <div class="balance">
                                 <span class="text_small_12 color-gray2">Available balance</span>
-                                <span class="balanceCoin text_16 color-blue">{{ selectedBill?.balance }} {{ selectedBill?.currency?.symbol }}</span>
+                                <span class="balanceCoin text_16 color-blue">{{ displayBillBalance }} {{ selectedBill?.currency?.symbol }}</span>
                             </div>
                         </div>
 

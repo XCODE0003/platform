@@ -573,8 +573,8 @@ onBeforeUnmount(() => {
 
 .pos-switcher {
     position: absolute;
-    bottom: 36px;
-    left: 12px;
+    bottom: 75px;
+    left: 60px;
     z-index: 10;
     display: flex;
     align-items: center;
