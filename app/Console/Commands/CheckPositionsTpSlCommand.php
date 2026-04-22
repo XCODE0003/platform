@@ -65,7 +65,7 @@ class CheckPositionsTpSlCommand extends Command
             if (!$reason) continue;
 
             try {
-                $this->service->closePosition($position, $price);
+                $this->service->closePosition($position, $price, null, $reason);
                 $this->line("Closed position #{$position->id} ({$reason}) at {$price}");
                 Log::info('trade:check-positions auto-closed', [
                     'position_id' => $position->id,

@@ -269,8 +269,12 @@ async function drawPositionAsync() {
     try {
       await createShapeAsync(chart, { time: entryTime, price: tp }, {
         shape: 'horizontal_line', disableSelection: true, lock: true,
-        text: `TP ${tp.toFixed(4)}`,
-        overrides: { linecolor: '#79F995', linewidth: 1, linestyle: 1 },
+        text: `Take Profit — ${tp.toFixed(4)}`,
+        overrides: {
+          linecolor: '#79F995', linewidth: 1, linestyle: 1,
+          textcolor: '#79F995', fontsize: 12, bold: true,
+          horzLabelsAlign: 'right',
+        },
       })
     } catch (_) {}
   }
@@ -281,8 +285,12 @@ async function drawPositionAsync() {
     try {
       await createShapeAsync(chart, { time: entryTime, price: sl }, {
         shape: 'horizontal_line', disableSelection: true, lock: true,
-        text: `SL ${sl.toFixed(4)}`,
-        overrides: { linecolor: '#F44B4B', linewidth: 1, linestyle: 1 },
+        text: `Stop Loss — ${sl.toFixed(4)}`,
+        overrides: {
+          linecolor: '#F44B4B', linewidth: 1, linestyle: 1,
+          textcolor: '#F44B4B', fontsize: 12, bold: true,
+          horzLabelsAlign: 'right',
+        },
       })
     } catch (_) {}
   }

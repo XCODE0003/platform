@@ -91,7 +91,7 @@ class ProcessOrdersOnBarUpdate
             if (!$reason) continue;
 
             try {
-                $this->service->closePosition($position, $price);
+                $this->service->closePosition($position, $price, null, $reason);
                 Log::info('ProcessOrdersOnBarUpdate: position auto-closed', [
                     'position_id' => $position->id,
                     'reason'      => $reason,
