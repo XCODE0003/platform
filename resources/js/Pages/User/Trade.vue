@@ -274,6 +274,44 @@ const historicalTrade = computed(() => {
     return t;
 });
 
+// Closed positions for current pair — used by history switcher on chart
+const pairClosedPositions = computed(() => {
+    const pair = selectedPair.value;
+    if (!pair) return [];
+    return [...tradeStore.positions]
+        .filter(p => p.status === 'closed' && Number(p.pair_id) === Number(pair.id))
+        .sort((a, b) => b.id - a.id);
+});
+
+const histIdx = computed(() => {
+    const t = tradeStore.selectedHistoricalTrade;
+    if (!t) return -1;
+    return pairClosedPositions.value.findIndex(p => p.id === t.id);
+});
+
+function prevHistTrade() {
+    const list = pairClosedPositions.value;
+    const i = histIdx.value;
+    if (i < list.length - 1) tradeStore.setSelectedHistoricalTrade(list[i + 1]);
+}
+function nextHistTrade() {
+    const list = pairClosedPositions.value;
+    const i = histIdx.value;
+    if (i > 0) tradeStore.setSelectedHistoricalTrade(list[i - 1]);
+}
+function clearHistTrade() {
+    tradeStore.setSelectedHistoricalTrade(null);
+}
+
+function fmtHistDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    const da = String(dt.getDate()).padStart(2, '0');
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const yy = String(dt.getFullYear()).slice(-2);
+    return `${da}.${mo}.${yy}`;
+}
+
 
 const ordersPoller = ref(null);
 onBeforeUnmount(() => {
@@ -354,7 +392,7 @@ onBeforeUnmount(() => {
                                 <div class="chart-wrap">
                                     <TvChart :symbol="tvSymbol" :pair="selectedPair" :position="openPosition" :closedPosition="closedPosition" :historicalTrade="historicalTrade" :currentPrice="tradeStore.price" interval="5" theme="dark" />
                                     <!-- Position switcher overlay -->
-                                    <div v-if="pairPositions.length > 0" class="pos-switcher">
+                                    <div v-if="pairPositions.length > 0 && !historicalTrade" class="pos-switcher">
                                         <button class="pos-nav" :disabled="selectedPositionIdx === 0" @click="prevPosition">‹</button>
                                         <div class="pos-info">
                                             <span :class="openPosition.side === 'buy' ? 'pos-side--buy' : 'pos-side--sell'">
@@ -364,6 +402,19 @@ onBeforeUnmount(() => {
                                             <span class="pos-count">{{ selectedPositionIdx + 1 }}/{{ pairPositions.length }}</span>
                                         </div>
                                         <button class="pos-nav" :disabled="selectedPositionIdx === pairPositions.length - 1" @click="nextPosition">›</button>
+                                    </div>
+                                    <!-- History trade switcher overlay -->
+                                    <div v-if="historicalTrade" class="pos-switcher pos-switcher--hist">
+                                        <button class="pos-nav" :disabled="histIdx >= pairClosedPositions.length - 1" @click="prevHistTrade">‹</button>
+                                        <div class="pos-info">
+                                            <span :class="historicalTrade.side === 'buy' ? 'pos-side--buy' : 'pos-side--sell'">
+                                                {{ historicalTrade.side.toUpperCase() }}
+                                            </span>
+                                            <span class="pos-price">{{ fmtHistDate(historicalTrade.created_at) }}</span>
+                                            <span class="pos-count">{{ histIdx + 1 }}/{{ pairClosedPositions.length }}</span>
+                                        </div>
+                                        <button class="pos-nav" :disabled="histIdx <= 0" @click="nextHistTrade">›</button>
+                                        <button class="pos-nav pos-nav--close" @click="clearHistTrade" title="Close">✕</button>
                                     </div>
                                 </div>
                             </div>
@@ -578,12 +629,13 @@ onBeforeUnmount(() => {
     z-index: 10;
     display: flex;
     align-items: center;
+    min-width: 170px;
     gap: 6px;
     background: rgba(10, 14, 23, 0.82);
     backdrop-filter: blur(4px);
     border: 1px solid #2a2e39;
     border-radius: 6px;
-    padding: 4px 8px;
+    padding: 6px 8px;
     font-size: 11px;
     color: #d1d4dc;
     user-select: none;
@@ -596,7 +648,7 @@ onBeforeUnmount(() => {
     cursor: pointer;
     font-size: 15px;
     line-height: 1;
-    padding: 0 2px;
+    padding: 0 4px;
     transition: color 0.15s;
 }
 .pos-nav:not(:disabled):hover {
@@ -617,4 +669,18 @@ onBeforeUnmount(() => {
 .pos-side--sell { color: #F44B4B; font-weight: 600; }
 .pos-price      { color: #d1d4dc; }
 .pos-count      { color: #4b5563; font-size: 10px; }
+
+.pos-switcher--hist {
+    bottom: 115px;
+    border-color: #3a3e4e;
+}
+
+.pos-nav--close {
+    font-size: 10px !important;
+    color: #4b5563 !important;
+    margin-left: 2px;
+}
+.pos-nav--close:hover {
+    color: #F44B4B !important;
+}
 </style>

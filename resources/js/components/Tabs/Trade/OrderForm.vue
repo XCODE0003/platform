@@ -88,7 +88,7 @@ function computeStops(side, mode, tpIn, slIn) {
     // by pips
     const pipsTp = toNum(tpIn.value);
     const pipsSl = toNum(slIn.value);
-    const pipSize = Math.pow(10, -quoteDecimals.value);
+    const pipSize = Math.pow(10, -5);
     let tp = null;
     let sl = null;
     if (pipsTp !== null) {
@@ -103,12 +103,28 @@ function computeStops(side, mode, tpIn, slIn) {
 const buyStops = computed(() => computeStops('buy', buyStopsMode.value, buyTpInput, buySlInput));
 const sellStops = computed(() => computeStops('sell', sellStopsMode.value, sellTpInput, sellSlInput));
 
+function isBlank(v) {
+    return v === '' || v === null || v === undefined;
+}
+
 // Синхронизация BUY
 watch([buyPrice, buyAmount, buyTotal, typeOrder, livePrice, buyStopPrice], () => {
     const price = typeOrder.value === 'market'
         ? livePrice.value
         : (typeOrder.value === 'limit' ? toNum(buyPrice.value) : toNum(buyStopPrice.value));
-    if (!price || price <= 0) return; // нет цены — не считаем
+
+    // If the user cleared Amount, mirror-clear Total (and vice versa) so the
+    // two fields never stay out of sync with a stale computed value left over.
+    if (lastBuyEdited.value === 'amount' && isBlank(buyAmount.value) && !isBlank(buyTotal.value)) {
+        buyTotal.value = '';
+        return;
+    }
+    if (lastBuyEdited.value === 'total' && isBlank(buyTotal.value) && !isBlank(buyAmount.value)) {
+        buyAmount.value = '';
+        return;
+    }
+
+    if (!price || price <= 0) return;
 
     if (lastBuyEdited.value === 'amount') {
         const amount = toNum(buyAmount.value);
@@ -117,8 +133,13 @@ watch([buyPrice, buyAmount, buyTotal, typeOrder, livePrice, buyStopPrice], () =>
         const total = toNum(buyTotal.value);
         if (total !== null) buyAmount.value = (total / price).toString();
     } else if (lastBuyEdited.value === 'price') {
-        const amount = toNum(buyAmount.value);
-        if (amount !== null) buyTotal.value = (amount * price).toString();
+        const total = toNum(buyTotal.value);
+        if (total !== null) {
+            buyAmount.value = (total / price).toString();
+        } else {
+            const amount = toNum(buyAmount.value);
+            if (amount !== null) buyTotal.value = (amount * price).toString();
+        }
     }
 });
 
@@ -127,6 +148,16 @@ watch([sellPrice, sellAmount, sellTotal, typeOrder, livePrice, sellStopPrice], (
     const price = typeOrder.value === 'market'
         ? livePrice.value
         : (typeOrder.value === 'limit' ? toNum(sellPrice.value) : toNum(sellStopPrice.value));
+
+    if (lastSellEdited.value === 'amount' && isBlank(sellAmount.value) && !isBlank(sellTotal.value)) {
+        sellTotal.value = '';
+        return;
+    }
+    if (lastSellEdited.value === 'total' && isBlank(sellTotal.value) && !isBlank(sellAmount.value)) {
+        sellAmount.value = '';
+        return;
+    }
+
     if (!price || price <= 0) return;
 
     if (lastSellEdited.value === 'amount') {
@@ -136,8 +167,13 @@ watch([sellPrice, sellAmount, sellTotal, typeOrder, livePrice, sellStopPrice], (
         const total = toNum(sellTotal.value);
         if (total !== null) sellAmount.value = (total / price).toString();
     } else if (lastSellEdited.value === 'price') {
-        const amount = toNum(sellAmount.value);
-        if (amount !== null) sellTotal.value = (amount * price).toString();
+        const total = toNum(sellTotal.value);
+        if (total !== null) {
+            sellAmount.value = (total / price).toString();
+        } else {
+            const amount = toNum(sellAmount.value);
+            if (amount !== null) sellTotal.value = (amount * price).toString();
+        }
     }
 });
 
@@ -275,9 +311,29 @@ function submitSell(e) {
 
 // Переключатели
 function switchTab(tab) {
+    if (activeTab.value === tab) return;
+    const from = activeTab.value;
     activeTab.value = tab;
-    lastBuyEdited.value = null;
-    lastSellEdited.value = null;
+
+    if (from === 'buy' && tab === 'sell') {
+        const total = toNum(buyTotal.value);
+        if (total !== null) {
+            sellTotal.value = buyTotal.value;
+            lastSellEdited.value = 'total';
+        } else {
+            lastSellEdited.value = null;
+        }
+        lastBuyEdited.value = null;
+    } else if (from === 'sell' && tab === 'buy') {
+        const total = toNum(sellTotal.value);
+        if (total !== null) {
+            buyTotal.value = sellTotal.value;
+            lastBuyEdited.value = 'total';
+        } else {
+            lastBuyEdited.value = null;
+        }
+        lastSellEdited.value = null;
+    }
 }
 
 // При смене типа ордера сбрасываем состояние пересчёта и поля цены
@@ -288,6 +344,28 @@ watch(typeOrder, () => {
     sellPrice.value      = '';
     buyStopPrice.value   = '';
     sellStopPrice.value  = '';
+});
+
+// При смене торговой пары сохраняем Total и пересчитываем Amount под новую цену
+watch(() => selectedPair.value?.id, (newId, oldId) => {
+    if (newId === oldId) return;
+    buyPrice.value       = '';
+    buyStopPrice.value   = '';
+    sellPrice.value      = '';
+    sellStopPrice.value  = '';
+    buyStopsMode.value   = 'none';
+    sellStopsMode.value  = 'none';
+    buyTpInput.value     = '';
+    buySlInput.value     = '';
+    sellTpInput.value    = '';
+    sellSlInput.value    = '';
+
+    // Сохраняем Total, очищаем Amount — синхронизация пересчитает Amount
+    // после того, как подтянется новая цена пары.
+    buyAmount.value = '';
+    sellAmount.value = '';
+    lastBuyEdited.value  = toNum(buyTotal.value)  !== null ? 'total' : null;
+    lastSellEdited.value = toNum(sellTotal.value) !== null ? 'total' : null;
 });
 </script>
 <template>
@@ -342,7 +420,7 @@ watch(typeOrder, () => {
                         </label>
                         <label class="order-label" v-else-if="typeOrder === 'market'">
                             <span class="text_small_12 color-dark">Market price</span>
-                            <input type="text" class="order-input text_17" :value="livePrice ?? '≈ ?'" disabled />
+                            <input type="text" class="order-input text_17" :value="livePrice != null ? livePrice.toFixed(5) : '≈ ?'" disabled />
                             <span class="сurrency text_17 color-gray2">{{ quoteSymbol }}</span>
                         </label>
                         <label class="order-label" v-else>
@@ -416,7 +494,7 @@ watch(typeOrder, () => {
                         <div class="way-select" style="margin: 6px 0;">
                             <span class="text_small_12 color-dark" style="margin-right: 6px;">Stops:</span>
                             <button type="button" class="btn way text_small_14" @click="buyStopsMode = 'none'" :class="{ active: buyStopsMode === 'none' }">No</button>
-                            <!-- <button type="button" class="btn way text_small_14" @click="buyStopsMode = 'pips'" :class="{ active: buyStopsMode === 'pips' }">By pips</button> -->
+                            <button type="button" class="btn way text_small_14" @click="buyStopsMode = 'pips'" :class="{ active: buyStopsMode === 'pips' }">By pips</button>
                             <button type="button" class="btn way text_small_14" @click="buyStopsMode = 'price'" :class="{ active: buyStopsMode === 'price' }">By price</button>
                         </div>
                         <div v-if="buyStopsMode === 'pips'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -443,8 +521,8 @@ watch(typeOrder, () => {
                         </div>
 
                         <div v-if="buyStopsMode !== 'none'" class="order-summary text_small_12 color-dark" style="display: flex; gap: 10px; margin: 6px 0 10px;">
-                            <div v-if="buyStops.tp !== null">TP: <b class="color-white">{{ buyStops.tp.toFixed(quoteDecimals) }}</b> {{ quoteSymbol }}</div>
-                            <div v-if="buyStops.sl !== null">SL: <b class="color-white">{{ buyStops.sl.toFixed(quoteDecimals) }}</b> {{ quoteSymbol }}</div>
+                            <div v-if="buyStops.tp !== null">TP: <b class="color-white">{{ buyStops.tp.toFixed(5) }}</b> {{ quoteSymbol }}</div>
+                            <div v-if="buyStops.sl !== null">SL: <b class="color-white">{{ buyStops.sl.toFixed(5) }}</b> {{ quoteSymbol }}</div>
                         </div>
 
                         <!-- Summary -->
@@ -502,7 +580,7 @@ watch(typeOrder, () => {
                         </label>
                         <label class="order-label" v-else-if="typeOrder === 'market'">
                             <span class="text_small_12 color-dark">Market price</span>
-                            <input type="text" class="order-input text_17" :value="livePrice ?? '≈ ?'" disabled />
+                            <input type="text" class="order-input text_17" :value="livePrice != null ? livePrice.toFixed(5) : '≈ ?'" disabled />
                             <span class="сurrency text_17 color-gray2">{{ quoteSymbol }}</span>
                         </label>
                         <label class="order-label" v-else>
@@ -603,8 +681,8 @@ watch(typeOrder, () => {
                         </div>
 
                         <div v-if="sellStopsMode !== 'none'" class="order-summary text_small_12 color-dark" style="display: flex; gap: 10px; margin: 6px 0 10px;">
-                            <div v-if="sellStops.tp !== null">TP: <b class="color-white">{{ sellStops.tp.toFixed(quoteDecimals) }}</b> {{ quoteSymbol }}</div>
-                            <div v-if="sellStops.sl !== null">SL: <b class="color-white">{{ sellStops.sl.toFixed(quoteDecimals) }}</b> {{ quoteSymbol }}</div>
+                            <div v-if="sellStops.tp !== null">TP: <b class="color-white">{{ sellStops.tp.toFixed(5) }}</b> {{ quoteSymbol }}</div>
+                            <div v-if="sellStops.sl !== null">SL: <b class="color-white">{{ sellStops.sl.toFixed(5) }}</b> {{ quoteSymbol }}</div>
                         </div>
 
                         <!-- Summary -->

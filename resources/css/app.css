@@ -1280,9 +1280,9 @@ section.trade {
     grid-template-columns: 1.4fr 1fr 0.75fr 0.55fr 1fr 0.85fr 0.9fr 0.85fr;
 }
 
-/* Closed positions: Opened | Closed | Pair | Side | Entry | Exit | Swap | PnL | Comment */
+/* Closed positions: Opened | Closed | Pair | Side | Entry | Exit | Qty | Total | Swap | PnL | Comment */
 .trade-history .grid-closed-pos {
-    grid-template-columns: 1.3fr 1.3fr 1fr 0.55fr 1fr 1fr 0.85fr 1fr 1.1fr;
+    grid-template-columns: 1.3fr 1.3fr 1fr 0.55fr 1fr 1fr 0.85fr 1fr 0.85fr 1fr 1.1fr;
 }
 
 .trade-history .grid-line {

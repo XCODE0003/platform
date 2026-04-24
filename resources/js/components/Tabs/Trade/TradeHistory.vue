@@ -48,6 +48,20 @@ async function saveTpSl(posId) {
 // Close position modal
 const closingPosition = ref(null); // position object being closed
 
+// Price used for the Est. PnL preview. Must be the price of the POSITION's
+// pair, not whatever pair the user is currently viewing on the chart —
+// otherwise closing a non-active pair shows a nonsense PnL computed off the
+// currently-selected-pair price.
+const closeModalPrice = computed(() => {
+    const pos = closingPosition.value;
+    if (!pos) return null;
+    const perPair = tradeStore.prices?.[pos.pair_id];
+    if (perPair != null) return perPair;
+    // Fallback: only use the store's global price when it's for THIS pair.
+    if (tradeStore.selectedPair?.id === pos.pair_id) return tradeStore.price;
+    return null;
+});
+
 function openCloseModal(pos) {
     closingPosition.value = pos;
 }
@@ -139,11 +153,12 @@ function pairLabel(pairId) {
 function fmtDate(d) {
     if (!d) return '—';
     const dt = new Date(d);
+    const yy = String(dt.getFullYear()).slice(-2);
     const mo = String(dt.getMonth() + 1).padStart(2, '0');
     const da = String(dt.getDate()).padStart(2, '0');
     const hh = String(dt.getHours()).padStart(2, '0');
     const mm = String(dt.getMinutes()).padStart(2, '0');
-    return `${da}.${mo} ${hh}:${mm}`;
+    return `${da}.${mo}.${yy} ${hh}:${mm}`;
 }
 
 function unrealizedPnl(pos) {
@@ -181,10 +196,10 @@ onMounted(() => {
                             <div>Entry</div>
                             <div>Qty</div>
                             <div>Total</div>
+                            <div>TP / SL</div>
                             <div>Swap</div>
                             <div>Profit</div>
-                            <div>TP / SL</div>
-                            <div>×</div>
+                            <div></div>
                         </div>
                         <div class="overflow">
                             <div
@@ -201,15 +216,6 @@ onMounted(() => {
                                 <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
                                 <div>{{ pos.quantity }}</div>
                                 <div>{{ pos.entry_total ? Number(pos.entry_total).toFixed(2) : '—' }}</div>
-                                <div :class="Number(pos.swap) > 0 ? 'text-red' : ''">
-                                    {{ Number(pos.swap) > 0 ? '-' + Number(pos.swap).toFixed(4) : '—' }}
-                                </div>
-                                <div :class="unrealizedPnl(pos) === null ? '' : unrealizedPnl(pos) >= 0 ? 'text-green-300' : 'text-red'">
-                                    <template v-if="unrealizedPnl(pos) !== null">
-                                        {{ unrealizedPnl(pos) >= 0 ? '+' : '' }}{{ unrealizedPnl(pos).toFixed(4) }}
-                                    </template>
-                                    <template v-else>—</template>
-                                </div>
                                 <div>
                                     <!-- Inline TP/SL editor -->
                                     <template v-if="editingTpSl === pos.id">
@@ -248,12 +254,21 @@ onMounted(() => {
                                             @click="openTpSlEdit(pos)"
                                             title="Click to edit TP/SL"
                                         >
-                                            <span v-if="pos.take_profit" class="text-green-300">TP&nbsp;{{ Number(pos.take_profit).toFixed(2) }}</span>
+                                            <span v-if="pos.take_profit" class="text-green-300">TP&nbsp;{{ +pos.take_profit }}</span>
                                             <span v-if="pos.take_profit && pos.stop_loss" class="text-gray-500">&nbsp;/&nbsp;</span>
-                                            <span v-if="pos.stop_loss" class="text-red">SL&nbsp;{{ Number(pos.stop_loss).toFixed(2) }}</span>
+                                            <span v-if="pos.stop_loss" class="text-red">SL&nbsp;{{ +pos.stop_loss }}</span>
                                             <span v-if="!pos.take_profit && !pos.stop_loss" class="tpsl-empty">+ Add</span>
                                         </span>
                                     </template>
+                                </div>
+                                <div :class="Number(pos.swap) > 0 ? 'text-red' : ''">
+                                    {{ Number(pos.swap) > 0 ? '-' + Number(pos.swap).toFixed(4) : '—' }}
+                                </div>
+                                <div :class="unrealizedPnl(pos) === null ? '' : unrealizedPnl(pos) >= 0 ? 'text-green-300' : 'text-red'">
+                                    <template v-if="unrealizedPnl(pos) !== null">
+                                        {{ unrealizedPnl(pos) >= 0 ? '+' : '' }}{{ unrealizedPnl(pos).toFixed(4) }}
+                                    </template>
+                                    <template v-else>—</template>
                                 </div>
                                 <div>
                                     <button class="icon-btn" @click="openCloseModal(pos)" :disabled="closingPositions.has(pos.id)" title="Close position">
@@ -313,6 +328,8 @@ onMounted(() => {
                             <div>Side</div>
                             <div>Entry</div>
                             <div>Exit</div>
+                            <div>Qty</div>
+                            <div>Total</div>
                             <div>Swap</div>
                             <div>PnL</div>
                             <div>Comment</div>
@@ -332,6 +349,8 @@ onMounted(() => {
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
                                 <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
                                 <div>{{ pos.close_price ? Number(pos.close_price).toFixed(4) : '—' }}</div>
+                                <div>{{ Number(pos.quantity).toFixed(4) }}</div>
+                                <div>{{ pos.close_total ? Number(pos.close_total).toFixed(4) : (pos.entry_total ? Number(pos.entry_total).toFixed(4) : '—') }}</div>
                                 <div :class="Number(pos.swap) > 0 ? 'text-red' : ''">
                                     {{ Number(pos.swap) > 0 ? '-' + Number(pos.swap).toFixed(4) : '—' }}
                                 </div>
@@ -383,7 +402,7 @@ onMounted(() => {
 
     <ClosePositionModal
         :position="closingPosition"
-        :currentPrice="tradeStore.price"
+        :currentPrice="closeModalPrice"
         @close="onCloseModalDismiss"
         @confirm="onCloseConfirm"
     />
@@ -520,7 +539,7 @@ onMounted(() => {
     gap: 4px;
 }
 .tpsl-input {
-    width: 62px;
+    width: 80px;
     background: #1e222d;
     border: 1px solid #2a2e39;
     border-radius: 4px;
@@ -528,9 +547,23 @@ onMounted(() => {
     font-size: 11px;
     color: #d1d4dc;
     outline: none;
+    /* Убираем стрелки у type="number" для Chrome, Safari, Edge */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 .tpsl-input:focus {
     border-color: #2962ff;
+}
+/* Удаляем стрелки у type="number" для Chrome/Opera/Safari */
+.tpsl-input::-webkit-outer-spin-button,
+.tpsl-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+/* Удаляем стрелки у type="number" для Firefox */
+.tpsl-input[type="number"] {
+    -moz-appearance: textfield;
 }
 .tpsl-btn {
     display: inline-flex;

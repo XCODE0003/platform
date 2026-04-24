@@ -12,10 +12,11 @@ Route::post('/api/trade/orders', [App\Http\Controllers\User\OrderController::cla
 Route::post('/api/trade/orders/{orderId}/cancel', [App\Http\Controllers\User\OrderController::class, 'cancel'])
 ->middleware('auth')
 ->name('trade.orders.cancel');
-Route::post('/api/trade/orders/{orderId}/fill', [App\Http\Controllers\User\OrderController::class, 'fill'])
-->middleware('auth')
-->name('trade.orders.fill');
-// Socket tick endpoint (no auth here; consider protecting via a token/IP allowlist)
+// NOTE: The user-facing `fill` endpoint was removed — allowing a user to choose
+// their own fill price opened arbitrary PnL manipulation. Fills are now driven
+// exclusively by server-side signals (CheckLimitOrdersCommand and onTick).
+
+// Socket tick endpoint — protected via X-Tick-Secret header (config('services.trade_tick.secret')).
 Route::post('/api/trade/tick', [App\Http\Controllers\User\OrderController::class, 'onTick'])
 ->name('trade.orders.tick');
 

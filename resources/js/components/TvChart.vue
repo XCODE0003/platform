@@ -33,6 +33,10 @@ function saveChartType(v) {
 }
 
 const containerRef = ref(null)
+const tpBadge = ref({ show: false, top: 0 })
+const slBadge = ref({ show: false, top: 0 })
+let visibleRangeSub = null
+let rafHandle = null
 let tvWidget = null
 let hideTimer = null
 let lastPositionKey = null
@@ -153,6 +157,8 @@ function loadWidget() {
     drawPosition()
     drawClosedTrade()
     drawHistoricalTrade()
+    subscribeBadgeUpdates()
+    schedulePositionBadgesUpdate()
   })
 }
 
@@ -196,6 +202,107 @@ function clearAll() {
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
 }
 
+/**
+ * Position HTML overlay badges (TP / SL) at the correct Y coordinate.
+ * Uses the priceScale's priceToCoordinate API; falls back to hiding if unavailable.
+ */
+function resolvePriceToY(chart) {
+  // Try several priceScale lookup paths — the API surface differs between
+  // charting_library versions. Return a function or null if nothing works.
+  const attempts = [
+    () => {
+      const panes = chart.getPanes?.()
+      const pane = Array.isArray(panes) ? panes[0] : null
+      const ps = pane?.getMainSourcePriceScale?.()
+      return ps?.priceToCoordinate ? (p) => ps.priceToCoordinate(p) : null
+    },
+    () => {
+      const ps = chart.priceScale?.()
+      return ps?.priceToCoordinate ? (p) => ps.priceToCoordinate(p) : null
+    },
+    () => {
+      const series = chart.getAllSeries?.() || []
+      const ps = series[0]?.priceScale?.()
+      return ps?.priceToCoordinate ? (p) => ps.priceToCoordinate(p) : null
+    },
+    () => {
+      // Linear fallback: compute from visible price range + pane height.
+      const range = chart.getVisiblePriceRange?.()
+      const size = chart.getPaneSize?.()
+      if (!range || !size || !Number.isFinite(range.from) || !Number.isFinite(range.to) || !size.height) return null
+      const from = Number(range.from), to = Number(range.to)
+      const h = Number(size.height)
+      if (to === from) return null
+      return (p) => h * (1 - (Number(p) - from) / (to - from))
+    },
+  ]
+  for (const fn of attempts) {
+    try {
+      const out = fn()
+      if (typeof out === 'function') return out
+    } catch (_) {}
+  }
+  return null
+}
+
+function updatePositionBadges() {
+  const chart = getChart()
+  if (!chart || !tvWidget || !isReady.value) {
+    tpBadge.value = { show: false, top: 0 }
+    slBadge.value = { show: false, top: 0 }
+    return
+  }
+  const tp = Number(props.position?.take_profit) || null
+  const sl = Number(props.position?.stop_loss)   || null
+  if (!tp && !sl) {
+    tpBadge.value = { show: false, top: 0 }
+    slBadge.value = { show: false, top: 0 }
+    return
+  }
+
+  const priceToY = resolvePriceToY(chart)
+  if (!priceToY) {
+    // Keep the overlay visible in a predictable slot even if we can't compute Y —
+    // better than showing nothing. User will see "TP"/"SL" floated at the top
+    // so they at least know the feature is alive.
+    tpBadge.value = tp ? { show: true, top: 20 } : { show: false, top: 0 }
+    slBadge.value = sl ? { show: true, top: 40 } : { show: false, top: 0 }
+    if (typeof console !== 'undefined') console.debug('[TvChart] priceToY unresolved; using fallback Y')
+    return
+  }
+
+  const tpY = tp ? priceToY(tp) : null
+  const slY = sl ? priceToY(sl) : null
+  tpBadge.value = (tp && Number.isFinite(tpY))
+    ? { show: true, top: tpY }
+    : { show: false, top: 0 }
+  slBadge.value = (sl && Number.isFinite(slY))
+    ? { show: true, top: slY }
+    : { show: false, top: 0 }
+}
+
+function schedulePositionBadgesUpdate() {
+  if (rafHandle) cancelAnimationFrame(rafHandle)
+  rafHandle = requestAnimationFrame(() => {
+    rafHandle = null
+    updatePositionBadges()
+  })
+}
+
+function subscribeBadgeUpdates() {
+  const chart = getChart()
+  if (!chart) return
+  try { visibleRangeSub?.unsubscribe?.() } catch (_) {}
+  visibleRangeSub = null
+  try {
+    const ev = typeof chart.onVisibleRangeChanged === 'function' ? chart.onVisibleRangeChanged() : null
+    if (ev && typeof ev.subscribe === 'function') {
+      ev.subscribe(null, () => schedulePositionBadgesUpdate())
+      visibleRangeSub = ev
+    }
+  } catch (_) {}
+}
+
 async function drawCurrentPriceAsync(chart, gen) {
   const cp = Number(props.currentPrice) || null
   if (!cp || !Number.isFinite(cp)) return
@@ -232,7 +339,11 @@ async function drawPositionAsync() {
   const price = Number(props.position.price)
   const side = props.position.side || 'buy'
   const posId = String(props.position.id ?? 'x')
-  const newKey = String(props.symbol) + '|' + posId + '|' + side + '|' + price
+  const tpKey = props.position.take_profit != null ? String(props.position.take_profit) : ''
+  const slKey = props.position.stop_loss   != null ? String(props.position.stop_loss)   : ''
+  // Key must include TP/SL so that inline edits trigger a full redraw. Otherwise
+  // the early-return short-circuit below would skip TP/SL recreation forever.
+  const newKey = String(props.symbol) + '|' + posId + '|' + side + '|' + price + '|' + tpKey + '|' + slKey
 
   if (lastPositionKey === newKey) {
     await drawCurrentPriceAsync(chart, gen)
@@ -241,7 +352,9 @@ async function drawPositionAsync() {
 
   clearAll()
   if (gen !== overlayPaintGen) return
-  lastPositionKey = newKey
+  // NOTE: lastPositionKey is set at the END of the draw pipeline (not here) —
+  // setting it up-front caused subsequent runs to short-circuit before TP/SL
+  // shapes were ever created when drawPosition was re-invoked mid-flight.
 
   const isBuy = side === 'buy'
   const color = isBuy ? '#79F995' : '#F44B4B'
@@ -269,14 +382,15 @@ async function drawPositionAsync() {
     try {
       await createShapeAsync(chart, { time: entryTime, price: tp }, {
         shape: 'horizontal_line', disableSelection: true, lock: true,
-        text: `Take Profit — ${tp.toFixed(4)}`,
+        text: '  TP  ',
         overrides: {
-          linecolor: '#79F995', linewidth: 1, linestyle: 1,
-          textcolor: '#79F995', fontsize: 12, bold: true,
-          horzLabelsAlign: 'right',
+          linecolor: '#787b86', linewidth: 1, linestyle: 2,
+          textcolor: '#FFFFFF', fontsize: 11, bold: true,
+          horzLabelsAlign: 'right', vertLabelsAlign: 'middle',
+          showLabel: true, showPrice: true,
         },
       })
-    } catch (_) {}
+    } catch (e) { console.warn('[TvChart] TP line error', e) }
   }
   if (gen !== overlayPaintGen) return
 
@@ -285,18 +399,28 @@ async function drawPositionAsync() {
     try {
       await createShapeAsync(chart, { time: entryTime, price: sl }, {
         shape: 'horizontal_line', disableSelection: true, lock: true,
-        text: `Stop Loss — ${sl.toFixed(4)}`,
+        text: '  SL  ',
         overrides: {
-          linecolor: '#F44B4B', linewidth: 1, linestyle: 1,
-          textcolor: '#F44B4B', fontsize: 12, bold: true,
-          horzLabelsAlign: 'right',
+          linecolor: '#787b86', linewidth: 1, linestyle: 2,
+          textcolor: '#FFFFFF', fontsize: 11, bold: true,
+          horzLabelsAlign: 'right', vertLabelsAlign: 'middle',
+          showLabel: true, showPrice: true,
         },
       })
-    } catch (_) {}
+    } catch (e) { console.warn('[TvChart] SL line error', e) }
   }
+  // HTML overlay approach deprecated — the charting_library price-scale API
+  // is not consistently exposed in this bundle, so badges are rendered
+  // directly on the line via `text` + overrides above.
   if (gen !== overlayPaintGen) return
 
   await drawCurrentPriceAsync(chart, gen)
+  if (gen !== overlayPaintGen) return
+  // Only mark the pipeline as completed after every shape has been drawn —
+  // this guarantees that a later invocation with the same key will legitimately
+  // short-circuit, while a run aborted mid-flight leaves `lastPositionKey` null
+  // so the next watch tick re-attempts the full draw.
+  lastPositionKey = newKey
 }
 
 function drawPosition() {
@@ -407,6 +531,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   disconnectLogoObserver()
   unsubscribeAll()
+  if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null }
+  visibleRangeSub = null
   clearAll()
   if (tvWidget && tvWidget.remove) tvWidget.remove()
 })
@@ -432,6 +558,7 @@ watch(() => props.currentPrice, () => {
   const chart = getChart()
   if (!chart) return
   void drawCurrentPriceAsync(chart, null)
+  schedulePositionBadgesUpdate()
 })
 
 watch(() => props.closedPosition, () => {

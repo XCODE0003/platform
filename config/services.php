@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'trade_tick' => [
+        // Shared secret required in X-Tick-Secret header on /api/trade/tick.
+        // Rotates independently of user auth. Without this, anyone could
+        // inject arbitrary prices to trigger TP/SL closes.
+        'secret' => env('TRADE_TICK_SECRET'),
+    ],
+
 ];

@@ -10,15 +10,19 @@ use App\Models\Bill;
 use App\Models\Order;
 use App\Models\Position;
 use App\Models\Pair;
+use App\Services\MarketData\MarketPriceResolver;
 use App\Services\Trade\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 
 class OrderController extends Controller
 {
-    public function __construct(private readonly OrderService $service) {}
+    public function __construct(
+        private readonly OrderService $service,
+        private readonly MarketPriceResolver $prices,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -47,10 +51,34 @@ class OrderController extends Controller
         $bill = Bill::query()->whereKey($validated['bill_id'])->where('user_id', $user->id)->firstOrFail();
         $pair = Pair::query()->whereKey($validated['pair_id'])->firstOrFail();
 
-        $order = $this->service->createOrder(userId: $user->id, bill: $bill, pair: $pair, data: $validated);
+        // For market orders, the execution price is always resolved server-side.
+        // The client-submitted `price` field is ignored here — it cannot be trusted
+        // as a source of truth for money movement.
+        if ($validated['type'] === 'market') {
+            try {
+                $marketPrice = $this->prices->resolve($pair);
+            } catch (InvalidArgumentException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            $validated['price'] = $marketPrice;
+        }
+        // For limit/stop orders the user-supplied price IS the trigger level
+        // (limit price or stop price). Execution still fills at the triggering
+        // market tick later — trusted via CheckLimitOrdersCommand / onTick.
 
-        // Market orders are filled immediately at the requested price to open a position
-        if ($order->type === 'market' && !empty($validated['price'])) {
+        try {
+            $order = $this->service->createOrder(
+                userId: $user->id,
+                bill: $bill,
+                pair: $pair,
+                data: $validated,
+            );
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        // Market orders fill immediately at the server-resolved price.
+        if ($order->type === 'market') {
             $order = $this->service->fillOrder($order->fresh(), (string) $validated['price']);
         }
 
@@ -71,53 +99,47 @@ class OrderController extends Controller
         ]);
     }
 
-    public function fill(Request $request, int $orderId): JsonResponse
-    {
-        $user = $request->user();
-        $validated = $request->validate([
-            'price' => ['required', 'numeric', 'gt:0'],
-        ]);
-        $order = Order::query()->where('user_id', $user->id)->whereKey($orderId)->firstOrFail();
-        $filled = $this->service->fillOrder($order, (string) $validated['price']);
-        return response()->json($filled);
-    }
-
-    // Endpoint for socket pusher to tick prices and auto-close eligible orders
+    // Socket tick endpoint. Requires a shared secret header to avoid
+    // unauthenticated callers injecting arbitrary prices that would trigger
+    // TP/SL closes or limit-order fills. The secret lives in env and is not
+    // exposed to the client bundle.
     public function onTick(Request $request): JsonResponse
     {
+        $expected = (string) config('services.trade_tick.secret', '');
+        $provided = (string) $request->header('X-Tick-Secret', '');
+        if ($expected === '' || !hash_equals($expected, $provided)) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
         $validated = $request->validate([
             'pair_id' => ['required', 'integer', 'exists:pairs,id'],
-            'price' => ['required', 'numeric', 'gt:0'],
+            'price'   => ['required', 'numeric', 'gt:0'],
         ]);
 
         $pairId = (int) $validated['pair_id'];
-        $price = (string) $validated['price'];
+        $price  = (string) $validated['price'];
 
-        // Market orders: immediate fill at price; Stop: if trigger passed; Limit: if price reached
         $open = Order::query()
             ->where('pair_id', $pairId)
-            ->whereIn('status', ['open','queued'])
+            ->whereIn('status', ['open', 'queued'])
             ->orderBy('id')
             ->limit(100)
             ->get();
 
         foreach ($open as $order) {
             $shouldFill = false;
-            // Market orders are filled immediately on placement — skip them here
             if ($order->type === 'limit') {
-                if ($order->side === 'buy' && bccomp($price, (string) $order->price, 10) <= 0) $shouldFill = true;
+                if ($order->side === 'buy'  && bccomp($price, (string) $order->price, 10) <= 0) $shouldFill = true;
                 if ($order->side === 'sell' && bccomp($price, (string) $order->price, 10) >= 0) $shouldFill = true;
             } elseif ($order->type === 'stop') {
-                if ($order->side === 'buy' && bccomp($price, (string) $order->stop_price, 10) >= 0) $shouldFill = true;
+                if ($order->side === 'buy'  && bccomp($price, (string) $order->stop_price, 10) >= 0) $shouldFill = true;
                 if ($order->side === 'sell' && bccomp($price, (string) $order->stop_price, 10) <= 0) $shouldFill = true;
             }
-
             if ($shouldFill) {
                 $this->service->fillOrder($order, $price);
             }
         }
 
-        // Check open positions for TP/SL triggers
         $positions = Position::query()
             ->where('pair_id', $pairId)
             ->where('status', 'open')
@@ -129,11 +151,11 @@ class OrderController extends Controller
         foreach ($positions as $position) {
             $reason = null;
             if ($position->take_profit) {
-                if ($position->side === 'buy' && bccomp($price, (string) $position->take_profit, 10) >= 0) $reason = 'take_profit';
+                if ($position->side === 'buy'  && bccomp($price, (string) $position->take_profit, 10) >= 0) $reason = 'take_profit';
                 if ($position->side === 'sell' && bccomp($price, (string) $position->take_profit, 10) <= 0) $reason = 'take_profit';
             }
             if ($reason === null && $position->stop_loss) {
-                if ($position->side === 'buy' && bccomp($price, (string) $position->stop_loss, 10) <= 0) $reason = 'stop_loss';
+                if ($position->side === 'buy'  && bccomp($price, (string) $position->stop_loss, 10) <= 0) $reason = 'stop_loss';
                 if ($position->side === 'sell' && bccomp($price, (string) $position->stop_loss, 10) >= 0) $reason = 'stop_loss';
             }
             if ($reason !== null) {
@@ -167,14 +189,23 @@ class OrderController extends Controller
     public function closePosition(Request $request, int $positionId): JsonResponse
     {
         $user = $request->user();
+        // User can only choose HOW MUCH to close, not AT WHAT price.
+        // Price is always resolved on the server to prevent PnL manipulation.
         $validated = $request->validate([
-            'price'    => ['required', 'numeric', 'gt:0'],
             'quantity' => ['sometimes', 'numeric', 'gt:0'],
         ]);
         $position = Position::query()->where('user_id', $user->id)->whereKey($positionId)->firstOrFail();
+        $pair = $position->pair()->firstOrFail();
+
+        try {
+            $price = $this->prices->resolve($pair);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
         $result = $this->service->closePosition(
             $position,
-            (string) $validated['price'],
+            $price,
             isset($validated['quantity']) ? (string) $validated['quantity'] : null,
         );
         return response()->json([
@@ -191,5 +222,3 @@ class OrderController extends Controller
         return $user->bills()->with('currency')->get();
     }
 }
-
-

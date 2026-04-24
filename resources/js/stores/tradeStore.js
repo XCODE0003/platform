@@ -66,10 +66,6 @@ export const useTradeStore = defineStore('trade', {
                 this.setBills(data.bills);
             }
         },
-        async fillOrder(id, price) {
-            await axiosClient.post(`/api/trade/orders/${id}/fill`, { price });
-            await this.fetchOrders();
-        },
         async updateTpSl(id, takeProfit, stopLoss) {
             await axiosClient.patch(`/api/trade/positions/${id}/tpsl`, {
                 take_profit: takeProfit || null,
@@ -77,8 +73,9 @@ export const useTradeStore = defineStore('trade', {
             });
             await this.fetchOrders();
         },
-        async closePosition(id, price, quantity = null) {
-            const payload = { price };
+        async closePosition(id, _ignoredPrice = null, quantity = null) {
+            // Close price is resolved server-side; frontend cannot choose it.
+            const payload = {};
             if (quantity !== null) payload.quantity = quantity;
             const { data } = await axiosClient.post(`/api/trade/positions/${id}/close`, payload);
             if (data?.bills) {

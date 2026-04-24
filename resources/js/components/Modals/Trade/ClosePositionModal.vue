@@ -138,6 +138,9 @@ function onConfirm() {
                     {{ Number(pnlPreview) > 0 ? '+' : '' }}{{ pnlPreview }} USDT
                 </span>
             </div>
+            <div v-else class="text-xs text-gray-500 italic">
+                Live price for this pair is not available — actual PnL will be calculated by the server at close time.
+            </div>
 
             <!-- Actions -->
             <div class="flex gap-2 pt-1">
