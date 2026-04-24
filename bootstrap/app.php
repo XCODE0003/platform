@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->trustProxies(at: '*');
+        // Socket-pusher calls this with a shared secret (X-Tick-Secret header),
+        // so it never has a CSRF token — exclude it from CSRF verification.
+        $middleware->validateCsrfTokens(except: [
+            'api/trade/tick',
+        ]);
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
