@@ -17,50 +17,54 @@ class WithdrawResource extends Resource
     protected static ?string $model = Withdraw::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-
-    protected static ?string $navigationGroup = 'Finance';
+    protected static ?string $navigationLabel = 'Заявки на вывод';
+    protected static ?string $modelLabel = 'Заявка на вывод';
+    protected static ?string $pluralModelLabel = 'Заявки на вывод';
+    protected static ?string $navigationGroup = 'Финансы';
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Withdrawal Details')
+            Forms\Components\Section::make('Информация о выводе')
                 ->schema([
                     Forms\Components\Placeholder::make('user_email')
-                        ->label('User')
+                        ->label('Пользователь')
                         ->content(fn (?Withdraw $record): string => $record?->user?->email ?? '-'),
                     Forms\Components\Placeholder::make('currency_symbol')
-                        ->label('Currency')
+                        ->label('Валюта')
                         ->content(fn (?Withdraw $record): string => $record?->currency?->symbol ?? '-'),
                     Forms\Components\Placeholder::make('amount_display')
-                        ->label('Amount')
+                        ->label('Сумма')
                         ->content(fn (?Withdraw $record): string => $record ? number_format((float) $record->amount, 8) : '0.00000000'),
                     Forms\Components\Placeholder::make('fee_display')
-                        ->label('Fee')
+                        ->label('Комиссия')
                         ->content(fn (?Withdraw $record): string => $record ? number_format((float) $record->fee, 8) : '0.00000000'),
                     Forms\Components\Placeholder::make('net_amount_display')
-                        ->label('Net amount')
+                        ->label('Сумма к получению')
                         ->content(fn (?Withdraw $record): string => $record ? number_format((float) $record->net_amount, 8) : '0.00000000'),
                     Forms\Components\Placeholder::make('address_display')
-                        ->label('Address')
+                        ->label('Адрес')
                         ->content(fn (?Withdraw $record): string => $record->address ?? '-'),
                 ])->columns(2),
-            Forms\Components\Section::make('Management')
+            Forms\Components\Section::make('Управление')
                 ->schema([
                     Forms\Components\Select::make('status')
+                        ->label('Статус')
                         ->options([
-                            Withdraw::STATUS_PENDING => 'Pending',
-                            Withdraw::STATUS_PROCESSING => 'Processing',
-                            Withdraw::STATUS_COMPLETED => 'Completed',
-                            Withdraw::STATUS_REJECTED => 'Rejected',
+                            Withdraw::STATUS_PENDING => 'Ожидает',
+                            Withdraw::STATUS_PROCESSING => 'В обработке',
+                            Withdraw::STATUS_COMPLETED => 'Выполнен',
+                            Withdraw::STATUS_REJECTED => 'Отклонён',
                         ])
                         ->required(),
                     Forms\Components\TextInput::make('tx_hash')
-                        ->label('Transaction Hash')
+                        ->label('Хеш транзакции')
                         ->maxLength(255),
                     Forms\Components\DateTimePicker::make('processed_at')
+                        ->label('Дата обработки')
                         ->native(false),
                     Forms\Components\KeyValue::make('meta')
-                        ->label('Meta')
+                        ->label('Мета-данные')
                         ->columnSpanFull()
                         ->nullable(),
                 ])->columns(2),
@@ -75,19 +79,20 @@ class WithdrawResource extends Resource
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('user.email')
-                    ->label('User')
+                    ->label('Пользователь')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('currency.symbol')
-                    ->label('Currency')
+                    ->label('Валюта')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label('Сумма')
                     ->formatStateUsing(fn (?string $state, Withdraw $record): string => sprintf('%s %s', number_format((float) $state, 8), $record->currency?->symbol ?? ''))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fee')
-                    ->label('Fee')
+                    ->label('Комиссия')
                     ->formatStateUsing(fn (?string $state, Withdraw $record): string => sprintf('%s %s', number_format((float) $state, 8), $record->currency?->symbol ?? '')),
                 Tables\Columns\TextColumn::make('status')
+                    ->label('Статус')
                     ->badge()
                     ->colors([
                         'primary' => [Withdraw::STATUS_PENDING],
@@ -97,19 +102,21 @@ class WithdrawResource extends Resource
                     ])
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Создана')
                     ->dateTime()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('processed_at')
-                    ->dateTime()
-                    ->label('Processed'),
+                    ->label('Обработана')
+                    ->dateTime(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Статус')
                     ->options([
-                        Withdraw::STATUS_PENDING => 'Pending',
-                        Withdraw::STATUS_PROCESSING => 'Processing',
-                        Withdraw::STATUS_COMPLETED => 'Completed',
-                        Withdraw::STATUS_REJECTED => 'Rejected',
+                        Withdraw::STATUS_PENDING => 'Ожидает',
+                        Withdraw::STATUS_PROCESSING => 'В обработке',
+                        Withdraw::STATUS_COMPLETED => 'Выполнен',
+                        Withdraw::STATUS_REJECTED => 'Отклонён',
                     ]),
             ])
             ->actions([

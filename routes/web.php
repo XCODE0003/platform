@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Service\User\CalculateTotalBalance;
 use App\Http\Controllers\User\TradeController;
+use App\Models\Currency;
 use App\Models\Setting;
 use App\Models\StakingPlan;
 use App\Models\Staking;
@@ -21,7 +22,19 @@ Route::middleware('auth')->group(function () {
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $portfolioWallets = $user->wallets()->with('currency')->get();
-        $deposit = $user->depositWallets()->with('currency')->get();
+        $deposit = Currency::query()
+            ->where('status', 'active')
+            ->whereNotNull('deposit_address')
+            ->where('deposit_address', '!=', '')
+            ->orderBy('symbol')
+            ->get()
+            ->map(fn (Currency $c) => [
+                'id'       => $c->id,
+                'address'  => $c->deposit_address,
+                'memo'     => $c->deposit_memo,
+                'currency' => $c,
+            ])
+            ->values();
         $totalBalancePortfolio = (new CalculateTotalBalance())->calculate($user);
         $bills = $user->bills()->with('currency')->get();
         $totalBalanceAssets = $bills->sum(function ($bill) {
@@ -39,6 +52,7 @@ Route::middleware('auth')->group(function () {
             'portfolioFeeFixed'      => (float) Setting::get('portfolio_fee_fixed',   0),
             'stakingEnabled'         => (bool) Setting::get('staking_enabled', 1),
             'stakingYearBasisDays'   => (int) Setting::get('staking_year_basis_days', 365),
+            'cardDepositDetails'     => (string) ($user->card_deposit_details ?: Setting::get('card_deposit_details', '')),
             'stakingPlans'           => StakingPlan::where('is_active', true)->with('currency')->get(),
             'userStakings'           => Staking::where('user_id', $user->id)
                 ->with(['plan.currency'])

@@ -19,7 +19,7 @@ class Currency extends Model
         'portfolio_fee_percent',
         'portfolio_fee_fixed',
         'address_regex',
-
-
+        'deposit_address',
+        'deposit_memo',
     ];
 }

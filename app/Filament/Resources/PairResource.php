@@ -19,76 +19,82 @@ class PairResource extends Resource
     protected static ?string $model = Pair::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-swatch';
+    protected static ?string $navigationGroup = 'Рыночные данные';
+    protected static ?string $navigationLabel = 'Пары';
+    protected static ?string $modelLabel = 'Пара';
+    protected static ?string $pluralModelLabel = 'Пары';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('currency_id_in')
-
+                    ->label('Базовая валюта')
                     ->relationship('currencyIn', 'name')
                     ->required()
                     ->searchable()
-
                     ->native(false),
                 Forms\Components\Select::make('currency_id_out')
+                    ->label('Котируемая валюта')
                     ->relationship('currencyOut', 'name')
                     ->searchable()
                     ->required()
-
                     ->native(false),
                 Forms\Components\Select::make('group_id')
+                    ->label('Группа')
                     ->relationship('group', 'name')
                     ->required()
                     ->native(false),
                 Forms\Components\Select::make('asset_class')
-                    ->label('Asset Class')
+                    ->label('Класс актива')
                     ->options([
-                        'crypto' => 'Crypto',
-                        'metal' => 'Metal',
-                        'stock' => 'Stock',
-                        'forex' => 'Forex',
-                        'fiat' => 'Fiat',
+                        'crypto' => 'Крипто',
+                        'metal' => 'Металл',
+                        'stock' => 'Акции',
+                        'forex' => 'Форекс',
+                        'fiat' => 'Фиат',
                     ])
                     ->required(),
                 Forms\Components\Select::make('default_source')
-                    ->label('Default Source')
+                    ->label('Источник по умолчанию')
                     ->options(fn () => DataProvider::query()->where('enabled', true)->pluck('name', 'code'))
                     ->searchable()
                     ->native(false)
-                    ->helperText('Provider used by default for data fetching'),
+                    ->helperText('Поставщик данных, используемый по умолчанию'),
                 Forms\Components\Toggle::make('is_active')
+                    ->label('Активна')
                     ->required()->default(true),
 
-                Forms\Components\Section::make('Sources')
+                Forms\Components\Section::make('Источники')
                     ->schema([
                         Forms\Components\Repeater::make('sources')
                             ->relationship('sources')
                             ->defaultItems(0)
                             ->schema([
                                 Forms\Components\Select::make('provider')
-                                    ->label('Provider')
+                                    ->label('Поставщик')
                                     ->options(fn () => DataProvider::query()->where('enabled', true)->pluck('name', 'code'))
                                     ->required()
                                     ->native(false),
                                 Forms\Components\TextInput::make('provider_symbol')
-                                    ->label('Provider Symbol')
+                                    ->label('Символ у поставщика')
                                     ->required()
-                                    ->placeholder('e.g. BTCUSDT, AAPL, XAUUSD'),
+                                    ->placeholder('например: BTCUSDT, AAPL, XAUUSD'),
                                 Forms\Components\TextInput::make('priority')
+                                    ->label('Приоритет')
                                     ->numeric()
                                     ->minValue(1)
                                     ->default(1)
                                     ->required(),
                                 Forms\Components\Select::make('status')
                                     ->options([
-                                        'pending' => 'pending',
-                                        'valid' => 'valid',
-                                        'invalid' => 'invalid',
+                                        'pending' => 'ожидание',
+                                        'valid' => 'валиден',
+                                        'invalid' => 'невалиден',
                                     ])
                                     ->disabled()
                                     ->dehydrated()
-                                    ->label('Status'),
+                                    ->label('Статус'),
                             ])
                             ->columns(4)
                             ->collapsible(),
@@ -101,25 +107,25 @@ class PairResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('currencyIn.symbol')
-                    ->label('Currency In'),
+                    ->label('Базовая'),
                 Tables\Columns\TextColumn::make('currencyOut.symbol')
-                    ->label('Currency Out'),
+                    ->label('Котируемая'),
                 Tables\Columns\TextColumn::make('group.name')
-                    ->label('Group'),
+                    ->label('Группа'),
                 Tables\Columns\BadgeColumn::make('asset_class')
-                    ->label('Class')
+                    ->label('Класс')
                     ->colors([
                         'primary',
                     ]),
                 Tables\Columns\TextColumn::make('default_source')
-                    ->label('Source')
+                    ->label('Источник')
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('sources_count')
                     ->counts('sources')
-                    ->label('Sources'),
+                    ->label('Источники'),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
-                    ->label('Is Active'),
+                    ->label('Активна'),
             ])
 
             ->filters([

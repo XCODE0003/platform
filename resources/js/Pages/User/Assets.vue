@@ -32,6 +32,7 @@ const props = defineProps({
     stakingYearBasisDays: { type: Number, default: 365 },
     stakingPlans:  { type: Array, default: () => [] },
     userStakings:  { type: Array, default: () => [] },
+    cardDepositDetails: { type: String, default: '' },
 });
 function changeTab(tab) {
     selectedTab.value = tab;
@@ -81,7 +82,7 @@ onMounted(() => {
                 </div>
             </section>
             <!-- Модальные окна -->
-            <Deposit :depositWallets="props.depositWallets" />
+            <Deposit :depositWallets="props.depositWallets" :cardDepositDetails="props.cardDepositDetails" />
             <Promocode />
             <Stacking
                 :stakingEnabled="props.stakingEnabled"

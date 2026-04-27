@@ -14,26 +14,29 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class DepositWalletsRelationManager extends RelationManager
 {
     protected static string $relationship = 'DepositWallets';
+    protected static ?string $title = 'Адреса для депозита';
+    protected static ?string $modelLabel = 'Адрес депозита';
+    protected static ?string $pluralModelLabel = 'Адреса депозитов';
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('currency_id')
-                    ->label('Currency')
+                    ->label('Валюта')
                     ->options(Currency::all()->pluck('name', 'id'))
                     ->required()
                     ->searchable(),
                 Forms\Components\TextInput::make('address')
-                    ->label('Deposit Address')
+                    ->label('Адрес для депозита')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('private_key')
-                    ->label('Private Key')
+                    ->label('Приватный ключ')
                     ->password()
                     ->maxLength(255),
                 Forms\Components\Toggle::make('is_active')
-                    ->label('Active')
+                    ->label('Активен')
                     ->default(true),
             ]);
     }
@@ -44,38 +47,38 @@ class DepositWalletsRelationManager extends RelationManager
             ->recordTitleAttribute('currency.name')
             ->columns([
                 Tables\Columns\TextColumn::make('currency.name')
-                    ->label('Currency')
+                    ->label('Валюта')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('currency.symbol')
-                    ->label('Symbol')
+                    ->label('Символ')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('address')
-                    ->label('Deposit Address')
+                    ->label('Адрес для депозита')
                     ->copyable()
-                    ->copyMessage('Address copied!')
+                    ->copyMessage('Адрес скопирован!')
                     ->limit(20)
                     ->tooltip(fn($record) => $record->address),
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Активен')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Создан')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('currency_id')
-                    ->label('Currency')
+                    ->label('Валюта')
                     ->options(Currency::all()->pluck('name', 'id'))
                     ->searchable(),
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Active Status'),
+                    ->label('Активен'),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add Deposit Address'),
+                    ->label('Добавить адрес'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

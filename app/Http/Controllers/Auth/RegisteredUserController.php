@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\GenerateWalletAddress;
-use App\Models\Currency;
 use App\Http\Service\User\CreateWallets;
 use App\Models\User;
 use App\Http\Service\G2FA\GoogleCreateSecret;
@@ -52,11 +50,6 @@ class RegisteredUserController extends Controller
         ]);
         (new CreateWallets())->createWallets($user);
         event(new Registered($user));
-
-        $currencies = Currency::all();
-        foreach ($currencies as $currency) {
-            GenerateWalletAddress::dispatch($user, $currency);
-        }
 
         Auth::login($user);
 

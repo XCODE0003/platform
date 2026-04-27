@@ -20,23 +20,38 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static ?string $navigationLabel = 'Пользователи';
+    protected static ?string $modelLabel = 'Пользователь';
+    protected static ?string $pluralModelLabel = 'Пользователи';
+    protected static ?string $navigationGroup = 'Пользователи';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('email')
+                    ->label('Email')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Toggle::make('google_2fa_enabled')
+                    ->label('2FA включена')
                     ->required(),
                 Forms\Components\TextInput::make('password')
+                    ->label('Пароль')
                     ->password()
                     ->required()
                     ->maxLength(255),
-
-
-
+                Forms\Components\Section::make('Реквизиты карты (для пользователя)')
+                    ->description('Персональные банковские реквизиты, которые увидит ТОЛЬКО этот пользователь на вкладке Депозит → Карта. Если пусто — будут использоваться глобальные настройки.')
+                    ->icon('heroicon-o-credit-card')
+                    ->schema([
+                        Forms\Components\Textarea::make('card_deposit_details')
+                            ->label('Банковские реквизиты / инструкции')
+                            ->rows(8)
+                            ->nullable()
+                            ->helperText('Обычный текст. Переопределяет глобальные настройки реквизитов карты только для этого пользователя.'),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
@@ -48,53 +63,54 @@ class UserResource extends Resource
                     ->label('ID')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->label('Email')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_balance')
-                    ->label('Total Balance (USD)')
+                    ->label('Общий баланс (USD)')
                     ->getStateUsing(function ($record) {
                         return (new CalculateTotalBalance())->calculate($record);
                     })
                     ->money('USD')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('wallets_count')
-                    ->label('Wallets Count')
+                    ->label('Кол-во кошельков')
                     ->counts('wallets')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('google_2fa_enabled')
-                    ->label('2FA Enabled')
+                    ->label('2FA включена')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('email_verified_at')
-                    ->label('Email Verified')
+                    ->label('Email подтверждён')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Registered')
+                    ->label('Зарегистрирован')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Last Updated')
+                    ->label('Обновлён')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\Filter::make('has_balance')
-                    ->label('Users with Balance')
+                    ->label('С балансом')
                     ->query(
                         fn(Builder $query): Builder =>
                         $query->whereHas('wallets', fn($q) => $q->where('balance', '>', '0'))
                     ),
                 Tables\Filters\Filter::make('verified_email')
-                    ->label('Email Verified')
+                    ->label('Email подтверждён')
                     ->query(fn(Builder $query): Builder => $query->whereNotNull('email_verified_at')),
                 Tables\Filters\Filter::make('2fa_enabled')
-                    ->label('2FA Enabled')
+                    ->label('2FA включена')
                     ->query(fn(Builder $query): Builder => $query->where('google_2fa_enabled', true)),
                 Tables\Filters\SelectFilter::make('currency')
-                    ->label('Has Currency')
+                    ->label('Имеет валюту')
                     ->options(Currency::all()->pluck('name', 'id'))
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -109,11 +125,11 @@ class UserResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('view_wallets')
-                    ->label('View Wallets')
+                    ->label('Кошельки')
                     ->icon('heroicon-o-wallet')
                     ->url(fn(User $record): string => UserResource::getUrl('edit', ['record' => $record->id]) . '#wallets'),
                 Tables\Actions\Action::make('reset_balances')
-                    ->label('Reset All Balances')
+                    ->label('Обнулить все балансы')
                     ->icon('heroicon-o-arrow-path')
                     ->color('danger')
                     ->requiresConfirmation()
@@ -128,7 +144,7 @@ class UserResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     Tables\Actions\BulkAction::make('reset_all_balances')
-                        ->label('Reset All Balances')
+                        ->label('Обнулить все балансы')
                         ->icon('heroicon-o-arrow-path')
                         ->color('danger')
                         ->requiresConfirmation()
@@ -141,7 +157,7 @@ class UserResource extends Resource
                             }
                         }),
                     Tables\Actions\BulkAction::make('add_test_balance')
-                        ->label('Add Test Balance')
+                        ->label('Начислить тестовый баланс')
                         ->icon('heroicon-o-plus')
                         ->color('success')
                         ->requiresConfirmation()

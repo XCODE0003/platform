@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Setting;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -17,8 +18,8 @@ class SettingsPage extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    protected static ?string $navigationLabel = 'Settings';
-    protected static ?string $title = 'Settings';
+    protected static ?string $navigationLabel = 'Настройки';
+    protected static ?string $title = 'Настройки';
     protected static ?int $navigationSort = 99;
 
     protected static string $view = 'filament.pages.settings';
@@ -32,6 +33,7 @@ class SettingsPage extends Page implements HasForms
             'portfolio_fee_fixed'   => Setting::get('portfolio_fee_fixed',   0),
             'staking_enabled'       => (bool) Setting::get('staking_enabled', 1),
             'staking_year_basis_days' => (int) Setting::get('staking_year_basis_days', 365),
+            'card_deposit_details'    => (string) Setting::get('card_deposit_details', ''),
         ]);
     }
 
@@ -39,43 +41,53 @@ class SettingsPage extends Page implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Portfolio Transfer Fee')
-                    ->description('Commission applied when user transfers from Portfolio → Trading Account')
+                Section::make('Комиссия перевода из портфеля')
+                    ->description('Комиссия при переводе пользователем из Портфеля на Торговый счёт')
                     ->icon('heroicon-o-banknotes')
                     ->schema([
                         TextInput::make('portfolio_fee_percent')
-                            ->label('Fee, %')
+                            ->label('Комиссия, %')
                             ->numeric()
                             ->default(0)
                             ->suffix('%')
                             ->minValue(0)
                             ->maxValue(100)
-                            ->helperText('Percentage of transfer amount. Example: 1.5 = 1.5%'),
+                            ->helperText('Процент от суммы перевода. Пример: 1.5 = 1.5%'),
                         TextInput::make('portfolio_fee_fixed')
-                            ->label('Fixed fee')
+                            ->label('Фиксированная комиссия')
                             ->numeric()
                             ->default(0)
                             ->minValue(0)
-                            ->helperText('Fixed amount deducted regardless of transfer size'),
+                            ->helperText('Фиксированная сумма, удерживается независимо от размера перевода'),
                     ])->columns(2),
-                Section::make('Staking')
-                    ->description('Global staking behavior and reward basis')
+                Section::make('Стейкинг')
+                    ->description('Глобальное поведение стейкинга и расчётная база')
                     ->icon('heroicon-o-lock-closed')
                     ->schema([
                         Toggle::make('staking_enabled')
-                            ->label('Enable staking for users')
+                            ->label('Разрешить стейкинг для пользователей')
                             ->default(true)
                             ->inline(false)
-                            ->helperText('When disabled, users cannot open new staking positions.'),
+                            ->helperText('Если выключено, пользователи не смогут открывать новые позиции стейкинга.'),
                         TextInput::make('staking_year_basis_days')
-                            ->label('Year basis (days)')
+                            ->label('База года (дней)')
                             ->numeric()
                             ->integer()
                             ->default(365)
                             ->minValue(1)
                             ->maxValue(366)
-                            ->helperText('Used in reward formula: amount * APY * duration / basis'),
+                            ->helperText('Используется в формуле начисления: сумма * APY * срок / база'),
                     ])->columns(2),
+                Section::make('Депозит по карте')
+                    ->description('Текст банковских реквизитов, показывается пользователю на вкладке Депозит → Карта')
+                    ->icon('heroicon-o-credit-card')
+                    ->schema([
+                        Textarea::make('card_deposit_details')
+                            ->label('Банковские реквизиты / инструкции')
+                            ->rows(8)
+                            ->helperText('Обычный текст. Будет показан пользователю как есть.')
+                            ->nullable(),
+                    ]),
             ])
             ->statePath('data');
     }
@@ -88,9 +100,10 @@ class SettingsPage extends Page implements HasForms
         Setting::set('portfolio_fee_fixed',   $data['portfolio_fee_fixed']   ?? 0);
         Setting::set('staking_enabled',       (int) ($data['staking_enabled'] ?? true));
         Setting::set('staking_year_basis_days', (int) ($data['staking_year_basis_days'] ?? 365));
+        Setting::set('card_deposit_details',  (string) ($data['card_deposit_details']  ?? ''));
 
         Notification::make()
-            ->title('Settings saved')
+            ->title('Настройки сохранены')
             ->success()
             ->send();
     }

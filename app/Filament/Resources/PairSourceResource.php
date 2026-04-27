@@ -17,14 +17,17 @@ class PairSourceResource extends Resource
     protected static ?string $model = PairSource::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-link';
-    protected static ?string $navigationGroup = 'Market Data';
+    protected static ?string $navigationGroup = 'Рыночные данные';
+    protected static ?string $navigationLabel = 'Источники пар';
+    protected static ?string $modelLabel = 'Источник пары';
+    protected static ?string $pluralModelLabel = 'Источники пар';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('pair_id')
-                ->label('Pair')
+                ->label('Пара')
                 ->options(fn () => \App\Models\Pair::with(['currencyIn', 'currencyOut'])
                     ->get()
                     ->mapWithKeys(fn ($p) => [
@@ -39,33 +42,35 @@ class PairSourceResource extends Resource
                 ->native(false),
 
                 Forms\Components\Select::make('provider')
-                    ->label('Provider')
+                    ->label('Поставщик')
                     ->options(DataProvider::query()->pluck('name', 'code'))
                     ->required()
                     ->native(false),
 
                 Forms\Components\TextInput::make('provider_symbol')
-                    ->label('Provider Symbol')
-                    ->placeholder('e.g. BTCUSDT, EURUSD, AAPL, XAUUSD')
+                    ->label('Символ у поставщика')
+                    ->placeholder('например: BTCUSDT, EURUSD, AAPL, XAUUSD')
                     ->required()
                     ->maxLength(100),
 
                 Forms\Components\TextInput::make('priority')
+                    ->label('Приоритет')
                     ->numeric()
                     ->minValue(1)
                     ->default(1)
                     ->required(),
 
                 Forms\Components\Select::make('status')
+                    ->label('Статус')
                     ->options([
-                        'pending' => 'pending',
-                        'valid'   => 'valid',
-                        'invalid' => 'invalid',
+                        'pending' => 'ожидание',
+                        'valid'   => 'валиден',
+                        'invalid' => 'невалиден',
                     ])
                     ->required(),
 
                 Forms\Components\DateTimePicker::make('validated_at')
-                    ->label('Validated At')
+                    ->label('Дата валидации')
                     ->seconds(false),
             ])->columns(2);
     }
@@ -74,17 +79,17 @@ class PairSourceResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('pair_id')->label('Pair')->sortable(),
-                Tables\Columns\TextColumn::make('provider')->label('Provider')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('provider_symbol')->label('Symbol')->searchable(),
-                Tables\Columns\TextColumn::make('priority')->label('Priority')->sortable(),
-                Tables\Columns\BadgeColumn::make('status')->colors([
+                Tables\Columns\TextColumn::make('pair_id')->label('Пара')->sortable(),
+                Tables\Columns\TextColumn::make('provider')->label('Поставщик')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('provider_symbol')->label('Символ')->searchable(),
+                Tables\Columns\TextColumn::make('priority')->label('Приоритет')->sortable(),
+                Tables\Columns\BadgeColumn::make('status')->label('Статус')->colors([
                     'warning' => 'pending',
                     'success' => 'valid',
                     'danger'  => 'invalid',
                 ]),
-                Tables\Columns\TextColumn::make('validated_at')->dateTime()->label('Validated'),
-                Tables\Columns\TextColumn::make('updated_at')->since()->label('Updated'),
+                Tables\Columns\TextColumn::make('validated_at')->dateTime()->label('Валидирован'),
+                Tables\Columns\TextColumn::make('updated_at')->since()->label('Обновлён'),
             ])
             ->filters([])
             ->actions([

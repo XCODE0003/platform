@@ -18,7 +18,10 @@ use Throwable;
  *
  * Resolution order:
  *   1. Most recent bar close stored in the DB (fresh enough).
- *   2. Live provider fetch (Binance / TwelveData) as fallback.
+ *   2. Live provider fetch (Binance / TwelveData).
+ *   3. Last-known bar close (within LAST_RESORT_BAR_SECONDS) — used when
+ *      live feeds are stale/unavailable so user-facing operations stay
+ *      consistent with what the chart is currently showing.
  *
  * Returns price as a decimal string (never float) to preserve precision
  * across bcmath arithmetic downstream.
@@ -26,6 +29,7 @@ use Throwable;
 final class MarketPriceResolver
 {
     private const BAR_STALE_SECONDS = 120;
+    private const LAST_RESORT_BAR_SECONDS = 86400;
 
     public function __construct(
         private readonly UpdateRates $rates = new UpdateRates(),
@@ -38,7 +42,7 @@ final class MarketPriceResolver
      */
     public function resolve(Pair $pair): string
     {
-        $fromBar = $this->priceFromLatestBar($pair->id);
+        $fromBar = $this->priceFromLatestBar($pair->id, self::BAR_STALE_SECONDS);
         if ($fromBar !== null) {
             return $fromBar;
         }
@@ -48,12 +52,19 @@ final class MarketPriceResolver
             return $fromProvider;
         }
 
+        // Last-resort: use whatever the chart is showing rather than blocking
+        // the user when live feeds are temporarily stale.
+        $fallback = $this->priceFromLatestBar($pair->id, self::LAST_RESORT_BAR_SECONDS);
+        if ($fallback !== null) {
+            return $fallback;
+        }
+
         throw new InvalidArgumentException(
             "Unable to resolve market price for pair #{$pair->id}"
         );
     }
 
-    private function priceFromLatestBar(int $pairId): ?string
+    private function priceFromLatestBar(int $pairId, int $maxAgeSeconds): ?string
     {
         $bar = Bar::query()
             ->where('pair_id', $pairId)
@@ -71,7 +82,7 @@ final class MarketPriceResolver
             $barTime *= 1000;
         }
         $ageSeconds = max(0, ($nowMs - $barTime) / 1000);
-        if ($ageSeconds > self::BAR_STALE_SECONDS) {
+        if ($ageSeconds > $maxAgeSeconds) {
             return null;
         }
 

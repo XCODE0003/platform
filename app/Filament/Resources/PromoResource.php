@@ -19,26 +19,34 @@ class PromoResource extends Resource
     protected static ?string $model = Promocode::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
+    protected static ?string $navigationLabel = 'Промокоды';
+    protected static ?string $modelLabel = 'Промокод';
+    protected static ?string $pluralModelLabel = 'Промокоды';
+    protected static ?string $navigationGroup = 'Финансы';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('code')
+                    ->label('Код')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('amount')
+                    ->label('Сумма')
                     ->required()
                     ->numeric(),
                 Forms\Components\Select::make('currency_id')
+                    ->label('Валюта')
                     ->required()
                     ->native(false)
                     ->options(Currency::all()->pluck('name', 'id')),
                 Forms\Components\DatePicker::make('expiration_date')
+                    ->label('Действует до')
                     ->native(false)
                     ->required(),
                 Forms\Components\Toggle::make('is_active')
-
+                    ->label('Активен')
                     ->required(),
             ]);
     }
@@ -47,14 +55,15 @@ class PromoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('code'),
-                Tables\Columns\TextColumn::make('amount'),
-                Tables\Columns\TextColumn::make('currency.name'),
-                Tables\Columns\TextColumn::make('expiration_date'),
-                Tables\Columns\ToggleColumn::make('is_active'),
+                Tables\Columns\TextColumn::make('code')->label('Код'),
+                Tables\Columns\TextColumn::make('amount')->label('Сумма'),
+                Tables\Columns\TextColumn::make('currency.name')->label('Валюта'),
+                Tables\Columns\TextColumn::make('expiration_date')->label('Действует до'),
+                Tables\Columns\ToggleColumn::make('is_active')->label('Активен'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('currency_id')
+                    ->label('Валюта')
                     ->native(false)
                     ->options(Currency::all()->pluck('name', 'id')),
 

@@ -43,6 +43,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'google_2fa_enabled',
         'google_2fa_secret',
         'is_admin',
+        'card_deposit_details',
     ];
 
     /**

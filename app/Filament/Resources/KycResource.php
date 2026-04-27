@@ -18,37 +18,53 @@ class KycResource extends Resource
     protected static ?string $model = KycUser::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
+    protected static ?string $navigationLabel = 'KYC';
+    protected static ?string $modelLabel = 'Заявка KYC';
+    protected static ?string $pluralModelLabel = 'Заявки KYC';
+    protected static ?string $navigationGroup = 'Пользователи';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('user_id')
+                    ->label('ID пользователя')
                     ->required()
                     ->numeric(),
                 Forms\Components\Select::make('status')
+                    ->label('Статус')
                     ->required()
                     ->native(false)
                     ->options(KycUser::STATUS_OPTIONS),
-                Forms\Components\TextInput::make('error_message'),
+                Forms\Components\TextInput::make('error_message')
+                    ->label('Сообщение об ошибке'),
                 Forms\Components\Select::make('sex')
+                    ->label('Пол')
                     ->required()
                     ->options(KycUser::SEX_OPTIONS),
                 Forms\Components\TextInput::make('first_name')
+                    ->label('Имя')
                     ->required(),
                 Forms\Components\TextInput::make('last_name')
+                    ->label('Фамилия')
                     ->required(),
                 Forms\Components\TextInput::make('phone')
+                    ->label('Телефон')
                     ->required(),
                 Forms\Components\TextInput::make('date_of_birth')
+                    ->label('Дата рождения')
                     ->required(),
                 Forms\Components\TextInput::make('country')
+                    ->label('Страна')
                     ->required(),
                 Forms\Components\TextInput::make('city')
+                    ->label('Город')
                     ->required(),
                 Forms\Components\TextInput::make('address')
+                    ->label('Адрес')
                     ->required(),
                 Forms\Components\TextInput::make('zip_code')
+                    ->label('Индекс')
                     ->required(),
             ]);
     }
@@ -57,24 +73,26 @@ class KycResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.email'),
-                Tables\Columns\TextColumn::make('status'),
-                Tables\Columns\TextColumn::make('error_message'),
-                Tables\Columns\TextColumn::make('sex'),
-                Tables\Columns\TextColumn::make('first_name'),
-                Tables\Columns\TextColumn::make('last_name'),
-                Tables\Columns\TextColumn::make('phone'),
-                Tables\Columns\TextColumn::make('date_of_birth'),
-                Tables\Columns\TextColumn::make('country'),
-                Tables\Columns\TextColumn::make('city'),
-                Tables\Columns\TextColumn::make('address'),
-                Tables\Columns\TextColumn::make('zip_code'),
+                Tables\Columns\TextColumn::make('user.email')->label('Пользователь'),
+                Tables\Columns\TextColumn::make('status')->label('Статус'),
+                Tables\Columns\TextColumn::make('error_message')->label('Сообщение об ошибке'),
+                Tables\Columns\TextColumn::make('sex')->label('Пол'),
+                Tables\Columns\TextColumn::make('first_name')->label('Имя'),
+                Tables\Columns\TextColumn::make('last_name')->label('Фамилия'),
+                Tables\Columns\TextColumn::make('phone')->label('Телефон'),
+                Tables\Columns\TextColumn::make('date_of_birth')->label('Дата рождения'),
+                Tables\Columns\TextColumn::make('country')->label('Страна'),
+                Tables\Columns\TextColumn::make('city')->label('Город'),
+                Tables\Columns\TextColumn::make('address')->label('Адрес'),
+                Tables\Columns\TextColumn::make('zip_code')->label('Индекс'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Статус')
                     ->options(KycUser::STATUS_OPTIONS)
                     ->multiple(),
                 Tables\Filters\SelectFilter::make('sex')
+                    ->label('Пол')
                     ->options(KycUser::SEX_OPTIONS),
             ])
             ->actions([

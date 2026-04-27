@@ -20,33 +20,42 @@ class SpreadResource extends Resource
     protected static ?string $model = Spread::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
+    protected static ?string $navigationLabel = 'Спреды';
+    protected static ?string $modelLabel = 'Спред';
+    protected static ?string $pluralModelLabel = 'Спреды';
+    protected static ?string $navigationGroup = 'Финансы';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('user_id')
+                    ->label('Пользователь')
                     ->native(false)
                     ->options(User::all()->pluck('email', 'id')),
                 Forms\Components\Select::make('currency_id_in')
-                    ->label('Currency (base)')
+                    ->label('Валюта (базовая)')
                     ->native(false)
                     ->options(Currency::all()->pluck('name', 'id'))
                     ->required()
                     ->searchable(),
                 Forms\Components\TextInput::make('spread_value')
+                    ->label('Размер спреда')
                     ->numeric()
                     ->suffix('%')
-                    ->helperText('Percentage markup added to prices (e.g. 0.5 = +0.5%)'),
+                    ->helperText('Процентная наценка к цене (например 0.5 = +0.5%)'),
                 Forms\Components\DatePicker::make('start_date')
+                    ->label('Дата начала')
                     ->native(false)
                     ->nullable()
-                    ->helperText('Leave empty to apply spread from any date'),
+                    ->helperText('Оставьте пустым, чтобы применять спред с любой даты'),
                 Forms\Components\DatePicker::make('end_date')
+                    ->label('Дата окончания')
                     ->native(false)
                     ->nullable()
-                    ->helperText('Leave empty to apply spread with no end date'),
+                    ->helperText('Оставьте пустым, чтобы применять спред без срока окончания'),
                 Forms\Components\Toggle::make('is_active')
+                    ->label('Активен')
                     ->required(),
             ]);
     }
@@ -56,28 +65,30 @@ class SpreadResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('user.email')
-                    ->label('User')
-                    ->placeholder('All users'),
+                    ->label('Пользователь')
+                    ->placeholder('Все пользователи'),
                 Tables\Columns\TextColumn::make('currency_in.name')
-                    ->label('Currency'),
+                    ->label('Валюта'),
                 Tables\Columns\TextColumn::make('spread_value')
+                    ->label('Спред')
                     ->suffix('%'),
                 Tables\Columns\TextColumn::make('start_date')
-                    ->label('From')
+                    ->label('С')
                     ->date('d.m.Y')
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('end_date')
-                    ->label('To')
+                    ->label('По')
                     ->date('d.m.Y')
                     ->placeholder('—'),
-                Tables\Columns\ToggleColumn::make('is_active'),
+                Tables\Columns\ToggleColumn::make('is_active')->label('Активен'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Пользователь')
                     ->native(false)
                     ->options(User::all()->pluck('email', 'id')),
                 Tables\Filters\SelectFilter::make('currency_id_in')
-                    ->label('Currency')
+                    ->label('Валюта')
                     ->native(false)
                     ->options(Currency::all()->pluck('name', 'id')),
             ])

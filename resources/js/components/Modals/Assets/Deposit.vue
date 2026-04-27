@@ -1,5 +1,6 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
+import { useSupportChatStore } from '@/stores/supportChatStore.js';
 import { useToast } from '@/composables/useToast.js';
 import { computed, defineProps, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { VueFinalModal } from 'vue-final-modal';
@@ -9,10 +10,30 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    cardDepositDetails: {
+        type: String,
+        default: '',
+    },
 });
 
 const modal = useModalStore();
+const supportChat = useSupportChatStore();
 const toast = useToast();
+
+function openSupport() {
+    modal.close('deposit');
+    supportChat.openChat();
+}
+
+async function copyText(value, successMsg = 'Copied to clipboard') {
+    if (!value) return;
+    try {
+        await navigator.clipboard.writeText(value);
+        toast.success(successMsg);
+    } catch (e) {
+        toast.error('Failed to copy');
+    }
+}
 
 const isOpen = computed({
     get: () => modal.isOpen('deposit'),
@@ -142,6 +163,15 @@ function iconPathFor(wallet) {
                             Card
                         </button>
                     </li>
+                    <li>
+                        <button
+                            :class="{ active: selectedTab === 'DepositSupport' }"
+                            @click="changeTab('DepositSupport')"
+                            class="text_small_14 assets-menu_btn"
+                        >
+                            Support
+                        </button>
+                    </li>
                 </ul>
                 <div class="tabs-itemsDeposit">
                     <!-- Crypto Deposit Tab -->
@@ -224,10 +254,30 @@ function iconPathFor(wallet) {
                     <!-- Fiat Deposit Tab -->
                     <div v-if="selectedTab === 'DepositFiat'">
                         <p class="text_16 pb20">
-                            Buy cryptocurrency with your credit/debit card
+                            Top up your account by bank transfer using the requisites below.
                         </p>
-                        <button class="btn btn_action btn_16 color-dark">
-                            Buy with Card
+                        <div v-if="cardDepositDetails" class="bank-details">
+                            <pre class="bank-details__text">{{ cardDepositDetails }}</pre>
+                            <button
+                                class="btn small_btn"
+                                type="button"
+                                @click.prevent="copyText(cardDepositDetails, 'Bank requisites copied')"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                        <p v-else class="text_small_14 color-gray2">
+                            Bank requisites are not configured yet. Please contact support.
+                        </p>
+                    </div>
+
+                    <!-- Support Tab -->
+                    <div v-if="selectedTab === 'DepositSupport'">
+                        <p class="text_16 pb20">
+                            Need help with a deposit? Open a chat with our support team and we will assist you.
+                        </p>
+                        <button class="btn btn_action btn_16 color-dark" @click.prevent="openSupport">
+                            Contact Support
                         </button>
                     </div>
                 </div>
@@ -414,6 +464,26 @@ function iconPathFor(wallet) {
 
 .deposit-address .small_btn {
     min-width: 70px;
+}
+
+.bank-details {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bank-details__text {
+    margin: 0;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .fade-enter-active,

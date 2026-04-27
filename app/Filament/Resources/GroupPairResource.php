@@ -18,17 +18,22 @@ class GroupPairResource extends Resource
     protected static ?string $model = GroupPair::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
+    protected static ?string $navigationGroup = 'Рыночные данные';
+    protected static ?string $navigationLabel = 'Группы пар';
+    protected static ?string $modelLabel = 'Группа пар';
+    protected static ?string $pluralModelLabel = 'Группы пар';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->label('Название')
                     ->required()
                     ->maxLength(255),
 
                 Forms\Components\Toggle::make('is_active')
-                    ->label('Active'),
+                    ->label('Активна'),
             ]);
     }
 
@@ -37,12 +42,12 @@ class GroupPairResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Name')
+                    ->label('Название')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Активна')
                     ->trueIcon('heroicon-o-check')
                     ->falseIcon('heroicon-o-x-mark')
                     ->boolean(),

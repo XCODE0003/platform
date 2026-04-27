@@ -15,32 +15,35 @@ class DataProviderResource extends Resource
     protected static ?string $model = DataProvider::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cloud';
-    protected static ?string $navigationGroup = 'Market Data';
+    protected static ?string $navigationGroup = 'Рыночные данные';
+    protected static ?string $navigationLabel = 'Поставщики данных';
+    protected static ?string $modelLabel = 'Поставщик данных';
+    protected static ?string $pluralModelLabel = 'Поставщики данных';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('code')
-                    ->label('Code')
+                    ->label('Код')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(100),
                 Forms\Components\TextInput::make('name')
-                    ->label('Name')
+                    ->label('Название')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TagsInput::make('asset_classes')
-                    ->label('Asset Classes')
+                    ->label('Классы активов')
                     ->placeholder('crypto, stock, forex, metal, fiat')
                     ->suggestions(['crypto', 'stock', 'forex', 'metal', 'fiat'])
                     ->separator(','),
                 Forms\Components\TextInput::make('base_url')
-                    ->label('Base URL')
+                    ->label('Базовый URL')
                     ->url()
                     ->maxLength(255),
                 Forms\Components\Toggle::make('enabled')
-                    ->label('Enabled')
+                    ->label('Включён')
                     ->default(true),
             ])->columns(2);
     }
@@ -49,12 +52,12 @@ class DataProviderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('code')->label('Code')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('name')->label('Name')->searchable(),
-                Tables\Columns\TagsColumn::make('asset_classes')->label('Asset Classes'),
-                Tables\Columns\TextColumn::make('base_url')->label('Base URL')->toggleable(),
-                Tables\Columns\IconColumn::make('enabled')->boolean()->label('Enabled'),
-                Tables\Columns\TextColumn::make('updated_at')->dateTime()->since()->label('Updated'),
+                Tables\Columns\TextColumn::make('code')->label('Код')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('name')->label('Название')->searchable(),
+                Tables\Columns\TagsColumn::make('asset_classes')->label('Классы активов'),
+                Tables\Columns\TextColumn::make('base_url')->label('Базовый URL')->toggleable(),
+                Tables\Columns\IconColumn::make('enabled')->boolean()->label('Включён'),
+                Tables\Columns\TextColumn::make('updated_at')->dateTime()->since()->label('Обновлён'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
