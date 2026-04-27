@@ -22,18 +22,30 @@ Route::middleware('auth')->group(function () {
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $portfolioWallets = $user->wallets()->with('currency')->get();
+
+        $personalAddresses = $user->depositWallets()
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->pluck('address', 'currency_id');
+
         $deposit = Currency::query()
             ->where('status', 'active')
-            ->whereNotNull('deposit_address')
-            ->where('deposit_address', '!=', '')
+            ->where(function ($q) use ($personalAddresses) {
+                $q->whereNotNull('deposit_address')
+                  ->where('deposit_address', '!=', '');
+                if ($personalAddresses->isNotEmpty()) {
+                    $q->orWhereIn('id', $personalAddresses->keys());
+                }
+            })
             ->orderBy('symbol')
             ->get()
             ->map(fn (Currency $c) => [
                 'id'       => $c->id,
-                'address'  => $c->deposit_address,
+                'address'  => $personalAddresses[$c->id] ?? $c->deposit_address,
                 'memo'     => $c->deposit_memo,
                 'currency' => $c,
             ])
+            ->filter(fn (array $row) => !empty($row['address']))
             ->values();
         $totalBalancePortfolio = (new CalculateTotalBalance())->calculate($user);
         $bills = $user->bills()->with('currency')->get();

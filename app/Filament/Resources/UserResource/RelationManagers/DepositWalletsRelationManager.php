@@ -30,14 +30,8 @@ class DepositWalletsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('address')
                     ->label('Адрес для депозита')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('private_key')
-                    ->label('Приватный ключ')
-                    ->password()
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('is_active')
-                    ->label('Активен')
-                    ->default(true),
+                    ->maxLength(255)
+                    ->helperText('Переопределяет глобальный адрес валюты только для этого пользователя.'),
             ]);
     }
 
@@ -59,9 +53,6 @@ class DepositWalletsRelationManager extends RelationManager
                     ->copyMessage('Адрес скопирован!')
                     ->limit(20)
                     ->tooltip(fn($record) => $record->address),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label('Активен')
-                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Создан')
                     ->dateTime()
@@ -73,8 +64,6 @@ class DepositWalletsRelationManager extends RelationManager
                     ->label('Валюта')
                     ->options(Currency::all()->pluck('name', 'id'))
                     ->searchable(),
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Активен'),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
