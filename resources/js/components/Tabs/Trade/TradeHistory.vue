@@ -18,8 +18,8 @@ const savingTpSl = ref(new Set());
 function openTpSlEdit(pos) {
     editingTpSl.value = pos.id;
     tpSlDraft.value = {
-        tp: pos.take_profit ? String(pos.take_profit) : '',
-        sl: pos.stop_loss   ? String(pos.stop_loss)   : '',
+        tp: pos.take_profit ? Number(pos.take_profit).toFixed(5) : '',
+        sl: pos.stop_loss   ? Number(pos.stop_loss).toFixed(5)   : '',
     };
 }
 
