@@ -12,6 +12,9 @@ Route::middleware('auth')->prefix('assets')->group(function () {
     Route::post('/bill/create', [App\Http\Controllers\User\BillController::class, 'create'])
         ->name('assets.bill.create');
 
+    Route::post('/bill/transfer', [App\Http\Controllers\User\BillController::class, 'transfer'])
+        ->name('assets.bill.transfer');
+
     Route::get('/bills', [App\Http\Controllers\User\BillController::class, 'get'])
         ->name('assets.bill.get');
 

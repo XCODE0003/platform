@@ -146,9 +146,26 @@ const pairLabelMap = computed(() => {
     return map;
 });
 
+// pair_id -> quote currency symbol (e.g. "USDT", "USD")
+const pairQuoteMap = computed(() => {
+    const map = {};
+    for (const group of tradeStore.tradingPairs) {
+        for (const pair of group.pairs ?? []) {
+            map[pair.id] = pair.currency_out?.symbol ?? '';
+        }
+    }
+    return map;
+});
+
 function pairLabel(pairId) {
     return pairLabelMap.value[pairId] ?? `PAIR:${pairId}`;
 }
+
+const closeModalQuote = computed(() => {
+    const pos = closingPosition.value;
+    if (!pos) return '';
+    return pairQuoteMap.value[pos.pair_id] ?? '';
+});
 
 function fmtDate(d) {
     if (!d) return '—';
@@ -213,7 +230,7 @@ onMounted(() => {
                                 <div>{{ fmtDate(pos.created_at) }}</div>
                                 <div>{{ pairLabel(pos.pair_id) }}</div>
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
-                                <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
+                                <div>{{ Number(pos.entry_price).toFixed(5) }}</div>
                                 <div>{{ pos.quantity }}</div>
                                 <div>{{ pos.entry_total ? Number(pos.entry_total).toFixed(2) : '—' }}</div>
                                 <div>
@@ -254,9 +271,9 @@ onMounted(() => {
                                             @click="openTpSlEdit(pos)"
                                             title="Click to edit TP/SL"
                                         >
-                                            <span v-if="pos.take_profit" class="text-green-300">TP&nbsp;{{ +pos.take_profit }}</span>
+                                            <span v-if="pos.take_profit" class="text-green-300">TP&nbsp;{{ Number(pos.take_profit).toFixed(5) }}</span>
                                             <span v-if="pos.take_profit && pos.stop_loss" class="text-gray-500">&nbsp;/&nbsp;</span>
-                                            <span v-if="pos.stop_loss" class="text-red">SL&nbsp;{{ +pos.stop_loss }}</span>
+                                            <span v-if="pos.stop_loss" class="text-red">SL&nbsp;{{ Number(pos.stop_loss).toFixed(5) }}</span>
                                             <span v-if="!pos.take_profit && !pos.stop_loss" class="tpsl-empty">+ Add</span>
                                         </span>
                                     </template>
@@ -347,8 +364,8 @@ onMounted(() => {
                                 <div>{{ fmtDate(pos.closed_at) }}</div>
                                 <div>{{ pairLabel(pos.pair_id) }}</div>
                                 <div :class="pos.side === 'buy' ? 'text-green-300' : 'text-red'">{{ pos.side }}</div>
-                                <div>{{ Number(pos.entry_price).toFixed(4) }}</div>
-                                <div>{{ pos.close_price ? Number(pos.close_price).toFixed(4) : '—' }}</div>
+                                <div>{{ Number(pos.entry_price).toFixed(5) }}</div>
+                                <div>{{ pos.close_price ? Number(pos.close_price).toFixed(5) : '—' }}</div>
                                 <div>{{ Number(pos.quantity).toFixed(4) }}</div>
                                 <div>{{ pos.close_total ? Number(pos.close_total).toFixed(4) : (pos.entry_total ? Number(pos.entry_total).toFixed(4) : '—') }}</div>
                                 <div :class="Number(pos.swap) > 0 ? 'text-red' : ''">
@@ -403,6 +420,7 @@ onMounted(() => {
     <ClosePositionModal
         :position="closingPosition"
         :currentPrice="closeModalPrice"
+        :quoteCurrency="closeModalQuote"
         @close="onCloseModalDismiss"
         @confirm="onCloseConfirm"
     />

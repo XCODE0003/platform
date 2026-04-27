@@ -19,6 +19,10 @@ const kycApproved = computed(() => page.props.auth?.kyc_approved ?? false);
             Promocode
         </button>
 
+        <button class="btn small_btn btn_16" @click="modal.open('transfer')">
+            Transfer
+        </button>
+
         <button
             class="btn small_btn btn_16"
             :disabled="!kycApproved"

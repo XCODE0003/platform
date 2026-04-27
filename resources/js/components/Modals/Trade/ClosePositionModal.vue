@@ -5,6 +5,7 @@ import { VueFinalModal } from 'vue-final-modal';
 const props = defineProps({
     position: { type: Object, default: null }, // position row
     currentPrice: { type: [Number, String], default: null },
+    quoteCurrency: { type: String, default: '' },
 });
 
 const emit = defineEmits(['close', 'confirm']);
@@ -81,7 +82,7 @@ function onConfirm() {
                 <span :class="position?.side === 'buy' ? 'text-green-400' : 'text-red-400'" class="font-medium uppercase">
                     {{ position?.side }}
                 </span>
-                <span class="text-gray-400">Entry: <span class="text-white">{{ Number(position?.entry_price).toFixed(4) }}</span></span>
+                <span class="text-gray-400">Entry: <span class="text-white">{{ Number(position?.entry_price).toFixed(5) }}</span></span>
                 <span class="text-gray-400">Qty: <span class="text-white">{{ maxQty }}</span></span>
             </div>
 
@@ -135,7 +136,7 @@ function onConfirm() {
             <div v-if="pnlPreview !== null" class="flex justify-between text-sm">
                 <span class="text-gray-400">Est. PnL:</span>
                 <span :class="pnlClass" class="font-medium">
-                    {{ Number(pnlPreview) > 0 ? '+' : '' }}{{ pnlPreview }} USDT
+                    {{ Number(pnlPreview) > 0 ? '+' : '' }}{{ pnlPreview }} {{ quoteCurrency || 'USDT' }}
                 </span>
             </div>
             <div v-else class="text-xs text-gray-500 italic">
