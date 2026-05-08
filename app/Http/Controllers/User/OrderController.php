@@ -15,6 +15,7 @@ use App\Services\Trade\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class OrderController extends Controller
@@ -37,9 +38,35 @@ class OrderController extends Controller
             ->orderByDesc('id')
             ->limit(100)
             ->get();
+
+        // Snapshot of latest price per pair this user touches (open
+        // positions and pending orders). Sourced from currencies.exchange_rate
+        // which is kept current by the rates daemons (binance/yfinance/td).
+        // Lets the UI compute unrealised PnL on first render — without it
+        // the row sits at "—" until a websocket .bar event arrives, which
+        // can take a full poll cycle on slow markets.
+        $pairIds = $positions->pluck('pair_id')
+            ->merge($orders->pluck('pair_id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $prices = [];
+        if ($pairIds->isNotEmpty()) {
+            $rows = DB::table('pairs as p')
+                ->join('currencies as c', 'c.id', '=', 'p.currency_id_in')
+                ->whereIn('p.id', $pairIds)
+                ->select('p.id as pair_id', 'c.exchange_rate')
+                ->get();
+            foreach ($rows as $row) {
+                $prices[(int) $row->pair_id] = (float) $row->exchange_rate;
+            }
+        }
+
         return response()->json([
-            'orders' => $orders,
+            'orders'    => $orders,
             'positions' => $positions,
+            'prices'    => $prices,
         ]);
     }
 

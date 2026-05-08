@@ -121,6 +121,29 @@ export const useTradeStore = defineStore('trade', {
                 const { data } = await axiosClient.get('/api/trade/orders');
                 this.orders = data.orders || [];
                 this.positions = data.positions || [];
+
+                // Seed prices map from the server snapshot before the WS
+                // pairFeeds catch up. Without this, profit on open positions
+                // stays "—" until the chart for that pair is opened (which
+                // is what triggers the first bar event for unselected pairs).
+                if (data.prices && typeof data.prices === 'object') {
+                    const next = { ...this.prices };
+                    let changed = false;
+                    for (const [pairId, price] of Object.entries(data.prices)) {
+                        const id = Number(pairId);
+                        const v  = Number(price);
+                        if (!Number.isFinite(id) || !Number.isFinite(v) || v <= 0) continue;
+                        // Don't overwrite a fresher live tick — the ws feed
+                        // sub-second updates are more current than the
+                        // request's snapshot.
+                        if (next[id] == null) {
+                            next[id] = v;
+                            changed = true;
+                        }
+                    }
+                    if (changed) this.prices = next;
+                }
+
                 // If there is no open position for the hidden pair anymore, clear the hidden flag
                 if (this.hiddenOpenPairId) {
                     const stillOpenForHiddenPair = this.positions.some(
