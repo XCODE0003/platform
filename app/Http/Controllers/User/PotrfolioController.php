@@ -88,8 +88,19 @@ class PotrfolioController extends Controller
             $exchangeRate = (float) (Currency::find($wallet->currency_id)?->exchange_rate ?? 1);
             $netAmountConverted = round($netAmount * $exchangeRate, 8);
 
+            // Reduce cost basis proportionally to the fraction withdrawn.
+            // Average-cost accounting: if the user pulls 30% of holdings,
+            // they realise 30% of accumulated cost. Avoids tracking lots.
+            $prevBalance = (float) $wallet->balance;
+            $prevInvested = (float) $wallet->total_invested_usd;
+            $newBalance = max(0.0, $prevBalance - $amount);
+            $newInvested = $prevBalance > 0
+                ? round($prevInvested * ($newBalance / $prevBalance), 8)
+                : 0.0;
+
             // Deduct full amount (in wallet currency) from wallet
             $wallet->balance = bcsub($this->bcStr($wallet->balance), $this->bcStr($amount), 8);
+            $wallet->total_invested_usd = $this->bcStr($newInvested);
             $wallet->save();
 
             // Credit converted USD amount to trading account
@@ -160,10 +171,22 @@ class PotrfolioController extends Controller
                 $walletAmount = $amount;
             }
 
+            // USD-equivalent of what's leaving the bill — that's the cost
+            // basis added to the wallet. Bill currency may not be USD, so
+            // multiply by its rate. (Bills are USD today, but this keeps
+            // the math correct if that ever changes.)
+            $billRate = (float) (Currency::find($bill->currency_id)?->exchange_rate ?? 1);
+            $investedUsdDelta = round($amount * $billRate, 8);
+
             $bill->balance = bcsub($this->bcStr($bill->balance), $this->bcStr($amount), 8);
             $bill->save();
 
             $wallet->balance = bcadd($this->bcStr($wallet->balance), $this->bcStr($walletAmount), 8);
+            $wallet->total_invested_usd = bcadd(
+                $this->bcStr($wallet->total_invested_usd),
+                $this->bcStr($investedUsdDelta),
+                8,
+            );
             $wallet->save();
         });
 

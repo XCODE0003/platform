@@ -26,6 +26,29 @@ watch(isHiddenZero, (newValue) => {
 function toggleZeroBalance(event) {
     isHiddenZero.value = event.target.checked;
 }
+
+function profitClass(wallet) {
+    const p = Number(wallet?.profit_usd ?? 0);
+    if (p > 0) return 'color-green';
+    if (p < 0) return 'color-red';
+    return 'color-gray2';
+}
+
+function profitDisplay(wallet) {
+    const p = Number(wallet?.profit_usd);
+    if (!Number.isFinite(p)) return '—';
+    const sign = p > 0 ? '+' : '';
+    return `${sign}${formatAmount(p, 'USD')} USD`;
+}
+
+function profitPercentDisplay(wallet) {
+    const invested = Number(wallet?.total_invested_usd);
+    const profit   = Number(wallet?.profit_usd);
+    if (!Number.isFinite(invested) || invested <= 0 || !Number.isFinite(profit)) return '';
+    const pct = (profit / invested) * 100;
+    const sign = pct > 0 ? '+' : '';
+    return `${sign}${pct.toFixed(2)}%`;
+}
 function searchPortfolioWallets() {
     if(isHiddenZero.value) {
         portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.balance > 0 && wallet.currency.name.toLowerCase().includes(search.value.toLowerCase()));
@@ -95,8 +118,9 @@ function searchPortfolioWallets() {
             <div class="grid-head text_small_12 color-dark">
                 <div>Coin</div>
                 <div>Available balance</div>
-
                 <div>On orders</div>
+                <div>Avg buy price</div>
+                <div>Profit</div>
                 <div>Total balance</div>
             </div>
             <div
@@ -145,6 +169,31 @@ function searchPortfolioWallets() {
                             )
                         }}
                         USD
+                    </span>
+                </div>
+                <div class="flex-column gap10">
+                    <span class="text_16">
+                        <template v-if="wallet.avg_buy_price_usd != null">
+                            {{ formatAmount(wallet.avg_buy_price_usd, 'USD') }} USD
+                        </template>
+                        <template v-else>—</template>
+                    </span>
+                    <span class="text_small_12 color-gray2">
+                        Invested: {{ formatAmount(wallet.total_invested_usd ?? 0, 'USD') }} USD
+                    </span>
+                </div>
+                <div class="flex-column gap10">
+                    <span
+                        class="text_16"
+                        :class="profitClass(wallet)"
+                    >
+                        {{ profitDisplay(wallet) }}
+                    </span>
+                    <span
+                        class="text_small_12"
+                        :class="profitClass(wallet)"
+                    >
+                        {{ profitPercentDisplay(wallet) }}
                     </span>
                 </div>
                 <div class="flex-column gap10">
