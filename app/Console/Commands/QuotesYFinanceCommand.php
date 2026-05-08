@@ -114,13 +114,24 @@ class QuotesYFinanceCommand extends Command
         $close  = (float) $latest['close'];
         $volume = (float) $latest['volume'];
 
-        // Update exchange_rate for the base currency so portfolio value is accurate
-        $updatedCurrencies = [];
-        foreach ($group as $t) {
-            $cid = (int) ($t['currency_id_in'] ?? 0);
-            if ($cid && !in_array($cid, $updatedCurrencies, true) && $close > 0) {
-                DB::table('currencies')->where('id', $cid)->update(['exchange_rate' => $close]);
-                $updatedCurrencies[] = $cid;
+        // Update exchange_rate for the base currency so portfolio value is accurate.
+        //
+        // SKIP USD-base forex pairs (USDJPY=X, USDCHF=X, ...): their close
+        // is "foreign units per 1 USD", not "USD value of base". Writing
+        // 159.18 (USDJPY) to USD.exchange_rate corrupts every USD↔crypto
+        // conversion in PortfolioController and produces wildly inflated
+        // wallet credits (1 USD → 0.002 BTC instead of 0.0000125 BTC).
+        if (stripos($symbol, 'USD') === 0) {
+            // Don't touch exchange_rate for these — their bar broadcast
+            // below is still useful for the chart, just not for FX.
+        } else {
+            $updatedCurrencies = [];
+            foreach ($group as $t) {
+                $cid = (int) ($t['currency_id_in'] ?? 0);
+                if ($cid && !in_array($cid, $updatedCurrencies, true) && $close > 0) {
+                    DB::table('currencies')->where('id', $cid)->update(['exchange_rate' => $close]);
+                    $updatedCurrencies[] = $cid;
+                }
             }
         }
 
