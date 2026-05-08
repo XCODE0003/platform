@@ -42,10 +42,113 @@ class QuotesRelayCommand extends Command
             return self::SUCCESS;
         }
 
+        // Fallback: generic HTTP polling for providers without WebSocket
+        // (exchangeratehost, fxratesapi, finnhub, ...). Uses the MarketDataSource
+        // adapter to fetch the latest bar and broadcasts BarUpdated so the
+        // chart updates without a page reload.
+        $providerCfg = config('marketdata.providers.' . $provider);
+        if (!$providerCfg) {
+            $this->error('Provider not implemented: ' . $provider);
+            return self::FAILURE;
+        }
+        $ttl = (int) ($this->option('ttl') ?? 600);
+        $this->relayHttpPoll($provider, $providerCfg, $pairId, $symbol, $resolution, max(1, $ttl));
+        return self::SUCCESS;
+    }
 
+    private function relayHttpPoll(string $provider, array $providerCfg, int $pairId, string $symbol, string $resolution, int $ttlSeconds): void
+    {
+        try {
+            /** @var \App\Services\MarketData\MarketDataSource $adapter */
+            $adapter = app($providerCfg['class']);
+        } catch (\Throwable $e) {
+            $this->error("[pair={$pairId}] HTTP-poll: cannot resolve adapter for {$provider}: " . $e->getMessage());
+            return;
+        }
 
-        $this->error('Provider not implemented: ' . $provider);
-        return self::FAILURE;
+        $intervalMs = $this->mapResolutionMs($resolution);
+        // Poll cadence: at most once per 10s, never more often than the bar
+        // resolution. For 1-minute bars we still poll every ~15s so the chart
+        // shows mid-bar movement.
+        $pollSec = max(10, min(60, (int) ($intervalMs / 4 / 1000) ?: 15));
+        $deadline = time() + $ttlSeconds;
+        $spread = app(SpreadService::class);
+
+        $this->info("[pair={$pairId} res={$resolution}] HTTP-poll {$provider} {$symbol} every {$pollSec}s");
+        Log::info('quotes: http-poll started', [
+            'pair_id' => $pairId, 'resolution' => $resolution,
+            'provider' => $provider, 'symbol' => $symbol, 'poll' => $pollSec,
+        ]);
+
+        $lastBarStart = null;
+        $count = 0;
+
+        while (true) {
+            if (time() >= $deadline) {
+                $this->info("[pair={$pairId} res={$resolution}] HTTP-poll TTL reached");
+                Log::info('quotes: http-poll ttl reached', ['pair_id' => $pairId, 'resolution' => $resolution]);
+                return;
+            }
+            try {
+                $now = time();
+                $from = $now - (int) (($intervalMs / 1000) * 5);
+                $bars = $adapter->getBars($symbol, $resolution, $from, $now + 60);
+                if (!empty($bars)) {
+                    $latest = $bars[count($bars) - 1];
+                    $tsMs = (int) ($latest['time'] ?? 0);
+                    if ($tsMs > 0) {
+                        $barStart = intdiv($tsMs, $intervalMs) * $intervalMs;
+                        // If we crossed into a new bar, broadcast the previous
+                        // closed bar first using the second-to-last response row.
+                        if ($lastBarStart !== null && $lastBarStart !== $barStart && count($bars) >= 2) {
+                            $prev = $bars[count($bars) - 2];
+                            [$po, $ph, $pl, $pc] = $spread->applyToBar(
+                                $pairId,
+                                (float) ($prev['open'] ?? 0),
+                                (float) ($prev['high'] ?? 0),
+                                (float) ($prev['low'] ?? 0),
+                                (float) ($prev['close'] ?? 0),
+                            );
+                            try {
+                                event(new BarUpdated(
+                                    $pairId, $resolution, (int) ($prev['time'] ?? $lastBarStart),
+                                    $po, $ph, $pl, $pc,
+                                    (float) ($prev['volume'] ?? 0),
+                                    true,
+                                ));
+                            } catch (\Throwable $e) {
+                                Log::warning('quotes: http-poll close error', ['pair_id' => $pairId, 'error' => $e->getMessage()]);
+                            }
+                        }
+                        $lastBarStart = $barStart;
+                        [$o, $h, $l, $c] = $spread->applyToBar(
+                            $pairId,
+                            (float) ($latest['open'] ?? 0),
+                            (float) ($latest['high'] ?? 0),
+                            (float) ($latest['low'] ?? 0),
+                            (float) ($latest['close'] ?? 0),
+                        );
+                        try {
+                            event(new BarUpdated(
+                                $pairId, $resolution, $barStart,
+                                $o, $h, $l, $c,
+                                (float) ($latest['volume'] ?? 0),
+                                false,
+                            ));
+                            $count++;
+                            if ($count === 1 || $count % 20 === 0) {
+                                $this->info(sprintf('[pair=%d res=%s] http-poll close=%s (#%d)', $pairId, $resolution, (string) $c, $count));
+                            }
+                        } catch (\Throwable $e) {
+                            Log::warning('quotes: http-poll broadcast error', ['pair_id' => $pairId, 'error' => $e->getMessage()]);
+                        }
+                    }
+                }
+            } catch (Throwable $e) {
+                Log::warning('quotes: http-poll error', ['pair_id' => $pairId, 'resolution' => $resolution, 'error' => $e->getMessage()]);
+            }
+            sleep($pollSec);
+        }
     }
 
     private function mapResolution(string $r): string

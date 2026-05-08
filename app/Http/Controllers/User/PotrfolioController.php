@@ -14,6 +14,16 @@ use Illuminate\Validation\ValidationException;
 class PotrfolioController extends Controller
 {
     /**
+     * Format any numeric value as a plain decimal string with the given
+     * scale. Plain `(string)` casting on small floats produces scientific
+     * notation (e.g. "1.2538E-5") which bcmath rejects as not well-formed.
+     */
+    private function bcStr(float|int|string|null $value, int $scale = 8): string
+    {
+        return number_format((float) $value, $scale, '.', '');
+    }
+
+    /**
      * Transfer funds FROM portfolio wallet TO trading bill (with fee).
      */
     public function portfolioToAccount(Request $request): RedirectResponse
@@ -79,11 +89,11 @@ class PotrfolioController extends Controller
             $netAmountConverted = round($netAmount * $exchangeRate, 8);
 
             // Deduct full amount (in wallet currency) from wallet
-            $wallet->balance = bcsub((string) $wallet->balance, (string) $amount, 8);
+            $wallet->balance = bcsub($this->bcStr($wallet->balance), $this->bcStr($amount), 8);
             $wallet->save();
 
             // Credit converted USD amount to trading account
-            $bill->balance = bcadd((string) $bill->balance, (string) $netAmountConverted, 8);
+            $bill->balance = bcadd($this->bcStr($bill->balance), $this->bcStr($netAmountConverted), 8);
             $bill->save();
         });
 
@@ -150,10 +160,10 @@ class PotrfolioController extends Controller
                 $walletAmount = $amount;
             }
 
-            $bill->balance = bcsub((string) $bill->balance, (string) $amount, 8);
+            $bill->balance = bcsub($this->bcStr($bill->balance), $this->bcStr($amount), 8);
             $bill->save();
 
-            $wallet->balance = bcadd((string) $wallet->balance, (string) $walletAmount, 8);
+            $wallet->balance = bcadd($this->bcStr($wallet->balance), $this->bcStr($walletAmount), 8);
             $wallet->save();
         });
 

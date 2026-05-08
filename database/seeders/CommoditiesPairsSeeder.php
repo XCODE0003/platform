@@ -9,6 +9,7 @@ use App\Models\GroupPair;
 use App\Models\Pair;
 use App\Models\PairSource;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class CommoditiesPairsSeeder extends Seeder
 {
@@ -24,8 +25,8 @@ class CommoditiesPairsSeeder extends Seeder
         // [code, name, yfinance_symbol, pricescale_hint]
         $commodities = [
             // ── Energy ────────────────────────────────────────────────────────
-            ['USOIL',  'WTI Crude Oil',    'CL=F'],
-            ['UKOIL',  'Brent Crude Oil',  'BZ=F'],
+            ['USOIL',  'WTI Crude Oil', 'CL=F'],
+            ['UKOIL',  'Brent Oil',     'BZ=F'],
             ['NATGAS', 'Natural Gas',      'NG=F'],
             ['HTOIL',  'Heating Oil',      'HO=F'],
             ['GASOL',  'Gasoline (RBOB)',  'RB=F'],
@@ -72,6 +73,17 @@ class CommoditiesPairsSeeder extends Seeder
                 ]
             );
         }
+
+        // Display labels for oil — currency `code` stays as USOIL/UKOIL
+        // (FK target), but the human-facing symbol/name are friendlier.
+        DB::table('currencies')->where('code', 'USOIL')->update([
+            'name'   => 'WTI Crude Oil',
+            'symbol' => 'WTI Crude Oil',
+        ]);
+        DB::table('currencies')->where('code', 'UKOIL')->update([
+            'name'   => 'Brent Oil',
+            'symbol' => 'Brent Oil',
+        ]);
 
         $this->command->info('Commodities pairs seeded: ' . count($commodities) . ' instruments.');
     }

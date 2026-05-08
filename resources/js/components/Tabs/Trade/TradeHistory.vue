@@ -178,13 +178,26 @@ function fmtDate(d) {
     return `${da}.${mo}.${yy} ${hh}:${mm}`;
 }
 
+// Live unrealised PnL keyed by position id. Recomputes whenever the
+// tradeStore.prices map gains a fresh tick or positions reload.
+const unrealizedPnlByPos = computed(() => {
+    const out = {};
+    for (const pos of openPositions.value) {
+        const currentPrice = Number(tradeStore.prices?.[pos.pair_id]);
+        if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
+            out[pos.id] = null;
+            continue;
+        }
+        const entry = Number(pos.entry_price);
+        const qty   = Number(pos.quantity);
+        const diff = pos.side === 'buy' ? currentPrice - entry : entry - currentPrice;
+        out[pos.id] = diff * qty;
+    }
+    return out;
+});
+
 function unrealizedPnl(pos) {
-    const currentPrice = tradeStore.prices[pos.pair_id];
-    if (!currentPrice) return null;
-    const diff = pos.side === 'buy'
-        ? currentPrice - Number(pos.entry_price)
-        : Number(pos.entry_price) - currentPrice;
-    return diff * Number(pos.quantity);
+    return unrealizedPnlByPos.value[pos.id] ?? null;
 }
 
 onMounted(() => {

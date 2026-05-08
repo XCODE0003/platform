@@ -147,13 +147,18 @@ export const getBars = async (
         if (bars.length > 0) {
             const tradeStore = useTradeStore();
             const lastBar = bars[bars.length - 1];
-            tradeStore.setPrice(lastBar.close);
-            tradeStore.setVolume(lastBar.volume);
-            tradeStore.setHigh(lastBar.high);
-            tradeStore.setLow(lastBar.low);
-            tradeStore.setVolumeChange(
-                lastBar.volume - (tradeStore.volume || 0),
-            );
+            // Seed displayed values only if a live bar hasn't already set
+            // them — otherwise the historical close stomps over a fresher
+            // streamed price and the user sees the value "jump back".
+            if (tradeStore.price == null) {
+                tradeStore.setPrice(lastBar.close);
+            }
+            if (tradeStore.volume == null) {
+                tradeStore.setVolume(lastBar.volume);
+                tradeStore.setVolumeChange(0);
+            }
+            if (tradeStore.high == null) tradeStore.setHigh(lastBar.high);
+            if (tradeStore.low  == null) tradeStore.setLow(lastBar.low);
         }
         dbg('getBars response', { pairId, resolution, count: bars.length });
         onHistoryCallback(bars, { noData: bars.length === 0 });
@@ -225,7 +230,7 @@ export const subscribeBars = (
         dbg('tv onRealtimeCallback', tvBar);
         onRealtimeCallback(tvBar);
     };
-    channel.listen('.bar', (payload) => {
+    const onBar = (payload) => {
         dbg('bar raw', payload);
         try {
             let data = payload;
@@ -238,10 +243,12 @@ export const subscribeBars = (
         } catch (e) {
             console.warn('[quotes] parse error', e);
         }
-    });
+    };
+    channel.listen('.bar', onBar);
     subs.set(subscriberUID, {
         channel,
         handler,
+        onBar,
         pairId,
         resolution: String(resolution),
         ttlRefreshInterval,
@@ -253,8 +260,9 @@ export const unsubscribeBars = (subscriberUID) => {
     if (!s) return;
     dbg('unsubscribeBars', { pairId: s?.pairId, subscriberUID });
     try { clearInterval(s.ttlRefreshInterval); } catch {}
-    try { s.channel.stopListening('.bar'); } catch {}
-    try { window.Echo.leave('pair.' + s.pairId + '.' + s.resolution); } catch {}
+    // Pass the specific callback so we don't tear down listeners that the
+    // tradeStore live-price feed has registered on the same channel.
+    try { s.channel.stopListening('.bar', s.onBar); } catch {}
     subs.delete(subscriberUID);
 };
 
