@@ -356,6 +356,13 @@ onBeforeUnmount(() => {
                                             <span v-else>{{ tradeStore.low }} <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
                                         </div>
                                     </div>
+                                    <div class="pair-price">
+                                        <span class="title text_small_14 color-gray2">Current currency</span>
+                                        <div class="text_17 color-black transition_trade smooth-fade" id="valueInfo_currency">
+                                            <span class="loader" v-if="!selectedPair?.currency_out?.symbol"></span>
+                                            <span v-else>{{ selectedPair?.currency_out?.symbol }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="right">
                                     <Select id="selectBill" :options="formattedBills" v-model="selectedBillId" />
