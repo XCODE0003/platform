@@ -332,15 +332,11 @@ onBeforeUnmount(() => {
                             <div class="pair-head">
                                 <div class="left">
                                     <button class="btn btn_start_2 !bg-[#1D323E] !p-2 !rounded-lg !min-w-[100px]" @mousedown.prevent="modal.open('selectPair')">
-                                        <template v-if="selectedPair">
-                                            {{ selectedPair?.currency_in?.symbol }}
-                                            <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span>
-                                        </template>
-                                        <template v-else>Select pair</template>
+                                        {{ selectedPair ? selectedPair?.currency_in?.symbol : 'Select pair' }}
                                     </button>
 
                                     <div class="pair-price">
-                                        <span class="title text_small_14 color-gray2">Price</span>
+                                        <span class="title text_small_14 color-gray2">Current price</span>
                                         <span class="text_17 transition_trade price-animated" :class="priceChangeClass" id="valueInfo_price">
                                             <span class="loader" v-if="!tradeStore.price"></span>
                                             <span v-else>{{ tradeStore.price }} <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
