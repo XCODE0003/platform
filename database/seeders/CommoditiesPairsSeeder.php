@@ -31,16 +31,19 @@ class CommoditiesPairsSeeder extends Seeder
             ['HTOIL',  'Heating Oil',      'HO=F'],
             ['GASOL',  'Gasoline (RBOB)',  'RB=F'],
             // ── Coal ──────────────────────────────────────────────────────────
-            ['COAL',   'Coal (ETF: KOL)',  'KOL'],
+            // KOL ETF was delisted 2020-12; using BTU (Peabody Energy)
+            // as a tradeable proxy for coal exposure.
+            ['COAL',   'Coal (Peabody)',   'BTU'],
             // ── Agricultural ──────────────────────────────────────────────────
             ['WHEAT',  'Wheat',            'ZW=F'],
             ['CORN',   'Corn',             'ZC=F'],
             ['SOYBN',  'Soybeans',         'ZS=F'],
-            ['COFEE',  'Coffee',           'KC=F'],
+            ['COFFEE', 'Coffee',           'KC=F'],
             ['SUGAR',  'Sugar',            'SB=F'],
-            ['COTTO',  'Cotton',           'CT=F'],
+            ['COTTON', 'Cotton',           'CT=F'],
             // ── Other ─────────────────────────────────────────────────────────
-            ['LUMOIL', 'Lumber',           'LBS=F'],
+            // LBS=F (Random Length Lumber) replaced by LBR=F in 2023-03.
+            ['LUMOIL', 'Lumber',           'LBR=F'],
             ['COCOA',  'Cocoa',            'CC=F'],
             ['LIVCAT', 'Live Cattle',      'LE=F'],
         ];
