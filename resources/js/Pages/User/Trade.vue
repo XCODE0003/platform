@@ -197,6 +197,17 @@ const tvSymbol = computed(() => {
     return pair ? `PAIR:${pair.id}` : 'PAIR:1';
 });
 
+// Show "<value> <quote>" suffix on Price/High/Low only for asset classes
+// where the quote currency is meaningful per-tick (crypto/forex/metal/fiat).
+// For stocks, commodities and indices we drop it — those values are already
+// implicitly in USD and the suffix is noise. The separate "Current currency"
+// block still shows the unit for users who want it.
+const INLINE_QUOTE_CLASSES = new Set(['crypto', 'forex', 'metal', 'fiat']);
+const showInlineQuote = computed(() => {
+    const cls = selectedPair.value?.asset_class;
+    return cls ? INLINE_QUOTE_CLASSES.has(cls) : false;
+});
+
 // All open positions for the current pair (multiple trades allowed)
 const pairPositions = computed(() => {
     const pair = selectedPair.value;
@@ -339,21 +350,21 @@ onBeforeUnmount(() => {
                                         <span class="title text_small_14 color-gray2">Current price</span>
                                         <span class="text_17 transition_trade price-animated" :class="priceChangeClass" id="valueInfo_price">
                                             <span class="loader" v-if="!tradeStore.price"></span>
-                                            <span v-else>{{ tradeStore.price }}</span>
+                                            <span v-else>{{ tradeStore.price }} <span v-if="showInlineQuote" class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
                                         </span>
                                     </div>
                                     <div class="pair-price">
                                         <span class="title text_small_14 color-gray2">High</span>
                                         <div class="text_17 color-black transition_trade smooth-fade" id="valueInfo_high">
                                             <span class="loader" v-if="!tradeStore.high"></span>
-                                            <span v-else>{{ tradeStore.high }}</span>
+                                            <span v-else>{{ tradeStore.high }} <span v-if="showInlineQuote" class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
                                         </div>
                                     </div>
                                     <div class="pair-price">
                                         <span class="title text_small_14 color-gray2">Low</span>
                                         <div class="text_17 color-black transition_trade smooth-fade" id="valueInfo_low">
                                             <span class="loader" v-if="!tradeStore.low"></span>
-                                            <span v-else>{{ tradeStore.low }}</span>
+                                            <span v-else>{{ tradeStore.low }} <span v-if="showInlineQuote" class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
                                         </div>
                                     </div>
                                     <div class="pair-price">
