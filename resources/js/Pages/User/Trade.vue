@@ -339,21 +339,21 @@ onBeforeUnmount(() => {
                                         <span class="title text_small_14 color-gray2">Current price</span>
                                         <span class="text_17 transition_trade price-animated" :class="priceChangeClass" id="valueInfo_price">
                                             <span class="loader" v-if="!tradeStore.price"></span>
-                                            <span v-else>{{ tradeStore.price }} <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
+                                            <span v-else>{{ tradeStore.price }}</span>
                                         </span>
                                     </div>
                                     <div class="pair-price">
                                         <span class="title text_small_14 color-gray2">High</span>
                                         <div class="text_17 color-black transition_trade smooth-fade" id="valueInfo_high">
                                             <span class="loader" v-if="!tradeStore.high"></span>
-                                            <span v-else>{{ tradeStore.high }} <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
+                                            <span v-else>{{ tradeStore.high }}</span>
                                         </div>
                                     </div>
                                     <div class="pair-price">
                                         <span class="title text_small_14 color-gray2">Low</span>
                                         <div class="text_17 color-black transition_trade smooth-fade" id="valueInfo_low">
                                             <span class="loader" v-if="!tradeStore.low"></span>
-                                            <span v-else>{{ tradeStore.low }} <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span></span>
+                                            <span v-else>{{ tradeStore.low }}</span>
                                         </div>
                                     </div>
                                     <div class="pair-price">
