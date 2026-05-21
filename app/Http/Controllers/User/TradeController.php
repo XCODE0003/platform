@@ -37,6 +37,7 @@ class TradeController extends Controller
                     return [
                         'id' => $pair->id,
                         'is_active' => $pair->is_active,
+                        'asset_class' => $pair->asset_class,
                         'currency_in' => [
                             'id' => $pair->currencyIn->id,
                             'name' => $pair->currencyIn->name,
@@ -91,6 +92,7 @@ class TradeController extends Controller
                     return [
                         'id' => $pair->id,
                         'is_active' => $pair->is_active,
+                        'asset_class' => $pair->asset_class,
                         'currency_in' => [
                             'id' => $pair->currencyIn->id,
                             'name' => $pair->currencyIn->name,
