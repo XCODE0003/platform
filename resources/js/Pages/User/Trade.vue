@@ -207,6 +207,10 @@ const showInlineQuote = computed(() => {
     const cls = selectedPair.value?.asset_class;
     return cls ? INLINE_QUOTE_CLASSES.has(cls) : false;
 });
+function hasPairQuoteInLabel(pair) {
+    const cls = pair?.asset_class;
+    return cls ? INLINE_QUOTE_CLASSES.has(cls) : false;
+}
 
 // All open positions for the current pair (multiple trades allowed)
 const pairPositions = computed(() => {
@@ -343,7 +347,8 @@ onBeforeUnmount(() => {
                             <div class="pair-head">
                                 <div class="left">
                                     <button class="btn btn_start_2 !bg-[#1D323E] !p-2 !rounded-lg !min-w-[100px]" @mousedown.prevent="modal.open('selectPair')">
-                                        {{ selectedPair ? selectedPair?.currency_in?.symbol : 'Select pair' }}
+                                        <template v-if="selectedPair">{{ selectedPair?.currency_in?.symbol }}<template v-if="showInlineQuote"><span class="color-gray2">/{{ selectedPair?.currency_out?.symbol }}</span></template></template>
+                                        <template v-else>Select pair</template>
                                     </button>
 
                                     <div class="pair-price">
@@ -393,7 +398,7 @@ onBeforeUnmount(() => {
                                             class="pair-tab__label"
                                             @click="selectRecentPair(p)"
                                         >
-                                            {{ p.currency_in?.symbol }}
+                                            {{ p.currency_in?.symbol }}<template v-if="hasPairQuoteInLabel(p)"><span class="color-gray2">/{{ p.currency_out?.symbol }}</span></template>
                                         </button>
                                         <button
                                             type="button"

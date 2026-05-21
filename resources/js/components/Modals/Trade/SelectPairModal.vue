@@ -49,6 +49,16 @@ function coinInitial(symbol) {
     const s = String(symbol ?? '').trim();
     return s ? s.charAt(0).toUpperCase() : '?';
 }
+
+// Asset classes where the quote currency is part of the pair identity
+// (BTC/USDT vs BTC/USDC, EURUSD vs EURJPY, XAUUSD vs XAUEUR).
+// For stocks / commodities / indices the quote is implicitly USD on this
+// platform and rendering 'AAPL/USD' is just noise.
+const PAIR_LABEL_WITH_QUOTE = new Set(['crypto', 'forex', 'metal', 'fiat']);
+function hasQuoteInLabel(pair) {
+    const cls = pair?.asset_class;
+    return cls ? PAIR_LABEL_WITH_QUOTE.has(cls) : false;
+}
 </script>
 
 <template>
@@ -93,7 +103,7 @@ function coinInitial(symbol) {
                                 {{ coinInitial(pair.currency_in?.symbol) }}
                             </div>
                             <div class="text-white text-sm text-nowrap">
-                             {{ pair.currency_in?.symbol }}
+                             {{ pair.currency_in?.symbol }}<template v-if="hasQuoteInLabel(pair)"><span class="text-white/50">/{{ pair.currency_out?.symbol }}</span></template>
                             </div>
                             <template v-if="!brokenCoinIcons[coinIconKey(pair.currency_out?.symbol)]">
                                 <img
