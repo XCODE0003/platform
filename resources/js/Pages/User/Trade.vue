@@ -376,7 +376,6 @@ onBeforeUnmount(() => {
                                             @click="selectRecentPair(p)"
                                         >
                                             {{ p.currency_in?.symbol }}
-                                            <span class="color-gray2 text_small_14">{{ p.currency_out?.symbol }}</span>
                                         </button>
                                         <button
                                             type="button"
