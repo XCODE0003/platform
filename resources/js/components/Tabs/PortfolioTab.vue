@@ -120,6 +120,7 @@ function searchPortfolioWallets() {
                 <div>Available balance</div>
                 <div>On orders</div>
                 <div>Avg buy price</div>
+                <div>Current price</div>
                 <div>Profit</div>
                 <div>Total balance</div>
             </div>
@@ -183,6 +184,11 @@ function searchPortfolioWallets() {
                     </span>
                 </div>
                 <div class="flex-column gap10">
+                    <span class="text_16">
+                        {{ formatAmount(wallet.currency.exchange_rate, 'USD') }} USD
+                    </span>
+                </div>
+                <div class="flex-column gap10">
                     <span
                         class="text_16"
                         :class="profitClass(wallet)"
@@ -198,12 +204,10 @@ function searchPortfolioWallets() {
                 </div>
                 <div class="flex-column gap10">
                     <span class="text_16">
-                        {{
-                            (
-                                parseFloat(wallet.balance) +
-                                parseFloat(wallet.pending_balance)
-                            ).toFixed(2)
-                        }}
+                        {{ formatAmount(
+                            parseFloat(wallet.balance) + parseFloat(wallet.pending_balance),
+                            wallet.currency.symbol,
+                        ) }}
                     </span>
                     <span class="text_small_12 color-gray2">
                         ≈
