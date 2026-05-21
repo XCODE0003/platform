@@ -94,7 +94,6 @@ function coinInitial(symbol) {
                             </div>
                             <div class="text-white text-sm text-nowrap">
                              {{ pair.currency_in?.symbol }}
-                             <span class="text-white/50 text-xs">{{ pair.currency_out?.symbol }}</span>
                             </div>
                             <template v-if="!brokenCoinIcons[coinIconKey(pair.currency_out?.symbol)]">
                                 <img

@@ -18,9 +18,10 @@ class MarketDataController extends Controller
         ]);
 
         $pair = Pair::with(['currencyIn','currencyOut'])->findOrFail($validated['pair_id']);
-        $display = ($pair->currencyIn->symbol ?? $pair->currencyIn->name ?? 'BASE')
-            .'/'
-            .($pair->currencyOut->symbol ?? $pair->currencyOut->name ?? 'QUOTE');
+        // Chart label = base symbol only — quote currency lives in the
+        // Current price/High/Low rows and on the order ticket, so showing
+        // "BTC/USDT" inside the TradingView header is redundant.
+        $display = (string) ($pair->currencyIn->symbol ?? $pair->currencyIn->name ?? 'BASE');
 
         $assetClass = $pair->asset_class ?? 'crypto';
 
