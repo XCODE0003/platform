@@ -33,16 +33,6 @@ const { open: chatOpen } = storeToRefs(supportChat);
           © 2026. All rights reserved by CRYPTOHOUSE
         </div>
       </div>
-      <div class="footer-links">
-        <a href="/privacy" class="link_15">Privacy policy</a>
-        <a href="/risk" class="link_15">Risk warning</a>
-        <a href="/security" class="link_15">Security</a>
-        <a href="/terms" class="link_15">Terms of use</a>
-        <a href="/referral" class="link_15">Referral</a>
-        <a rel="nofollow" class="trustpolot" href="https://trustpilotn.com/php/api.php?link={{$_SERVER['SERVER_NAME']}}&type=4">
-          <img height="22px" width="83px" class="dark" src="/images/trustpilot.svg" alt="trustpilot">
-        </a>
-      </div>
       <div class="footer-disclamer">
         <p class="text_small_12 _120">
           The Transactions offered by this Website can be executed only by
