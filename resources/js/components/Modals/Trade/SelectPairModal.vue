@@ -93,19 +93,20 @@ function coinInitial(symbol) {
                                 {{ coinInitial(pair.currency_in?.symbol) }}
                             </div>
                             <div class="text-white text-sm text-nowrap">
-                             {{ pair.currency_in?.symbol }} <span class="text-white/50">/</span> {{ pair.currency_out?.symbol }}
+                             {{ pair.currency_in?.symbol }}
+                             <span class="text-white/50 text-xs">{{ pair.currency_out?.symbol }}</span>
                             </div>
                             <template v-if="!brokenCoinIcons[coinIconKey(pair.currency_out?.symbol)]">
                                 <img
                                     :src="`/images/coin_icons/${(pair.currency_out?.symbol || '').toUpperCase()}.png`"
-                                    class="h-6 w-6 shrink-0 rounded-full object-cover"
+                                    class="h-6 w-6 shrink-0 rounded-full object-cover ml-auto"
                                     alt=""
                                     @error="onCoinIconError(pair.currency_out?.symbol)"
                                 />
                             </template>
                             <div
                                 v-else
-                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-[10px] font-semibold uppercase text-white"
+                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-[10px] font-semibold uppercase text-white ml-auto"
                                 aria-hidden="true"
                             >
                                 {{ coinInitial(pair.currency_out?.symbol) }}

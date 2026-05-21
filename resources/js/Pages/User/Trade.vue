@@ -332,7 +332,11 @@ onBeforeUnmount(() => {
                             <div class="pair-head">
                                 <div class="left">
                                     <button class="btn btn_start_2 !bg-[#1D323E] !p-2 !rounded-lg !min-w-[100px]" @mousedown.prevent="modal.open('selectPair')">
-                                        {{ selectedPair ? selectedPair?.currency_in?.symbol : 'Select pair' }}
+                                        <template v-if="selectedPair">
+                                            {{ selectedPair?.currency_in?.symbol }}
+                                            <span class="color-gray2 text_small_14">{{ selectedPair?.currency_out?.symbol }}</span>
+                                        </template>
+                                        <template v-else>Select pair</template>
                                     </button>
 
                                     <div class="pair-price">
@@ -376,6 +380,7 @@ onBeforeUnmount(() => {
                                             @click="selectRecentPair(p)"
                                         >
                                             {{ p.currency_in?.symbol }}
+                                            <span class="color-gray2 text_small_14">{{ p.currency_out?.symbol }}</span>
                                         </button>
                                         <button
                                             type="button"
