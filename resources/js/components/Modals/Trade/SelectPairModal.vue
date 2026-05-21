@@ -53,7 +53,7 @@ function coinInitial(symbol) {
 
 <template>
     <VueFinalModal
-        :modelValue="isOpen"
+        v-model="isOpen"
         overlay-transition="vfm-fade"
         content-transition="vfm-fade"
         click-to-close
