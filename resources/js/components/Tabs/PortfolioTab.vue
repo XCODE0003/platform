@@ -3,24 +3,33 @@ import ModalButtons from '@/components/Tabs/Elements/ModalButtons.vue';
 import { calculateInUsd, calculateRate } from '@/utils/rates';
 import { formatAmount } from '@/utils/formatAmount.js';
 import { useModalStore } from '@/stores/modal.js';
-import { defineProps, ref, watch } from 'vue';
+import { computed, defineProps, ref } from 'vue';
 const props = defineProps({
     portfolioWallets: Array,
     totalBalancePortfolio: Number,
 });
-const portfolioWallets = ref(props.portfolioWallets);
-watch(() => props.portfolioWallets, (v) => { portfolioWallets.value = v; });
 const search = ref('');
 const isHiddenZero = ref(false);
 const modal = useModalStore();
 
-watch(search, searchPortfolioWallets);
-watch(isHiddenZero, (newValue) => {
-    if (newValue) {
-        portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.balance > 0);
-    } else {
-        portfolioWallets.value = props.portfolioWallets;
-    }
+const ASSET_CLASS_TABS = [
+    { key: 'crypto', label: 'Crypto', classes: ['crypto'] },
+    { key: 'stock',  label: 'Stocks', classes: ['stock'] },
+    { key: 'index',  label: 'Indexes', classes: ['index'] },
+];
+const activeAssetClass = ref('crypto');
+
+const portfolioWallets = computed(() => {
+    const tab = ASSET_CLASS_TABS.find(t => t.key === activeAssetClass.value);
+    const allowed = new Set(tab?.classes ?? []);
+    const q = search.value.trim().toLowerCase();
+
+    return (props.portfolioWallets ?? []).filter((wallet) => {
+        if (!allowed.has(wallet.asset_class ?? 'crypto')) return false;
+        if (isHiddenZero.value && !(Number(wallet.balance) > 0)) return false;
+        if (q && !(wallet.currency?.name ?? '').toLowerCase().includes(q)) return false;
+        return true;
+    });
 });
 
 function toggleZeroBalance(event) {
@@ -49,16 +58,6 @@ function profitPercentDisplay(wallet) {
     const sign = pct > 0 ? '+' : '';
     return `${sign}${pct.toFixed(2)}%`;
 }
-function searchPortfolioWallets() {
-    if(isHiddenZero.value) {
-        portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.balance > 0 && wallet.currency.name.toLowerCase().includes(search.value.toLowerCase()));
-    } else {
-        portfolioWallets.value = props.portfolioWallets.filter(wallet => wallet.currency.name.toLowerCase().includes(search.value.toLowerCase()));
-    }
-
-}
-
-
 </script>
 
 <template>
@@ -69,18 +68,30 @@ function searchPortfolioWallets() {
             </div>
             <ModalButtons />
         </div>
-        <div class="assets-balances flex-center gap10 pt15">
-            <div class="text_17 block">
-                <img src="/images/balance_icon-available.svg" alt="" />
-                <p>Available balance:</p>
-                <span> {{ formatAmount(props.totalBalancePortfolio, 'USD') }} USD</span>
+        <div class="assets-balances flex-center gap10 pt15" style="justify-content: space-between;">
+            <div class="flex-center gap10">
+                <div class="text_17 block">
+                    <img src="/images/balance_icon-available.svg" alt="" />
+                    <p>Available balance:</p>
+                    <span> {{ formatAmount(props.totalBalancePortfolio, 'USD') }} USD</span>
+                </div>
+                <button @click="modal.open('invest')" class="btn small_btn btn_16">
+                    Invest
+                </button>
+                <button @click="modal.open('portfolio-withdraw')" class="btn small_btn btn_16">
+                    Withdraw
+                </button>
             </div>
-            <button @click="modal.open('invest')" class="btn small_btn btn_16">
-                Invest
-            </button>
-            <button @click="modal.open('portfolio-withdraw')" class="btn small_btn btn_16">
-                Withdraw
-            </button>
+            <div class="assets-search">
+                <label class="assets-search_input">
+                    <input
+                        type="text"
+                        class="clear text_small_14"
+                        placeholder="Search"
+                        v-model="search"
+                    />
+                </label>
+            </div>
             <!-- <div class="text_17 block">
                 <img src="/images/balance_icon-spot.svg" alt="" />
                 <p>Spot balance:</p>
@@ -88,17 +99,19 @@ function searchPortfolioWallets() {
                 <span class="color-gray2">≈ BTC</span>
             </div> -->
         </div>
-        <div class="assets-search pt40">
-            <label class="assets-search_input">
-                <input
-                    type="text"
-                    class="clear text_small_14"
-                    placeholder="Search"
-                    v-model="search"
-                />
-            </label>
+        <div class="portfolio-asset-tabs pt15">
+            <button
+                v-for="t in ASSET_CLASS_TABS"
+                :key="t.key"
+                type="button"
+                class="btn small_btn btn_16"
+                :class="{ deposit: activeAssetClass === t.key }"
+                @click="activeAssetClass = t.key"
+            >
+                {{ t.label }}
+            </button>
         </div>
-        <div class="assets-overview pt10 pb20">
+        <div class="assets-overview pt15 pb20">
             <div class="hide-container">
                 <div class="form-check">
                     <input
@@ -232,4 +245,9 @@ function searchPortfolioWallets() {
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.portfolio-asset-tabs {
+    display: flex;
+    gap: 10px;
+}
+</style>
