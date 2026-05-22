@@ -47,6 +47,43 @@ const selectedBillId = computed({
 
 const STORAGE_KEY_RECENT = 'platform.trade.recentPairIds';
 const STORAGE_KEY_SELECTED = 'platform.trade.selectedPairId';
+const STORAGE_KEY_ASSET_CLASS = 'platform.trade.assetClassTab';
+
+const ASSET_CLASS_TABS = [
+    { key: 'crypto', label: 'Crypto', classes: ['crypto'] },
+    { key: 'stock',  label: 'Stocks', classes: ['stock'] },
+    { key: 'index',  label: 'Indexes', classes: ['index'] },
+];
+
+function loadAssetClassTabFromStorage() {
+    try {
+        const v = localStorage.getItem(STORAGE_KEY_ASSET_CLASS);
+        if (v && ASSET_CLASS_TABS.some(t => t.key === v)) return v;
+    } catch {
+        // ignore
+    }
+    return 'crypto';
+}
+
+const activeAssetClassTab = ref(loadAssetClassTabFromStorage());
+
+function setAssetClassTab(key) {
+    activeAssetClassTab.value = key;
+    try {
+        localStorage.setItem(STORAGE_KEY_ASSET_CLASS, key);
+    } catch {
+        // ignore
+    }
+}
+
+const activeClassSet = computed(() => {
+    const tab = ASSET_CLASS_TABS.find(t => t.key === activeAssetClassTab.value);
+    return new Set(tab?.classes ?? []);
+});
+
+const visibleRecentPairs = computed(() =>
+    recentPairs.value.filter(p => activeClassSet.value.has(p?.asset_class)),
+);
 
 const MAX_RECENT_PAIRS = 6;
 
@@ -165,6 +202,11 @@ watch(selectedPair, (p) => {
         p,
         ...recentPairs.value.filter((x) => x.id !== p.id),
     ].slice(0, MAX_RECENT_PAIRS);
+    // Auto-switch asset class tab to match selected pair so its tab is visible
+    const matching = ASSET_CLASS_TABS.find(t => t.classes.includes(p.asset_class));
+    if (matching && matching.key !== activeAssetClassTab.value) {
+        setAssetClassTab(matching.key);
+    }
     persistTradeTabs();
 }, { immediate: true });
 
@@ -386,9 +428,21 @@ onBeforeUnmount(() => {
                             </div>
 
                             <div class="chart-wrapper">
-                                <div v-if="recentPairs.length" class="chart-pair-tabs tv-tabs-bar">
+                                <div class="asset-class-tabs">
+                                    <button
+                                        v-for="t in ASSET_CLASS_TABS"
+                                        :key="t.key"
+                                        type="button"
+                                        class="asset-class-tab"
+                                        :class="{ 'asset-class-tab--active': activeAssetClassTab === t.key }"
+                                        @click="setAssetClassTab(t.key)"
+                                    >
+                                        {{ t.label }}
+                                    </button>
+                                </div>
+                                <div v-if="visibleRecentPairs.length" class="chart-pair-tabs tv-tabs-bar">
                                     <div
-                                        v-for="p in recentPairs"
+                                        v-for="p in visibleRecentPairs"
                                         :key="p.id"
                                         class="pair-tab"
                                         :class="{ 'pair-tab--active': selectedPair?.id === p.id }"
@@ -456,6 +510,38 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Asset class filter tabs above recent pairs */
+.asset-class-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    background: #0f1219;
+    border-bottom: 1px solid #2a2e39;
+}
+
+.asset-class-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #787b86;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.asset-class-tab:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #d1d4dc;
+}
+
+.asset-class-tab--active {
+    background: #1e222d;
+    border-color: #2a2e39;
+    color: #d1d4dc;
+}
+
 /* Панель вкладок в духе TradingView (dark toolbar) */
 .tv-tabs-bar {
     display: flex;
