@@ -92,7 +92,7 @@ onMounted(() => {
                 :portfolioWallets="props.portfolioWallets"
             />
             <WithdrawModal :bills="props.bills" />
-            <TransferModal :bills="props.bills" />
+            <TransferModal :bills="props.bills" :portfolioWallets="props.portfolioWallets" />
             <BillNew :bills="props.bills" />
             <Invest
                 :bills="props.bills"
