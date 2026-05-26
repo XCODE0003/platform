@@ -397,7 +397,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                     <p class="text_16 color-gray2 pb10">To portfolio</p>
                     <div class="custom-select" :class="{ open: dropdownCategory, error: formToPortfolio.errors.wallet_id }">
                         <div class="custom-select__trigger" @click="dropdownCategory = !dropdownCategory">
-                            <span v-if="selectedCategoryLabel" class="symbol">{{ selectedCategoryLabel }}</span>
+                            <span v-if="selectedCategoryLabel" class="category-trigger-label">{{ selectedCategoryLabel }}</span>
                             <span v-else class="placeholder">Choose portfolio</span>
                             <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                 <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -581,6 +581,13 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
 .dropdown-item.active {
     border-color: rgba(121,249,149,0.35);
     background: rgba(121,249,149,0.14);
+}
+
+.category-trigger-label {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
 }
 
 /* Portfolio category rows — light highlighted background so the 3 cases stand out */
