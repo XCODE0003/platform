@@ -29,6 +29,7 @@ const props = defineProps({
     },
     portfolioFeePercent: { type: Number, default: 0 },
     portfolioFeeFixed:   { type: Number, default: 0 },
+    portfolioLockDays:   { type: Number, default: 365 },
     stakingEnabled: { type: Boolean, default: true },
     stakingYearBasisDays: { type: Number, default: 365 },
     stakingPlans:  { type: Array, default: () => [] },
@@ -99,6 +100,7 @@ onMounted(() => {
                 :portfolioWallets="props.portfolioWallets"
                 :portfolioFeePercent="props.portfolioFeePercent"
                 :portfolioFeeFixed="props.portfolioFeeFixed"
+                :portfolioLockDays="props.portfolioLockDays"
             />
         </main>
     </MainLayout>

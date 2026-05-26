@@ -35,8 +35,35 @@ Route::middleware('auth')->group(function () {
             ->groupBy('currency_id_in')
             ->map(fn ($rows) => $rows->first()->asset_class);
 
-        $portfolioWallets = $portfolioWallets->map(function ($w) use ($currencyAssetClass) {
+        // Per-wallet lock aggregation: how much of each portfolio holding is
+        // still locked (bought < portfolio_lock_days ago) vs available to sell.
+        $now = now();
+        $lotsByWallet = \App\Models\PortfolioInvestment::query()
+            ->where('user_id', $user->id)
+            ->where('remaining', '>', 0)
+            ->get()
+            ->groupBy('wallet_id');
+
+        $portfolioWallets = $portfolioWallets->map(function ($w) use ($currencyAssetClass, $lotsByWallet, $now) {
             $w->asset_class = $currencyAssetClass[$w->currency_id] ?? 'crypto';
+
+            $lots = $lotsByWallet[$w->id] ?? collect();
+            $locked = 0.0;
+            $totalInLots = 0.0;
+            $nextUnlock = null;
+            foreach ($lots as $lot) {
+                $rem = (float) $lot->remaining;
+                $totalInLots += $rem;
+                if ($lot->locked_until && $lot->locked_until->gt($now)) {
+                    $locked += $rem;
+                    if ($nextUnlock === null || $lot->locked_until->lt($nextUnlock)) {
+                        $nextUnlock = $lot->locked_until;
+                    }
+                }
+            }
+            $w->locked_amount   = round($locked, 8);
+            $w->available_amount = round(max(0.0, (float) $w->balance - $locked), 8);
+            $w->next_unlock_at  = $nextUnlock?->toIso8601String();
             return $w;
         });
 
@@ -79,6 +106,7 @@ Route::middleware('auth')->group(function () {
             'withdraws'              => $withdraws,
             'portfolioFeePercent'    => (float) Setting::get('portfolio_fee_percent', 0),
             'portfolioFeeFixed'      => (float) Setting::get('portfolio_fee_fixed',   0),
+            'portfolioLockDays'      => (int) Setting::get('portfolio_lock_days', 365),
             'stakingEnabled'         => (bool) Setting::get('staking_enabled', 1),
             'stakingYearBasisDays'   => (int) Setting::get('staking_year_basis_days', 365),
             'cardDepositDetails'     => (string) ($user->card_deposit_details ?: Setting::get('card_deposit_details', '')),

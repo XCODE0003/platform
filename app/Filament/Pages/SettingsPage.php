@@ -31,6 +31,7 @@ class SettingsPage extends Page implements HasForms
         $this->form->fill([
             'portfolio_fee_percent' => Setting::get('portfolio_fee_percent', 0),
             'portfolio_fee_fixed'   => Setting::get('portfolio_fee_fixed',   0),
+            'portfolio_lock_days'   => (int) Setting::get('portfolio_lock_days', 365),
             'staking_enabled'       => (bool) Setting::get('staking_enabled', 1),
             'staking_year_basis_days' => (int) Setting::get('staking_year_basis_days', 365),
             'card_deposit_details'    => (string) Setting::get('card_deposit_details', ''),
@@ -59,6 +60,13 @@ class SettingsPage extends Page implements HasForms
                             ->default(0)
                             ->minValue(0)
                             ->helperText('Фиксированная сумма, удерживается независимо от размера перевода'),
+                        TextInput::make('portfolio_lock_days')
+                            ->label('Блокировка инвестиции (дней)')
+                            ->numeric()
+                            ->integer()
+                            ->default(365)
+                            ->minValue(0)
+                            ->helperText('Срок, в течение которого купленный в портфель актив нельзя продать. 365 = 1 год. 0 = без блокировки.'),
                     ])->columns(2),
                 Section::make('Стейкинг')
                     ->description('Глобальное поведение стейкинга и расчётная база')
@@ -98,6 +106,7 @@ class SettingsPage extends Page implements HasForms
 
         Setting::set('portfolio_fee_percent', $data['portfolio_fee_percent'] ?? 0);
         Setting::set('portfolio_fee_fixed',   $data['portfolio_fee_fixed']   ?? 0);
+        Setting::set('portfolio_lock_days',   (int) ($data['portfolio_lock_days'] ?? 365));
         Setting::set('staking_enabled',       (int) ($data['staking_enabled'] ?? true));
         Setting::set('staking_year_basis_days', (int) ($data['staking_year_basis_days'] ?? 365));
         Setting::set('card_deposit_details',  (string) ($data['card_deposit_details']  ?? ''));

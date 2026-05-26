@@ -4,10 +4,12 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
+use App\Models\PortfolioInvestment;
 use App\Models\Setting;
 use App\Models\UserWallet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -53,6 +55,66 @@ class PotrfolioController extends Controller
                 throw ValidationException::withMessages([
                     'amount' => 'Insufficient portfolio balance.',
                 ]);
+            }
+
+            // Enforce the per-lot lock: only units whose lock has expired may
+            // be sold/withdrawn. Units bought less than `portfolio_lock_days`
+            // ago stay locked. Balance not covered by any lot (legacy holdings
+            // created before lot tracking) is treated as unlocked.
+            $lots = PortfolioInvestment::query()
+                ->where('wallet_id', $wallet->id)
+                ->where('remaining', '>', 0)
+                ->orderBy('purchased_at')
+                ->lockForUpdate()
+                ->get();
+
+            $now = Carbon::now();
+            $lockedUnits   = 0.0;
+            $unlockedInLots = 0.0;
+            $totalInLots   = 0.0;
+            $nextUnlockAt  = null;
+            foreach ($lots as $lot) {
+                $rem = (float) $lot->remaining;
+                $totalInLots += $rem;
+                if ($lot->locked_until && $lot->locked_until->gt($now)) {
+                    $lockedUnits += $rem;
+                    if ($nextUnlockAt === null || $lot->locked_until->lt($nextUnlockAt)) {
+                        $nextUnlockAt = $lot->locked_until;
+                    }
+                } else {
+                    $unlockedInLots += $rem;
+                }
+            }
+            // Holdings not represented by any lot row are unlocked legacy funds.
+            $legacyUnlocked = max(0.0, (float) $wallet->balance - $totalInLots);
+            $available = round($legacyUnlocked + $unlockedInLots, 8);
+
+            if ($amount > $available + 1e-9) {
+                $msg = $lockedUnits > 0 && $nextUnlockAt
+                    ? sprintf(
+                        'Only %s available now. %s is locked until %s.',
+                        rtrim(rtrim(number_format($available, 8, '.', ''), '0'), '.'),
+                        rtrim(rtrim(number_format($lockedUnits, 8, '.', ''), '0'), '.'),
+                        $nextUnlockAt->format('Y-m-d'),
+                    )
+                    : 'Insufficient unlocked portfolio balance.';
+                throw ValidationException::withMessages(['amount' => $msg]);
+            }
+
+            // Consume unlocked lots FIFO (after the implicit legacy portion).
+            $toConsume = max(0.0, $amount - $legacyUnlocked);
+            foreach ($lots as $lot) {
+                if ($toConsume <= 1e-9) {
+                    break;
+                }
+                if ($lot->locked_until && $lot->locked_until->gt($now)) {
+                    continue; // still locked, skip
+                }
+                $rem = (float) $lot->remaining;
+                $take = min($rem, $toConsume);
+                $lot->remaining = $this->bcStr($rem - $take, 18);
+                $lot->save();
+                $toConsume = round($toConsume - $take, 8);
             }
 
             $bill = $user->bills()
@@ -188,6 +250,21 @@ class PotrfolioController extends Controller
                 8,
             );
             $wallet->save();
+
+            // Record the purchase as a locked lot. Sale of these units is
+            // blocked until locked_until (purchase date + configured term).
+            $lockDays = max(0, (int) Setting::get('portfolio_lock_days', 365));
+            $now = Carbon::now();
+            PortfolioInvestment::create([
+                'user_id'      => $user->id,
+                'wallet_id'    => $wallet->id,
+                'currency_id'  => $wallet->currency_id,
+                'amount'       => $this->bcStr($walletAmount, 18),
+                'remaining'    => $this->bcStr($walletAmount, 18),
+                'invested_usd' => $this->bcStr($investedUsdDelta),
+                'purchased_at' => $now,
+                'locked_until' => $now->copy()->addDays($lockDays),
+            ]);
         });
 
         return back()->with('success', 'Successfully transferred to portfolio.');

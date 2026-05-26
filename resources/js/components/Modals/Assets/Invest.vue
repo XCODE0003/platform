@@ -10,6 +10,24 @@ const props = defineProps({
     portfolioWallets: { type: Array, default: () => [] },
     portfolioFeePercent: { type: Number, default: 0 },
     portfolioFeeFixed:   { type: Number, default: 0 },
+    portfolioLockDays:   { type: Number, default: 365 },
+});
+
+// Portfolio categories shown in the "To portfolio" step. Each maps to one
+// or more pair asset_class values attached to wallets by the /assets route.
+const PORTFOLIO_CATEGORIES = [
+    { key: 'crypto',  label: 'Crypto',  classes: ['crypto'] },
+    { key: 'stock',   label: 'Stocks',  classes: ['stock'] },
+    { key: 'index',   label: 'Indices', classes: ['index'] },
+];
+
+// Human-readable lock term, e.g. "1 year", "6 months", "30 days".
+const lockTermLabel = computed(() => {
+    const d = Number(props.portfolioLockDays) || 0;
+    if (d <= 0) return null;
+    if (d % 365 === 0) { const y = d / 365; return y === 1 ? '1 year' : `${y} years`; }
+    if (d % 30 === 0)  { const m = d / 30;  return m === 1 ? '1 month' : `${m} months`; }
+    return `${d} days`;
 });
 
 const modal = useModalStore();
@@ -89,9 +107,30 @@ function submitToAccount() {
 
 // ── Mode: Account → Portfolio ─────────────────────────────────────────────
 const selectedBillSrc   = ref(null);
+const selectedCategory  = ref(null);          // 'crypto' | 'stock' | 'index'
 const selectedWalletDst = ref(null);
 const dropdownBill      = ref(false);
+const dropdownCategory  = ref(false);
 const dropdownWalletDst = ref(false);
+
+// Wallets available for the chosen category (by asset_class).
+const categoryWallets = computed(() => {
+    if (!selectedCategory.value) return [];
+    const cat = PORTFOLIO_CATEGORIES.find((c) => c.key === selectedCategory.value);
+    const allowed = new Set(cat?.classes ?? []);
+    return (props.portfolioWallets ?? []).filter((w) => allowed.has(w.asset_class));
+});
+
+const selectedCategoryLabel = computed(() =>
+    PORTFOLIO_CATEGORIES.find((c) => c.key === selectedCategory.value)?.label ?? null,
+);
+
+function selectCategory(key) {
+    selectedCategory.value    = key;
+    selectedWalletDst.value   = null;
+    formToPortfolio.wallet_id = '';
+    dropdownCategory.value    = false;
+}
 
 watch(selectedBillSrc, (b) => {
     if (!b) { formToPortfolio.bill_id = ''; return; }
@@ -146,9 +185,11 @@ function resetAll() {
     selectedWallet.value    = null;
     selectedBill.value      = null;
     selectedBillSrc.value   = null;
+    selectedCategory.value  = null;
     selectedWalletDst.value = null;
     dropdownWallet.value    = false;
     dropdownBill.value      = false;
+    dropdownCategory.value  = false;
     dropdownWalletDst.value = false;
     formToAccount.reset();
     formToPortfolio.reset();
@@ -319,8 +360,8 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                             <template v-if="selectedBillSrc">
                                 <img v-if="iconFor(selectedBillSrc)" :src="iconFor(selectedBillSrc)" width="24" height="24" alt="" />
                                 <div class="select-item-text">
-                                    <span class="symbol">{{ selectedBillSrc.currency?.symbol }}</span>
-                                    <span class="balance">{{ billBalance.toFixed(8) }}</span>
+                                    <span class="symbol">{{ selectedBillSrc.name ?? selectedBillSrc.currency?.symbol }}</span>
+                                    <span class="balance">{{ selectedBillSrc.currency?.symbol }} · {{ billBalance.toFixed(8) }}</span>
                                 </div>
                             </template>
                             <span v-else class="placeholder">Choose account</span>
@@ -337,8 +378,8 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                                         <div class="di-left">
                                             <img v-if="iconFor(b)" :src="iconFor(b)" width="22" height="22" alt="" />
                                             <div class="di-info">
-                                                <span class="di-symbol">{{ b.currency?.symbol }}</span>
-                                                <span class="di-name">{{ b.name ?? b.currency?.name }}</span>
+                                                <span class="di-symbol">{{ b.name ?? b.currency?.name }}</span>
+                                                <span class="di-name">{{ b.currency?.symbol }}</span>
                                             </div>
                                         </div>
                                         <span class="di-balance">{{ parseFloat(b.balance ?? '0').toFixed(8) }}</span>
@@ -351,9 +392,34 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                     <p v-if="formToPortfolio.errors.bill_id" class="error-msg">{{ formToPortfolio.errors.bill_id }}</p>
                 </div>
 
-                <!-- To: portfolio wallet (manual dropdown) -->
+                <!-- To: portfolio category (Crypto / Stocks / Indices) -->
                 <div class="pb20" v-if="selectedBillSrc">
                     <p class="text_16 color-gray2 pb10">To portfolio</p>
+                    <div class="custom-select" :class="{ open: dropdownCategory, error: formToPortfolio.errors.wallet_id }">
+                        <div class="custom-select__trigger" @click="dropdownCategory = !dropdownCategory">
+                            <span v-if="selectedCategoryLabel" class="symbol">{{ selectedCategoryLabel }}</span>
+                            <span v-else class="placeholder">Choose portfolio</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <transition name="fade">
+                            <div v-if="dropdownCategory" class="custom-select__dropdown" @click.stop>
+                                <div class="dropdown-list">
+                                    <button v-for="c in PORTFOLIO_CATEGORIES" :key="c.key" type="button"
+                                        class="category-item" :class="{ active: selectedCategory === c.key }"
+                                        @click="selectCategory(c.key)">
+                                        {{ c.label }}
+                                    </button>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
+                </div>
+
+                <!-- Select asset within the chosen category -->
+                <div class="pb20" v-if="selectedBillSrc && selectedCategory">
+                    <p class="text_16 color-gray2 pb10">Select asset</p>
                     <div class="custom-select" :class="{ open: dropdownWalletDst, error: formToPortfolio.errors.wallet_id }">
                         <div class="custom-select__trigger" @click="dropdownWalletDst = !dropdownWalletDst">
                             <template v-if="selectedWalletDst">
@@ -363,7 +429,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                                     <span class="balance">Balance: {{ parseFloat(selectedWalletDst.balance).toFixed(8) }} {{ selectedWalletDst.currency?.symbol }}</span>
                                 </div>
                             </template>
-                            <span v-else class="placeholder">Choose portfolio wallet</span>
+                            <span v-else class="placeholder">Select asset</span>
                             <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                 <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
@@ -371,7 +437,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                         <transition name="fade">
                             <div v-if="dropdownWalletDst" class="custom-select__dropdown" @click.stop>
                                 <div class="dropdown-list">
-                                    <button v-for="w in (props.portfolioWallets ?? [])" :key="w.id" type="button"
+                                    <button v-for="w in categoryWallets" :key="w.id" type="button"
                                         class="dropdown-item" :class="{ active: selectedWalletDst?.id === w.id }"
                                         @click="selectWalletDst(w)">
                                         <div class="di-left">
@@ -383,7 +449,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                                         </div>
                                         <span class="di-balance">{{ parseFloat(w.balance).toFixed(8) }}</span>
                                     </button>
-                                    <p v-if="!(props.portfolioWallets ?? []).length" class="dropdown-empty">No portfolio wallets</p>
+                                    <p v-if="!categoryWallets.length" class="dropdown-empty">No assets in this portfolio</p>
                                 </div>
                             </div>
                         </transition>
@@ -407,13 +473,17 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                     </p>
                 </div>
 
-                <!-- Conversion preview -->
-                <div class="fee-box pb20" v-if="selectedBillSrc && selectedWalletDst && formToPortfolio.amount && selectedBillSrc.currency_id !== selectedWalletDst.currency_id">
-                    <div class="fee-row">
+                <!-- Conversion / term preview -->
+                <div class="fee-box pb20" v-if="selectedBillSrc && selectedWalletDst && formToPortfolio.amount">
+                    <div class="fee-row" v-if="selectedBillSrc.currency_id !== selectedWalletDst.currency_id">
                         <span class="text_small_12 color-gray2">You will receive</span>
                         <span class="text_small_12">{{ willReceive.toFixed(8) }} {{ dstSymbol }}</span>
                     </div>
-                    <div class="fee-row">
+                    <div class="fee-row" v-if="lockTermLabel">
+                        <span class="text_small_12 color-gray2">Term</span>
+                        <span class="text_small_12">{{ lockTermLabel }}</span>
+                    </div>
+                    <div class="fee-row" v-if="selectedBillSrc.currency_id !== selectedWalletDst.currency_id">
                         <span class="text_small_12 color-gray2">Rate</span>
                         <span class="text_small_12">1 {{ dstSymbol }} = {{ parseFloat(selectedWalletDst?.currency?.exchange_rate ?? 1).toFixed(2) }} {{ billSymbol }}</span>
                     </div>
@@ -511,6 +581,26 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
 .dropdown-item.active {
     border-color: rgba(121,249,149,0.35);
     background: rgba(121,249,149,0.14);
+}
+
+/* Portfolio category rows — light highlighted background so the 3 cases stand out */
+.category-item {
+    width: 100%;
+    text-align: left;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border 0.2s;
+}
+.category-item:hover { background: rgba(121,249,149,0.12); }
+.category-item.active {
+    border-color: rgba(121,249,149,0.45);
+    background: rgba(121,249,149,0.18);
 }
 
 .di-left { display: flex; align-items: center; gap: 10px; }
