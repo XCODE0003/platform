@@ -22,28 +22,6 @@ const { open: chatOpen } = storeToRefs(supportChat);
     </svg>
   </div>
 
-  <div class="container">
-    <div class="footer-content">
-      <div class="footer-logo">
-        <a href="/">
-          <img src="/images/logo.svg" alt=""/>
-          CRYPTOHOUSE
-        </a>
-        <div class="copyright text_small_12">
-          © 2026. All rights reserved by CRYPTOHOUSE
-        </div>
-      </div>
-      <div class="footer-disclamer">
-        <p class="text_small_12 _120">
-          The Transactions offered by this Website can be executed only by
-          fully competent adults. Transactions with financial instruments
-          offered on the Website involve substantial risk and trading may be
-          very risky
-        </p>
-      </div>
-    </div>
-  </div>
-
   <TicketChat :open="chatOpen" @close="supportChat.closeChat()" />
 </template>
 

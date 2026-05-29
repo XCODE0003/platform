@@ -15,11 +15,11 @@ const modal = useModalStore();
 const ASSET_CLASS_TABS = [
     { key: 'crypto', label: 'Crypto', classes: ['crypto'] },
     { key: 'stock',  label: 'Stocks', classes: ['stock'] },
-    { key: 'index',  label: 'Indexes', classes: ['index'] },
+    { key: 'index',  label: 'Indices', classes: ['index'] },
 ];
 const activeAssetClass = ref('crypto');
 
-const portfolioWallets = computed(() => {
+const filteredWallets = computed(() => {
     const tab = ASSET_CLASS_TABS.find(t => t.key === activeAssetClass.value);
     const allowed = new Set(tab?.classes ?? []);
     const q = search.value.trim().toLowerCase();
@@ -30,6 +30,30 @@ const portfolioWallets = computed(() => {
         if (q && !(wallet.currency?.name ?? '').toLowerCase().includes(q)) return false;
         return true;
     });
+});
+
+function isInvested(wallet) {
+    return Number(wallet?.total_invested_usd ?? 0) > 0;
+}
+
+// Assets the user has actually invested in are shown first (largest first),
+// then a separator, then the rest of the assets in this category.
+const investedWallets = computed(() =>
+    filteredWallets.value
+        .filter(isInvested)
+        .slice()
+        .sort((a, b) => Number(b.total_invested_usd ?? 0) - Number(a.total_invested_usd ?? 0)),
+);
+const otherWallets = computed(() => filteredWallets.value.filter((w) => !isInvested(w)));
+
+// Combined list with a divider sentinel between invested and the rest.
+const portfolioWallets = computed(() => {
+    const invested = investedWallets.value;
+    const others   = otherWallets.value;
+    if (invested.length && others.length) {
+        return [...invested, { __divider: true }, ...others];
+    }
+    return [...invested, ...others];
 });
 
 function toggleZeroBalance(event) {
@@ -137,8 +161,10 @@ function profitPercentDisplay(wallet) {
                 <div>Profit</div>
                 <div>Total balance</div>
             </div>
+            <template v-for="(wallet, idx) in portfolioWallets" :key="wallet.__divider ? 'divider-' + idx : wallet.id">
+            <div v-if="wallet.__divider" class="portfolio-divider"></div>
             <div
-                v-for="wallet in portfolioWallets"
+                v-else
                 class="grid-line"
                 data-balance_coin=""
             >
@@ -237,6 +263,7 @@ function profitPercentDisplay(wallet) {
                     </span>
                 </div>
             </div>
+            </template>
             <p class="notfound" id="assetsZero" style="display: none">
                 Nothing found
                 <img src="/images/modal_close.svg" alt="" />
@@ -249,5 +276,13 @@ function profitPercentDisplay(wallet) {
 .portfolio-asset-tabs {
     display: flex;
     gap: 10px;
+}
+
+/* Separator between invested assets (top) and the rest of the list. */
+.portfolio-divider {
+    height: 1px;
+    margin: 6px 0;
+    background: var(--Gray_2, #606E76);
+    opacity: 0.45;
 }
 </style>

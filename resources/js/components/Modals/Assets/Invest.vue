@@ -52,18 +52,48 @@ watch(() => modal.isOpen('portfolio-withdraw'), (v) => { if (v) mode.value = 'to
 
 // ── Mode: Portfolio → Account ─────────────────────────────────────────────
 const realBills = computed(() => (props.bills ?? []).filter((b) => !b.demo));
+const selectedCategoryWithdraw = ref(null);     // 'crypto' | 'stock' | 'index'
 const selectedWallet    = ref(null);
 const selectedBill      = ref(null);
+const dropdownCategoryWithdraw = ref(false);
 const dropdownWallet    = ref(false);
 const dropdownBillDst   = ref(false);
 
+const selectedCategoryWithdrawLabel = computed(() =>
+    PORTFOLIO_CATEGORIES.find((c) => c.key === selectedCategoryWithdraw.value)?.label ?? null,
+);
+
+function isInvested(w) {
+    return Number(w?.total_invested_usd ?? 0) > 0;
+}
+
+// Portfolio wallets in the chosen category, invested ones first (largest first),
+// then a divider sentinel, then the rest of the assets in this category.
+const withdrawCategoryWallets = computed(() => {
+    if (!selectedCategoryWithdraw.value) return [];
+    const cat = PORTFOLIO_CATEGORIES.find((c) => c.key === selectedCategoryWithdraw.value);
+    const allowed = new Set(cat?.classes ?? []);
+    const list = (props.portfolioWallets ?? []).filter((w) => allowed.has(w.asset_class));
+    const invested = list
+        .filter(isInvested)
+        .slice()
+        .sort((a, b) => Number(b.total_invested_usd ?? 0) - Number(a.total_invested_usd ?? 0));
+    const others = list.filter((w) => !isInvested(w));
+    if (invested.length && others.length) {
+        return [...invested, { __divider: true }, ...others];
+    }
+    return [...invested, ...others];
+});
+
+function selectCategoryWithdraw(key) {
+    selectedCategoryWithdraw.value = key;
+    selectedWallet.value           = null;
+    formToAccount.wallet_id        = '';
+    dropdownCategoryWithdraw.value = false;
+}
+
 watch(selectedWallet, (w) => {
-    if (!w) { selectedBill.value = null; formToAccount.wallet_id = ''; return; }
-    formToAccount.wallet_id = w.id;
-    // Auto-select matching bill, but allow manual override
-    const match = realBills.value.find((b) => b.currency_id === w.currency_id);
-    selectedBill.value    = match ?? null;
-    formToAccount.bill_id = match?.id ?? '';
+    formToAccount.wallet_id = w?.id ?? '';
 });
 
 function selectBillDst(b) {
@@ -182,11 +212,13 @@ function iconFor(obj) {
 }
 
 function resetAll() {
+    selectedCategoryWithdraw.value = null;
     selectedWallet.value    = null;
     selectedBill.value      = null;
     selectedBillSrc.value   = null;
     selectedCategory.value  = null;
     selectedWalletDst.value = null;
+    dropdownCategoryWithdraw.value = false;
     dropdownWallet.value    = false;
     dropdownBill.value      = false;
     dropdownCategory.value  = false;
@@ -232,48 +264,33 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
             <!-- ── Portfolio → Account ── -->
             <form v-if="mode === 'to-account'" @submit.prevent="submitToAccount" class="transfer-form">
 
-                <!-- From: portfolio wallet (custom dropdown) -->
+                <!-- From: portfolio category (Crypto / Stocks / Indices) -->
                 <div class="pb20">
                     <p class="text_16 color-gray2 pb10">From portfolio</p>
-                    <div class="custom-select" :class="{ open: dropdownWallet, error: formToAccount.errors.wallet_id }">
-                        <div class="custom-select__trigger" @click="dropdownWallet = !dropdownWallet">
-                            <template v-if="selectedWallet">
-                                <img v-if="iconFor(selectedWallet)" :src="iconFor(selectedWallet)" width="24" height="24" alt="" />
-                                <div class="select-item-text">
-                                    <span class="symbol">{{ selectedWallet.currency?.symbol }}</span>
-                                    <span class="balance">{{ walletBalance.toFixed(8) }}</span>
-                                </div>
-                            </template>
-                            <span v-else class="placeholder">Choose currency</span>
+                    <div class="custom-select" :class="{ open: dropdownCategoryWithdraw }">
+                        <div class="custom-select__trigger" @click="dropdownCategoryWithdraw = !dropdownCategoryWithdraw">
+                            <span v-if="selectedCategoryWithdrawLabel" class="category-trigger-label">{{ selectedCategoryWithdrawLabel }}</span>
+                            <span v-else class="placeholder">Choose portfolio</span>
                             <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                 <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
                         <transition name="fade">
-                            <div v-if="dropdownWallet" class="custom-select__dropdown" @click.stop>
+                            <div v-if="dropdownCategoryWithdraw" class="custom-select__dropdown" @click.stop>
                                 <div class="dropdown-list">
-                                    <button v-for="w in portfolioWallets" :key="w.id" type="button"
-                                        class="dropdown-item" :class="{ active: selectedWallet?.id === w.id }"
-                                        @click="selectWallet(w)">
-                                        <div class="di-left">
-                                            <img v-if="iconFor(w)" :src="iconFor(w)" width="22" height="22" alt="" />
-                                            <div class="di-info">
-                                                <span class="di-symbol">{{ w.currency?.symbol }}</span>
-                                                <span class="di-name">{{ w.currency?.name }}</span>
-                                            </div>
-                                        </div>
-                                        <span class="di-balance">{{ parseFloat(w.balance).toFixed(8) }}</span>
+                                    <button v-for="c in PORTFOLIO_CATEGORIES" :key="c.key" type="button"
+                                        class="category-item" :class="{ active: selectedCategoryWithdraw === c.key }"
+                                        @click="selectCategoryWithdraw(c.key)">
+                                        {{ c.label }}
                                     </button>
-                                    <p v-if="!portfolioWallets.length" class="dropdown-empty">No portfolio wallets</p>
                                 </div>
                             </div>
                         </transition>
                     </div>
-                    <p v-if="formToAccount.errors.wallet_id" class="error-msg">{{ formToAccount.errors.wallet_id }}</p>
                 </div>
 
-                <!-- To: trading account (auto-matched, manual override) -->
-                <div class="pb20" v-if="selectedWallet">
+                <!-- To: trading account that receives the closed funds -->
+                <div class="pb20" v-if="selectedCategoryWithdraw">
                     <p class="text_16 color-gray2 pb10">To trading account</p>
                     <div class="custom-select" :class="{ open: dropdownBillDst, error: formToAccount.errors.bill_id }">
                         <div class="custom-select__trigger" @click="dropdownBillDst = !dropdownBillDst">
@@ -298,8 +315,8 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                                         <div class="di-left">
                                             <img v-if="iconFor(b)" :src="iconFor(b)" width="22" height="22" alt="" />
                                             <div class="di-info">
-                                                <span class="di-symbol">{{ b.currency?.symbol }}</span>
-                                                <span class="di-name">{{ b.name ?? b.currency?.name }}</span>
+                                                <span class="di-symbol">{{ b.name ?? b.currency?.name }}</span>
+                                                <span class="di-name">{{ b.currency?.symbol }}</span>
                                             </div>
                                         </div>
                                         <span class="di-balance">{{ parseFloat(b.balance ?? '0').toFixed(8) }}</span>
@@ -310,6 +327,49 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                         </transition>
                     </div>
                     <p v-if="formToAccount.errors.bill_id" class="error-msg">{{ formToAccount.errors.bill_id }}</p>
+                </div>
+
+                <!-- Select asset to close (invested assets first, then the rest) -->
+                <div class="pb20" v-if="selectedCategoryWithdraw && selectedBill">
+                    <p class="text_16 color-gray2 pb10">Select asset</p>
+                    <div class="custom-select" :class="{ open: dropdownWallet, error: formToAccount.errors.wallet_id }">
+                        <div class="custom-select__trigger" @click="dropdownWallet = !dropdownWallet">
+                            <template v-if="selectedWallet">
+                                <img v-if="iconFor(selectedWallet)" :src="iconFor(selectedWallet)" width="24" height="24" alt="" />
+                                <div class="select-item-text">
+                                    <span class="symbol">{{ selectedWallet.currency?.symbol }}</span>
+                                    <span class="balance">{{ walletBalance.toFixed(8) }}</span>
+                                </div>
+                            </template>
+                            <span v-else class="placeholder">Select asset</span>
+                            <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <transition name="fade">
+                            <div v-if="dropdownWallet" class="custom-select__dropdown" @click.stop>
+                                <div class="dropdown-list">
+                                    <template v-for="(w, idx) in withdrawCategoryWallets" :key="w.__divider ? 'divider-' + idx : w.id">
+                                        <div v-if="w.__divider" class="dropdown-divider"></div>
+                                        <button v-else type="button"
+                                            class="dropdown-item" :class="{ active: selectedWallet?.id === w.id }"
+                                            @click="selectWallet(w)">
+                                            <div class="di-left">
+                                                <img v-if="iconFor(w)" :src="iconFor(w)" width="22" height="22" alt="" />
+                                                <div class="di-info">
+                                                    <span class="di-symbol">{{ w.currency?.symbol }}</span>
+                                                    <span class="di-name">{{ w.currency?.name }}</span>
+                                                </div>
+                                            </div>
+                                            <span class="di-balance">{{ parseFloat(w.balance).toFixed(8) }}</span>
+                                        </button>
+                                    </template>
+                                    <p v-if="!withdrawCategoryWallets.length" class="dropdown-empty">No assets in this portfolio</p>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
+                    <p v-if="formToAccount.errors.wallet_id" class="error-msg">{{ formToAccount.errors.wallet_id }}</p>
                 </div>
 
                 <!-- Amount -->
@@ -581,6 +641,13 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
 .dropdown-item.active {
     border-color: rgba(121,249,149,0.35);
     background: rgba(121,249,149,0.14);
+}
+
+/* Separator between invested assets (top) and the rest of the list. */
+.dropdown-divider {
+    height: 1px;
+    margin: 6px 4px;
+    background: rgba(255,255,255,0.18);
 }
 
 .category-trigger-label {

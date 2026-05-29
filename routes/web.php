@@ -25,7 +25,7 @@ Route::middleware('auth')->group(function () {
 
         // Map of currency_id => asset_class derived from pairs (where the
         // currency is the base/in side). Used by the portfolio UI to group
-        // wallets into Crypto / Stocks / Indexes tabs without changing the
+        // wallets into Crypto / Stocks / Indices tabs without changing the
         // currency schema.
         $currencyAssetClass = \App\Models\Pair::query()
             ->select('currency_id_in', 'asset_class')
