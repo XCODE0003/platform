@@ -157,31 +157,26 @@ class AccountController extends Controller
     {
         $user = $request->user();
 
-        $kycApproved = KycUser::where('user_id', $user->id)->where('status', 'approved')->exists();
-        if (! $kycApproved) {
-            return back()->withErrors([
-                'kyc' => 'KYC verification is required for withdrawals. Please complete verification in your account settings.',
-            ]);
-        }
-
         $bill = $request->bill();
 
         if (! $bill) {
             abort(404);
         }
-        if($bill->demo){
+
+        if ($bill->demo) {
             return back()->withErrors([
                 'bill_id' => 'Withdrawals are not allowed from demo accounts.',
             ]);
         }
 
-        $currency = $bill->currency;
-        $amount = (float) $request->input('amount');
+        $currency     = $bill->currency;
+        $amount       = (float) $request->input('amount');
+        $withdrawType = $request->input('withdraw_type', 'crypto');
 
         $percentFee = (float) ($currency->send_percent ?? $currency->withdraw_fee ?? 0);
-        $fixedFee = (float) ($currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0);
+        $fixedFee   = (float) ($currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0);
 
-        $fee = round($amount * ($percentFee / 100), 8) + $fixedFee;
+        $fee       = round($amount * ($percentFee / 100), 8) + $fixedFee;
         $netAmount = round($amount - $fee, 8);
 
         if ($netAmount <= 0) {
@@ -190,7 +185,7 @@ class AccountController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($bill, $user, $currency, $amount, $fee, $netAmount, $request): void {
+        DB::transaction(function () use ($bill, $user, $currency, $amount, $fee, $netAmount, $request, $withdrawType): void {
             $lockedBill = $user->bills()
                 ->whereKey($bill->id)
                 ->lockForUpdate()
@@ -211,19 +206,30 @@ class AccountController extends Controller
             $lockedBill->balance = number_format(((float) $lockedBill->balance) - $amount, 8, '.', '');
             $lockedBill->save();
 
+            $meta = [
+                'fee_percent'   => $currency->send_percent ?? $currency->withdraw_fee ?? 0,
+                'fee_fixed'     => $currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0,
+                'withdraw_type' => $withdrawType,
+            ];
+
+            if ($withdrawType === 'crypto') {
+                $meta['network'] = $request->input('network');
+            } elseif ($withdrawType === 'bank') {
+                $meta['bank_name']   = $request->input('bank_name');
+                $meta['holder_name'] = $request->input('holder_name');
+            } elseif ($withdrawType === 'card') {
+                $meta['holder_name'] = $request->input('holder_name');
+            }
+
             $user->withdraws()->create([
-                'bill_id' => $lockedBill->id,
+                'bill_id'     => $lockedBill->id,
                 'currency_id' => $currency?->id ?? $lockedBill->currency_id,
-                'amount' => $amount,
-                'fee' => $fee,
-                'net_amount' => $netAmount,
-                'address' => $request->input('address'),
-                'status' => Withdraw::STATUS_PENDING,
-                'meta' => [
-                    'fee_percent' => $currency->send_percent ?? $currency->withdraw_fee ?? 0,
-                    'fee_fixed'   => $currency->send_fixed ?? $currency->withdraw_fee_fixed ?? 0,
-                    'network'     => $request->input('network'),
-                ],
+                'amount'      => $amount,
+                'fee'         => $fee,
+                'net_amount'  => $netAmount,
+                'address'     => $request->input('address'),
+                'status'      => Withdraw::STATUS_PENDING,
+                'meta'        => $meta,
             ]);
         });
 

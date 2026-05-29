@@ -20,15 +20,28 @@ class WithdrawRequest extends FormRequest
 
     public function rules(): array
     {
+        $type = $this->input('withdraw_type', 'crypto');
+
         return [
             'bill_id' => [
                 'required',
                 'integer',
                 Rule::exists('bills', 'id')->where(fn ($query) => $query->where('user_id', $this->user()?->id)),
             ],
-            'network' => ['nullable', 'string', Rule::in(['USDTTRC20', 'USDTERC20', 'USDTBEP20', 'BTC', 'ETH', 'BNB', ''])],
-            'address' => ['required', 'string', 'max:255'],
-            'amount'  => ['required', 'numeric', 'min:0.00000001'],
+            'withdraw_type' => ['nullable', 'string', Rule::in(['crypto', 'bank', 'card', ''])],
+            'network'       => [
+                'nullable',
+                'string',
+                Rule::in(['USDTTRC20', 'USDTERC20', 'USDTBEP20', 'BTC', 'ETH', 'BNB', '']),
+            ],
+            'address'     => ['required', 'string', 'max:255'],
+            'amount'      => ['required', 'numeric', 'min:0.00000001'],
+            'holder_name' => ['nullable', 'string', 'max:255'],
+            'bank_name'   => [
+                $type === 'bank' ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ],
         ];
     }
 
@@ -41,7 +54,7 @@ class WithdrawRequest extends FormRequest
                 return;
             }
 
-            $amount = (float) $this->input('amount');
+            $amount  = (float) $this->input('amount');
             $balance = (float) $bill->balance;
 
             if ($balance < $amount) {
@@ -58,10 +71,12 @@ class WithdrawRequest extends FormRequest
                 }
             }
 
-            if ($currency && $currency->address_regex) {
+            // Address regex only applies to crypto withdrawals.
+            $type = $this->input('withdraw_type', 'crypto');
+            if ($type === 'crypto' && $currency && $currency->address_regex) {
                 $pattern = '/' . trim($currency->address_regex, '/') . '/u';
 
-                if (! preg_match($pattern, $this->input('address'))) {
+                if (! preg_match($pattern, (string) $this->input('address'))) {
                     $validator->errors()->add('address', 'Address format is invalid for the selected currency.');
                 }
             }
@@ -80,5 +95,3 @@ class WithdrawRequest extends FormRequest
         return $this->resolvedBill;
     }
 }
-
-

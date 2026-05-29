@@ -3,6 +3,7 @@ import Deposit from '@/components/Modals/Assets/Deposit.vue';
 import Promocode from '@/components/Modals/Assets/Promocode.vue';
 import Stacking from '@/components/Modals/Assets/Stacking.vue';
 import WithdrawModal from '@/components/Modals/Assets/WithdrawModal.vue';
+import PortfolioWithdrawModal from '@/components/Modals/Assets/PortfolioWithdrawModal.vue';
 import TransferModal from '@/components/Modals/Assets/TransferModal.vue';
 import AssetsTab from '@/components/Tabs/AssetsTab.vue';
 import StackingTab from '@/components/Tabs/StackingTab.vue';
@@ -93,6 +94,7 @@ onMounted(() => {
                 :portfolioWallets="props.portfolioWallets"
             />
             <WithdrawModal :bills="props.bills" />
+            <PortfolioWithdrawModal :bills="props.bills" />
             <TransferModal :bills="props.bills" :portfolioWallets="props.portfolioWallets" />
             <BillNew :bills="props.bills" />
             <Invest
