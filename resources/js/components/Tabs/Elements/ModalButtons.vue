@@ -2,6 +2,13 @@
 import { useModalStore } from '@/stores/modal.js';
 
 const modal = useModalStore();
+
+function openPortfolioWithdraw() {
+    // Ensure transfer dialog is closed before opening withdraw.
+    modal.close('transfer');
+    modal.close('withdraw');
+    modal.open('portfolio-withdraw');
+}
 </script>
 
 <template>
@@ -20,7 +27,7 @@ const modal = useModalStore();
 
         <button
             class="btn small_btn btn_16"
-            @click="modal.open('portfolio-withdraw')"
+            @click="openPortfolioWithdraw"
         >
             Withdraw
         </button>

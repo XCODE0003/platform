@@ -17,7 +17,17 @@ const toast = useToast();
 
 const isOpen = computed({
     get: () => modal.isOpen('portfolio-withdraw'),
-    set: (value) => (value ? modal.open('portfolio-withdraw') : modal.close('portfolio-withdraw')),
+    set: (value) => {
+        if (value) {
+            // Keep only one assets modal visible to avoid stacked dialogs.
+            modal.close('transfer');
+            modal.close('withdraw');
+            modal.open('portfolio-withdraw');
+            return;
+        }
+
+        modal.close('portfolio-withdraw');
+    },
 });
 
 // Step 1: choose type. Step 2: fill in the form.

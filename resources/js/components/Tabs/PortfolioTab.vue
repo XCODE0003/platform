@@ -82,6 +82,13 @@ function profitPercentDisplay(wallet) {
     const sign = pct > 0 ? '+' : '';
     return `${sign}${pct.toFixed(2)}%`;
 }
+
+function openPortfolioWithdraw() {
+    // Ensure transfer dialog is closed before opening withdraw.
+    modal.close('transfer');
+    modal.close('withdraw');
+    modal.open('portfolio-withdraw');
+}
 </script>
 
 <template>
@@ -102,7 +109,7 @@ function profitPercentDisplay(wallet) {
                 <button @click="modal.open('invest')" class="btn small_btn btn_16">
                     Invest
                 </button>
-                <button @click="modal.open('portfolio-withdraw')" class="btn small_btn btn_16">
+                <button @click="openPortfolioWithdraw" class="btn small_btn btn_16">
                     Withdraw
                 </button>
             </div>
