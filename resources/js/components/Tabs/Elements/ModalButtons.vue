@@ -1,12 +1,7 @@
 <script setup>
 import { useModalStore } from '@/stores/modal.js';
-import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 const modal = useModalStore();
-const page = usePage();
-
-const kycApproved = computed(() => page.props.auth?.kyc_approved ?? false);
 </script>
 
 <template>
@@ -25,9 +20,7 @@ const kycApproved = computed(() => page.props.auth?.kyc_approved ?? false);
 
         <button
             class="btn small_btn btn_16"
-            :disabled="!kycApproved"
-            :title="kycApproved ? '' : 'KYC verification required for withdrawals'"
-            @click="kycApproved && modal.open('withdraw')"
+            @click="modal.open('portfolio-withdraw')"
         >
             Withdraw
         </button>
