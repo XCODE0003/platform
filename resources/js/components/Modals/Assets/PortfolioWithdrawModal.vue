@@ -133,15 +133,13 @@ const iconPath         = computed(() => {
     return icon ? `/images/coin_icons/${String(icon).toLowerCase()}.svg` : null;
 });
 
-const canSubmitCrypto = computed(
-    () => selectedBill.value && form.network && form.address && form.amount && !form.processing,
-);
-const canSubmitBank = computed(
-    () => selectedBill.value && form.address && form.holder_name && form.bank_name && form.amount && !form.processing,
-);
-const canSubmitCard = computed(
-    () => selectedBill.value && form.address && form.holder_name && form.amount && !form.processing,
-);
+const canSubmit = computed(() => {
+    if (!selectedBill.value || !form.amount || form.processing) return false;
+    if (withdrawType.value === 'crypto') return !!(form.network && form.address);
+    if (withdrawType.value === 'bank')   return !!(form.address && form.holder_name && form.bank_name);
+    if (withdrawType.value === 'card')   return !!(form.address && form.holder_name);
+    return false;
+});
 
 function submitWithdraw() {
     form.post('/account/withdraw', {
@@ -415,11 +413,7 @@ function submitWithdraw() {
                     <button
                         type="submit"
                         class="btn btn_action btn_16 color-dark"
-                        :disabled="
-                            (withdrawType === 'crypto' && !canSubmitCrypto) ||
-                            (withdrawType === 'bank' && !canSubmitBank) ||
-                            (withdrawType === 'card' && !canSubmitCard)
-                        "
+                        :disabled="!canSubmit"
                     >
                         {{ form.processing ? 'Processing...' : 'Withdraw' }}
                     </button>
