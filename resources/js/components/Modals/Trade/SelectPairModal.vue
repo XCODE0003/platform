@@ -84,7 +84,7 @@ function hasQuoteInLabel(pair) {
                       {{ value.name }}
                     </div>
                 </div>
-                <div :class="{ 'grid grid-cols-4 gap-3': selectedGroup !== null && selectedGroup.pairs.length > 0 }" class=" items-center gap-2">
+                <div :class="{ 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3': selectedGroup !== null && selectedGroup.pairs.length > 0 }" class="items-center gap-2 max-h-[60vh] overflow-y-auto pr-1 -mr-1">
                     <div v-if="selectedGroup !== null && selectedGroup.pairs.length > 0" v-for="pair in selectedGroup?.pairs" class="bg-[#1D323E] p-2 rounded-lg cursor-pointer hover:bg-[#273D4A] transition-all duration-300 hover:shadow-md hover:!text-white" @click="handleSelectPair(pair)">
                         <div class="flex items-center gap-2 ">
                             <template v-if="!brokenCoinIcons[coinIconKey(pair.currency_in?.symbol)]">
