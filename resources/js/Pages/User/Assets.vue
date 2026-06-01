@@ -28,6 +28,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    transactions: {
+        type: Array,
+        default: () => [],
+    },
     portfolioFeePercent: { type: Number, default: 0 },
     portfolioFeeFixed:   { type: Number, default: 0 },
     portfolioLockDays:   { type: Number, default: 365 },
@@ -77,7 +81,7 @@ onMounted(() => {
                                     :userStakings="props.userStakings"
                                     :portfolioWallets="props.portfolioWallets"
                                 />
-                                <TransactionTab v-if="selectedTab === 'TransactionTab'" :withdraws="props.withdraws" />
+                                <TransactionTab v-if="selectedTab === 'TransactionTab'" :withdraws="props.withdraws" :transactions="props.transactions" />
                                 <PortfolioTab v-if="selectedTab === 'PortfolioTab'" :portfolioWallets="props.portfolioWallets" :totalBalancePortfolio="props.totalBalancePortfolio" />
                             </div>
                         </div>

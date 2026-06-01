@@ -92,6 +92,11 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->hasMany(Withdraw::class);
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
         $this->notify(new ResetPasswordNotification($token));

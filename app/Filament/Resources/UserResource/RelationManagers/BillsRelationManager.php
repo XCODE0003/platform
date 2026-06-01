@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
+use App\Models\Bill;
 use App\Models\Currency;
+use App\Models\Transaction;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class BillsRelationManager extends RelationManager
 {
@@ -102,6 +106,48 @@ class BillsRelationManager extends RelationManager
                     ->label('Добавить счёт'),
             ])
             ->actions([
+                Tables\Actions\Action::make('topup')
+                    ->label('Пополнить')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('success')
+                    ->modalHeading('Пополнение счёта')
+                    ->modalSubmitActionLabel('Пополнить')
+                    ->form([
+                        Forms\Components\TextInput::make('amount')
+                            ->label('Сумма пополнения')
+                            ->numeric()
+                            ->step('0.00000001')
+                            ->minValue(0.00000001)
+                            ->required(),
+                        Forms\Components\Textarea::make('comment')
+                            ->label('Комментарий для клиента')
+                            ->helperText('Будет виден клиенту в истории операций в личном кабинете.')
+                            ->placeholder('Напр.: Пополнение счёта')
+                            ->rows(2)
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (Bill $record, array $data): void {
+                        DB::transaction(function () use ($record, $data): void {
+                            $amount = number_format((float) $data['amount'], 8, '.', '');
+                            $record->balance = number_format(((float) $record->balance) + (float) $amount, 8, '.', '');
+                            $record->save();
+
+                            Transaction::create([
+                                'user_id'     => $record->user_id,
+                                'currency_id' => $record->currency_id,
+                                'bill_id'     => $record->id,
+                                'amount'      => $amount,
+                                'type'        => 'deposit',
+                                'status'      => 'completed',
+                                'comment'     => $data['comment'] ?? null,
+                            ]);
+                        });
+
+                        Notification::make()
+                            ->title('Счёт пополнен')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

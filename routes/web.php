@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
             return $bill->balance + ($bill->pending_balance ?? 0);
         });
         $withdraws = $user->withdraws()->with('currency')->latest()->take(50)->get();
+        $transactions = $user->transactions()->with('currency')->latest()->take(100)->get();
         return Inertia::render('User/Assets', [
             'portfolioWallets'       => $portfolioWallets,
             'depositWallets'         => $deposit,
@@ -104,6 +105,7 @@ Route::middleware('auth')->group(function () {
             'totalBalanceAssets'     => $totalBalanceAssets,
             'totalBalancePortfolio'  => $totalBalancePortfolio,
             'withdraws'              => $withdraws,
+            'transactions'           => $transactions,
             'portfolioFeePercent'    => (float) Setting::get('portfolio_fee_percent', 0),
             'portfolioFeeFixed'      => (float) Setting::get('portfolio_fee_fixed',   0),
             'portfolioLockDays'      => (int) Setting::get('portfolio_lock_days', 365),

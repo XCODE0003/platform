@@ -7,12 +7,48 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    transactions: {
+        type: Array,
+        default: () => [],
+    },
 });
 
-const transactions = computed(() => props.withdraws ?? []);
+// Human-readable labels for Transaction.type values coming from the backend.
+const TYPE_LABELS = {
+    deposit: 'Deposit',
+    withdraw: 'Withdraw',
+    transfer_in: 'Transfer in',
+    transfer_out: 'Transfer out',
+};
 
-function iconPath(withdraw) {
-    const icon = withdraw.currency?.icon ?? withdraw.currency?.symbol ?? 'btc';
+// Unified history: account top-ups / transfers (transactions) + withdrawals,
+// newest first. Each row carries an optional manager comment shown to the user.
+const history = computed(() => {
+    const fromWithdraws = (props.withdraws ?? []).map((w) => ({
+        key: `w-${w.id}`,
+        currency: w.currency,
+        amount: w.net_amount ?? w.amount,
+        type: 'Withdraw',
+        status: w.status,
+        created_at: w.created_at,
+        comment: w.comment ?? null,
+    }));
+    const fromTransactions = (props.transactions ?? []).map((t) => ({
+        key: `t-${t.id}`,
+        currency: t.currency,
+        amount: t.amount,
+        type: TYPE_LABELS[t.type] ?? t.type,
+        status: t.status,
+        created_at: t.created_at,
+        comment: t.comment ?? null,
+    }));
+    return [...fromTransactions, ...fromWithdraws].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+});
+
+function iconPath(item) {
+    const icon = item.currency?.icon ?? item.currency?.symbol ?? 'btc';
 
     return `/images/coin_icons/${String(icon).toLowerCase()}.svg`;
 }
@@ -89,31 +125,34 @@ function formatDate(value) {
             </div>
 
             <div
-                v-for="withdraw in transactions"
-                :key="withdraw.id"
+                v-for="item in history"
+                :key="item.key"
                 class="grid-line"
             >
                 <div class="flex-center gap6">
-                    <img :src="iconPath(withdraw)" width="30" height="30" alt="" />
-                    <span>{{ withdraw.currency?.symbol }}</span>
+                    <img :src="iconPath(item)" width="30" height="30" alt="" />
+                    <span>{{ item.currency?.symbol }}</span>
                 </div>
                 <div>
-                    <span class="text_16">{{ formatAmount(withdraw.net_amount ?? withdraw.amount) }}</span>
+                    <span class="text_16">{{ formatAmount(item.amount) }}</span>
                 </div>
                 <div>
-                    <span class="text_16">Withdraw</span>
-                </div>
-                <div>
-                    <span class="text_16" :class="statusClass(withdraw.status)">
-                        {{ formatStatus(withdraw.status) }}
+                    <span class="text_16">{{ item.type }}</span>
+                    <span v-if="item.comment" class="text_small_12 color-gray2 transaction-comment">
+                        {{ item.comment }}
                     </span>
                 </div>
                 <div>
-                    <span class="text_16">{{ formatDate(withdraw.created_at) }}</span>
+                    <span class="text_16" :class="statusClass(item.status)">
+                        {{ formatStatus(item.status) }}
+                    </span>
+                </div>
+                <div>
+                    <span class="text_16">{{ formatDate(item.created_at) }}</span>
                 </div>
             </div>
 
-            <p v-if="!transactions.length" class="notfound">
+            <p v-if="!history.length" class="notfound">
                 Nothing found
                 <img src="/images/notfound.svg" alt="" />
             </p>
@@ -146,5 +185,12 @@ function formatDate(value) {
 
 .status-pending {
     color: rgba(255, 255, 255, 0.65);
+}
+
+.transaction-comment {
+    display: block;
+    margin-top: 2px;
+    line-height: 1.3;
+    word-break: break-word;
 }
 </style>

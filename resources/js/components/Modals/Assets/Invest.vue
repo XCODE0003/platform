@@ -33,22 +33,24 @@ const lockTermLabel = computed(() => {
 const modal = useModalStore();
 const toast = useToast();
 
-// 'to-account'   = Portfolio → Trading account  (открывается кнопкой 'portfolio-withdraw')
+// 'to-account'   = Portfolio → Trading account  (внутренняя вкладка модалки)
 // 'to-portfolio' = Trading account → Portfolio  (открывается кнопкой 'invest')
 const mode = ref('to-portfolio');
 
+// Invest modal handles ONLY the 'invest' key (Account → Portfolio). The
+// Portfolio → Account withdrawal has its own dedicated PortfolioWithdrawModal
+// bound to the 'portfolio-withdraw' key; reacting to that key here too made
+// both modals open at once (the double-modal bug on Withdraw).
 const isOpen = computed({
-    get: () => modal.isOpen('invest') || modal.isOpen('portfolio-withdraw'),
+    get: () => modal.isOpen('invest'),
     set: (v) => {
         if (!v) {
             modal.close('invest');
-            modal.close('portfolio-withdraw');
         }
     },
 });
 
-watch(() => modal.isOpen('invest'),             (v) => { if (v) mode.value = 'to-portfolio'; });
-watch(() => modal.isOpen('portfolio-withdraw'), (v) => { if (v) mode.value = 'to-account'; });
+watch(() => modal.isOpen('invest'), (v) => { if (v) mode.value = 'to-portfolio'; });
 
 // ── Mode: Portfolio → Account ─────────────────────────────────────────────
 const realBills = computed(() => (props.bills ?? []).filter((b) => !b.demo));
