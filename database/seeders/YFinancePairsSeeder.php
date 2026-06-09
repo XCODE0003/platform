@@ -210,6 +210,41 @@ class YFinancePairsSeeder extends Seeder
             ['PSKY',    'Paramount Skydance Corp.',     'PSKY'],
             ['ROKU',    'Roku, Inc.',                   'ROKU'],
             ['ZM',      'Zoom Video Communications',    'ZM'],
+
+            // ── REITs / real estate (added) ───────────────────────────────────
+            ['PLD',     'Prologis, Inc.',               'PLD'],
+            ['AMT',     'American Tower Corp.',         'AMT'],
+            ['EQIX',    'Equinix, Inc.',                'EQIX'],
+            ['CCI',     'Crown Castle Inc.',            'CCI'],
+            ['PSA',     'Public Storage',               'PSA'],
+            ['O',       'Realty Income Corporation',    'O'],
+            ['WELL',    'Welltower Inc.',               'WELL'],
+            ['SPG',     'Simon Property Group',         'SPG'],
+            ['DLR',     'Digital Realty Trust',         'DLR'],
+            ['GMG',     'Goodman Group',                'GMG.AX'],
+            ['VNA',     'Vonovia SE',                   'VNA.DE'],
+
+            // ── Materials / chemicals / mining (added) ────────────────────────
+            ['LIN',     'Linde plc',                    'LIN'],
+            ['FCX',     'Freeport-McMoRan Inc.',        'FCX'],
+            ['NEM',     'Newmont Corporation',          'NEM'],
+            ['NUE',     'Nucor Corporation',            'NUE'],
+            ['DOW',     'Dow Inc.',                     'DOW'],
+            ['DD',      'DuPont de Nemours, Inc.',      'DD'],
+            ['BHP',     'BHP Group Limited',            'BHP'],
+            ['RIO',     'Rio Tinto Group',              'RIO'],
+            ['VALE',    'Vale S.A.',                    'VALE'],
+            ['GLEN',    'Glencore plc',                 'GLEN.L'],
+            ['BAS',     'BASF SE',                      'BAS.DE'],
+
+            // ── Fertilizers / agri-chemicals (added) ──────────────────────────
+            ['NTR',     'Nutrien Ltd.',                 'NTR'],
+            ['MOS',     'The Mosaic Company',           'MOS'],
+            ['YAR',     'Yara International ASA',        'YAR.OL'],
+            ['CF',      'CF Industries Holdings',       'CF'],
+            ['SQM',     'Sociedad Química y Minera',     'SQM'],
+            ['SDF',     'K+S AG',                        'SDF.DE'],
+            ['ICL',     'ICL Group Ltd',                 'ICL'],
         ];
 
         foreach ($stocks as [$code, $name, $yfSym]) {
