@@ -14,6 +14,12 @@ const page = usePage();
 
 const isAuth = ref(page.props.auth.user);
 
+// Build the No. sign (U+2116) from an ASCII escape so the .vue source stays
+// pure ASCII. The Tailwind oxide scanner panics on some multi-byte chars.
+const accountLabel = computed(() =>
+  user.value?.account_number ? String.fromCharCode(0x2116) + user.value.account_number : ''
+);
+
 </script>
 
 <template>
@@ -24,10 +30,10 @@ const isAuth = ref(page.props.auth.user);
 
       </Link>
       <div
-          v-if="isAuth && user?.account_number"
+          v-if="isAuth && accountLabel"
           class="account-number"
           title="Account Number"
-      >№{{ user.account_number }}</div>
+      >{{ accountLabel }}</div>
       <nav class="navbar">
         <ul class="nav-list">
           <li class="list-item">
@@ -94,7 +100,7 @@ const isAuth = ref(page.props.auth.user);
   height: unset;
 }
 
-/* Account number badge — centered in the header on both Trade and Assets */
+/* Account number badge - centered in the header on both Trade and Assets */
 @media (min-width: 721px) {
   .header-content {
     position: relative;
