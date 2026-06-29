@@ -16,6 +16,8 @@ const ASSET_CLASS_TABS = [
     { key: 'crypto', label: 'Crypto', classes: ['crypto'] },
     { key: 'stock',  label: 'Stocks', classes: ['stock'] },
     { key: 'index',  label: 'Indices', classes: ['index'] },
+    { key: 'currency_index', label: 'Currency indices', classes: ['currency_index'] },
+    { key: 'etf',    label: 'ETFs',   classes: ['etf'] },
 ];
 const activeAssetClass = ref('crypto');
 
@@ -161,6 +163,7 @@ function openPortfolioWithdraw() {
         <div class="assets-overview-grid pb60">
             <div class="grid-head text_small_12 color-dark">
                 <div>Coin</div>
+                <div>Ticker</div>
                 <div>Available balance</div>
                 <div>On orders</div>
                 <div>Avg buy price</div>
@@ -186,6 +189,9 @@ function openPortfolioWithdraw() {
                         alt=""
                     />
                     <span>{{ wallet.currency.name }}</span>
+                </div>
+                <div>
+                    <span class="text_16 portfolio-ticker">{{ wallet.currency.symbol ?? wallet.currency.code }}</span>
                 </div>
                 <div class="flex-column gap10">
                     <span class="text_16"> {{ formatAmount(wallet.balance, wallet.currency.symbol) }}</span>
@@ -285,8 +291,23 @@ function openPortfolioWithdraw() {
     gap: 10px;
 }
 
+/* Portfolio table has an extra Ticker column: Coin | Ticker | Available |
+   On orders | Avg buy | Current | Profit | Total. Scoped so the Overview
+   tab (same .assets-overview-grid class) keeps its 7-column layout. */
+.assets-overview-grid .grid-head,
+.assets-overview-grid .grid-line {
+    grid-template-columns: 1.2fr 0.7fr 1.4fr 1.2fr 1.4fr 1.4fr 1.4fr 1.4fr;
+    grid-template-areas: ". . . . . . . .";
+}
+
+.portfolio-ticker {
+    font-weight: 600;
+    color: var(--White, #fff);
+}
+
 /* Separator between invested assets (top) and the rest of the list. */
 .portfolio-divider {
+    grid-column: 1 / -1;
     height: 1px;
     margin: 6px 0;
     background: var(--Gray_2, #606E76);

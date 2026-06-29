@@ -16,6 +16,7 @@ class YFinancePairsSeeder extends Seeder
         $metalGroup  = GroupPair::firstOrCreate(['name' => 'Metals'],        ['is_active' => true]);
         $forexGroup  = GroupPair::firstOrCreate(['name' => 'Forex'],         ['is_active' => true]);
         $indexGroup  = GroupPair::firstOrCreate(['name' => 'Indices'],       ['is_active' => true]);
+        $curIndexGroup = GroupPair::firstOrCreate(['name' => 'Currency indices'], ['is_active' => true]);
 
         $usd = $this->currency('USD', 'US Dollar');
 
@@ -80,7 +81,7 @@ class YFinancePairsSeeder extends Seeder
             ['SAP',    'SAP SE',                        'SAP'],
             ['SONY',   'Sony Group Corporation',        'SONY'],
             ['INFY',   'Infosys Limited',               'INFY'],
-            ['8035.T', 'Tokyo Electron Limited',        '8035.T'],
+            ['8035.T', 'Tokyo Electron Limited',        'TOELY'],
             ['ARM',    'Arm Holdings plc',              'ARM'],
             ['TCEHY',  'Tencent Holdings Ltd.',         'TCEHY'],
             ['BIDU',   'Baidu, Inc.',                   'BIDU'],
@@ -153,7 +154,7 @@ class YFinancePairsSeeder extends Seeder
             ['JAKK',    'JAKKS Pacific, Inc.',          'JAKK'],
             // Code 'DASH' is already taken by the Dash cryptocurrency.
             ['DOORDASH','DoorDash, Inc.',               'DASH'],
-            ['DHER',    'Delivery Hero SE',             'DHER.DE'],
+            ['DHER',    'Delivery Hero SE',             'DLVHF'],
 
             // ── Automotive (added) ────────────────────────────────────────────
             ['F',       'Ford Motor Company',           'F'],
@@ -190,7 +191,7 @@ class YFinancePairsSeeder extends Seeder
             ['ENPH',    'Enphase Energy, Inc.',         'ENPH'],
             ['NEE',     'NextEra Energy, Inc.',         'NEE'],
             ['JKS',     'JinkoSolar Holding Co.',       'JKS'],
-            ['VWS',     'Vestas Wind Systems A/S',      'VWS.CO'],
+            ['VWS',     'Vestas Wind Systems A/S',      'VWDRY'],
             ['ENR',     'Siemens Energy AG',            'ENR.DE'],
 
             // ── Media / telecom / gaming (added) ──────────────────────────────
@@ -221,8 +222,8 @@ class YFinancePairsSeeder extends Seeder
             ['WELL',    'Welltower Inc.',               'WELL'],
             ['SPG',     'Simon Property Group',         'SPG'],
             ['DLR',     'Digital Realty Trust',         'DLR'],
-            ['GMG',     'Goodman Group',                'GMG.AX'],
-            ['VNA',     'Vonovia SE',                   'VNA.DE'],
+            ['GMG',     'Goodman Group',                'GMGSF'],
+            ['VNA',     'Vonovia SE',                   'VONOY'],
 
             // ── Materials / chemicals / mining (added) ────────────────────────
             ['LIN',     'Linde plc',                    'LIN'],
@@ -234,17 +235,150 @@ class YFinancePairsSeeder extends Seeder
             ['BHP',     'BHP Group Limited',            'BHP'],
             ['RIO',     'Rio Tinto Group',              'RIO'],
             ['VALE',    'Vale S.A.',                    'VALE'],
-            ['GLEN',    'Glencore plc',                 'GLEN.L'],
-            ['BAS',     'BASF SE',                      'BAS.DE'],
+            ['GLEN',    'Glencore plc',                 'GLNCY'],
+            ['BAS',     'BASF SE',                      'BASFY'],
 
             // ── Fertilizers / agri-chemicals (added) ──────────────────────────
             ['NTR',     'Nutrien Ltd.',                 'NTR'],
             ['MOS',     'The Mosaic Company',           'MOS'],
-            ['YAR',     'Yara International ASA',        'YAR.OL'],
+            ['YAR',     'Yara International ASA',        'YARIY'],
             ['CF',      'CF Industries Holdings',       'CF'],
             ['SQM',     'Sociedad Química y Minera',     'SQM'],
-            ['SDF',     'K+S AG',                        'SDF.DE'],
+            ['SDF',     'K+S AG',                        'KPLUY'],
             ['ICL',     'ICL Group Ltd',                 'ICL'],
+
+            // ── Aerospace / apparel / satellite (added) ───────────────────────
+            ['SPCE',    'Virgin Galactic Holdings',     'SPCE'],
+            ['GAP',     'The Gap, Inc.',                'GAP'],
+            ['VSAT',    'Viasat, Inc.',                 'VSAT'],
+
+            // ── Industrials / aerospace & defense (added) ─────────────────────
+            // Boeing (BA) is already present in the list above.
+            ['CAT',     'Caterpillar Inc.',             'CAT'],
+            ['GE',      'GE Aerospace',                 'GE'],
+            ['HON',     'Honeywell International',      'HON'],
+            ['UPS',     'United Parcel Service',         'UPS'],
+            ['FDX',     'FedEx Corporation',            'FDX'],
+            ['MMM',     '3M Company',                   'MMM'],
+            ['DE',      'Deere & Company',              'DE'],
+            ['LMT',     'Lockheed Martin Corp.',        'LMT'],
+            ['RTX',     'RTX Corporation',              'RTX'],
+            ['NOC',     'Northrop Grumman Corp.',        'NOC'],
+            ['SIE',     'Siemens AG',                   'SIEGY'],
+            ['SBGSY',   'Schneider Electric SE',        'SBGSY'],
+            ['ABB',     'ABB Ltd',                      'ABB'],
+            ['EADSY',   'Airbus SE',                    'EADSY'],
+            ['VLVLY',   'AB Volvo',                     'VLVLY'],
+            ['DHL',     'DHL Group',                    'DHLGY'],
+            ['UNP',     'Union Pacific Corporation',    'UNP'],
+
+            // ── Travel / hotels / airlines / cruise (added) ───────────────────
+            ['BKNG',    'Booking Holdings Inc.',        'BKNG'],
+            ['ABNB',    'Airbnb, Inc.',                 'ABNB'],
+            ['EXPE',    'Expedia Group, Inc.',          'EXPE'],
+            ['TCOM',    'Trip.com Group Limited',       'TCOM'],
+            ['TRIP',    'Tripadvisor, Inc.',            'TRIP'],
+            ['MMYT',    'MakeMyTrip Limited',           'MMYT'],
+            ['MAR',     'Marriott International',        'MAR'],
+            ['HLT',     'Hilton Worldwide Holdings',    'HLT'],
+            ['H',       'Hyatt Hotels Corporation',     'H'],
+            ['IHG',     'InterContinental Hotels Group','IHG'],
+            ['ACCYY',   'Accor SA',                     'ACCYY'],
+            ['DAL',     'Delta Air Lines, Inc.',        'DAL'],
+            ['UAL',     'United Airlines Holdings',     'UAL'],
+            ['AAL',     'American Airlines Group',       'AAL'],
+            ['LUV',     'Southwest Airlines Co.',        'LUV'],
+            ['RYAAY',   'Ryanair Holdings plc',         'RYAAY'],
+            ['LHA',     'Deutsche Lufthansa AG',        'DLAKY'],
+            ['SINGY',   'Singapore Airlines Ltd',       'SINGY'],
+            ['CCL',     'Carnival Corporation',         'CCL'],
+            ['RCL',     'Royal Caribbean Group',        'RCL'],
+            ['NCLH',    'Norwegian Cruise Line',        'NCLH'],
+            ['JAL',     'Japan Airlines Co., Ltd.',     'JAPSY'],
+            ['AF',      'Air France-KLM SA',            'AFLYY'],
+            ['EMBJ',    'Embraer S.A.',                 'EMBJ'],
+            ['SAMSUNG', 'Samsung Electronics Co.',      'SMSN.IL'],
+
+            // ── Networking / optical / telecom equipment (added) ──────────────
+            // Arista (ANET) already present above; Infinera (INFN) delisted
+            // after the Nokia acquisition (no quotes) — intentionally omitted.
+            ['CIEN',    'Ciena Corporation',            'CIEN'],
+            ['NOK',     'Nokia Oyj',                    'NOK'],
+            ['LITE',    'Lumentum Holdings Inc.',       'LITE'],
+            ['COHR',    'Coherent Corp.',               'COHR'],
+            ['ERIC',    'Ericsson',                     'ERIC'],
+
+            // ── Apparel / footwear (added) ────────────────────────────────────
+            ['LULU',    'Lululemon Athletica Inc.',     'LULU'],
+            ['NKE',     'Nike, Inc.',                   'NKE'],
+            ['UAA',     'Under Armour, Inc.',           'UAA'],
+            ['COLM',    'Columbia Sportswear Company',  'COLM'],
+            ['DECK',    'Deckers Outdoor Corporation',  'DECK'],
+            ['CPRI',    'Capri Holdings Limited',       'CPRI'],
+            ['VFC',     'V.F. Corporation',             'VFC'],
+            ['ONON',    'On Holding AG',                'ONON'],
+            ['ADS',     'Adidas AG',                    'ADDYY'],
+            ['PUM',     'Puma SE',                      'PUMSY'],
+            ['9983.T',  'Fast Retailing Co., Ltd.',     'FRCOY'],
+            ['ITX',     'Inditex',                      'IDEXY'],
+            ['LEVI',    'Levi Strauss & Co.',           'LEVI'],
+            ['WWW',     'Wolverine World Wide, Inc.',   'WWW'],
+            ['XTEPY',   'Xtep International Holdings Ltd ADR', 'XTEPY'],
+            ['LNNGY',   'Li Ning Co Ltd ADR',                 'LNNGY'],
+
+            // ── Software (added) ──────────────────────────────────────────────
+            ['DOCU',    'DocuSign, Inc.',               'DOCU'],
+            ['DBX',     'Dropbox, Inc.',                'DBX'],
+
+            // ── Aluminium producers (added; USD ADR where liquid) ─────────────
+            ['NHY',     'Norsk Hydro ASA',              'NHYDY'],
+            ['AA',      'Alcoa Corporation',            'AA'],
+            ['ACH',     'Aluminum Corp of China',       'ACH'],
+            ['CHHQF',   'China Hongqiao Group',         'CHHQF'],
+            ['CENX',    'Century Aluminum Company',     'CENX'],
+            ['S32',     'South32 Limited',              'SOUHY'],
+            ['CSTM',    'Constellium SE',               'CSTM'],
+            ['KALU',    'Kaiser Aluminum Corporation',  'KALU'],
+            // Native exchange (no liquid USD listing) — priced in local currency
+            ['AMAG',    'AMAG Austria Metall AG',       'AMAG.VI'],
+            ['ELHA',    'ElvalHalcor SA',               'ELHA.AT'],
+            ['ALR',     'Alro S.A.',                    'ALR.RO'],
+            ['HINDALCO','Hindalco Industries Limited',  'HINDALCO.NS'],
+            ['VEDL',    'Vedanta Limited',              'VEDL.NS'],
+            ['GRNG',    'Gränges AB',                   'GRNG.ST'],
+
+            // ── Gold miners (added; USD listing where liquid) ─────────────────
+            ['B',       'Barrick Mining Corporation',   'B'],
+            ['AEM',     'Agnico Eagle Mines Limited',   'AEM'],
+            ['KGC',     'Kinross Gold Corporation',     'KGC'],
+            ['BTG',     'B2Gold Corp.',                 'BTG'],
+            ['AGI',     'Alamos Gold Inc.',             'AGI'],
+            ['EGO',     'Eldorado Gold Corporation',    'EGO'],
+            ['IAG',     'IAMGOLD Corporation',          'IAG'],
+            ['EQX',     'Equinox Gold Corp.',           'EQX'],
+            ['CGAU',    'Centerra Gold Inc.',           'CGAU'],
+            ['CDE',     'Coeur Mining, Inc.',           'CDE'],
+            ['NG',      'NovaGold Resources Inc.',      'NG'],
+            ['MUX',     'McEwen Mining Inc.',           'MUX'],
+            ['USGO',    'U.S. GoldMining Inc.',         'USGO'],
+            ['NST',     'Northern Star Resources',      'NESRF'],
+            ['EVN',     'Evolution Mining Limited',     'CAHPF'],
+            ['ZIJIN',   'Zijin Mining Group',           'ZIJMF'],
+            ['RRL',     'Regis Resources Limited',      'RGRNF'],
+            ['RMS',     'Ramelius Resources Limited',   'RMLRF'],
+            ['HOC',     'Hochschild Mining plc',        'HCHDF'],
+            ['FRES',    'Fresnillo plc',                'FNLPF'],
+            // Native exchange (no liquid USD listing) — priced in local currency
+            ['SDG',     'Shandong Gold Mining',         '1787.HK'],
+            ['ZHAOJIN', 'Zhaojin Mining Industry',      '1818.HK'],
+            ['PRU',     'Perseus Mining Limited',       'PRU.AX'],
+
+            // ── Industrials / fintech / mining / software (added) ─────────────
+            ['GEHC',    'GE HealthCare Technologies',   'GEHC'],
+            ['GEV',     'GE Vernova Inc.',              'GEV'],
+            ['OSPN',    'OneSpan Inc.',                 'OSPN'],
+            ['GFI',     'Gold Fields Limited',          'GFI'],
+            ['BOX',     'Box, Inc.',                    'BOX'],
         ];
 
         foreach ($stocks as [$code, $name, $yfSym]) {
@@ -329,6 +463,31 @@ class YFinancePairsSeeder extends Seeder
             $pair = Pair::firstOrCreate(
                 ['currency_id_in' => $cur->id, 'currency_id_out' => $usd->id],
                 ['group_id' => $indexGroup->id, 'is_active' => true, 'asset_class' => 'index', 'default_source' => 'yfinance']
+            );
+            PairSource::updateOrCreate(
+                ['pair_id' => $pair->id, 'provider' => 'yfinance'],
+                ['provider_symbol' => $yfSym, 'priority' => 1, 'status' => 'valid', 'validated_at' => now()]
+            );
+        }
+
+        // ── CURRENCY INDICES ────────────────────────────────────────────────────
+        // [code, name, yfinance_symbol]
+        $currencyIndices = [
+            ['DXY', 'US Dollar Index',                   'DX-Y.NYB'],
+            ['XDE', 'Euro Currency Index',               '^XDE'],
+            ['XDB', 'British Pound Currency Index',      '^XDB'],
+            ['XDN', 'Japanese Yen Currency Index',       '^XDN'],
+            ['XDS', 'Swiss Franc Currency Index',        '^XDS'],
+            ['XDA', 'Australian Dollar Currency Index',  '^XDA'],
+            ['XDZ', 'New Zealand Dollar Currency Index', '^XDZ'],
+            ['XDC', 'Canadian Dollar Currency Index',    '^XDC'],
+        ];
+
+        foreach ($currencyIndices as [$code, $name, $yfSym]) {
+            $cur  = $this->currency($code, $name);
+            $pair = Pair::firstOrCreate(
+                ['currency_id_in' => $cur->id, 'currency_id_out' => $usd->id],
+                ['group_id' => $curIndexGroup->id, 'is_active' => true, 'asset_class' => 'currency_index', 'default_source' => 'yfinance']
             );
             PairSource::updateOrCreate(
                 ['pair_id' => $pair->id, 'provider' => 'yfinance'],

@@ -21,7 +21,7 @@ return [
         ],
         'yfinance' => [
             'class' => App\Services\MarketData\Providers\YFinanceSource::class,
-            'supports' => ['stock','forex','metal','fiat','index'],
+            'supports' => ['stock','forex','metal','fiat','index','currency_index'],
             'base_url' => env('YFINANCE_BASE_URL', 'http://127.0.0.1:8001'),
         ],
     ],

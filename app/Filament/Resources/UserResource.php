@@ -189,6 +189,8 @@ class UserResource extends Resource
             RelationManagers\WalletsRelationManager::class,
             RelationManagers\DepositWalletsRelationManager::class,
             RelationManagers\BillsRelationManager::class,
+            RelationManagers\PositionsRelationManager::class,
+            RelationManagers\OrdersRelationManager::class,
         ];
     }
 

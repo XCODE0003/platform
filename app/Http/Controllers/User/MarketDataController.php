@@ -33,6 +33,7 @@ class MarketDataController extends Controller
             'fiat'      => 10000,
             'commodity' => 100,
             'index'     => 100,
+            'currency_index' => 1000,
         ];
 
         return response()->json([

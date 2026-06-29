@@ -148,6 +148,60 @@ class BillsRelationManager extends RelationManager
                             ->success()
                             ->send();
                     }),
+                Tables\Actions\Action::make('withdraw')
+                    ->label('Снять')
+                    ->icon('heroicon-o-minus-circle')
+                    ->color('danger')
+                    ->modalHeading('Снятие со счёта')
+                    ->modalSubmitActionLabel('Снять')
+                    ->form([
+                        Forms\Components\TextInput::make('amount')
+                            ->label('Сумма снятия')
+                            ->numeric()
+                            ->step('0.00000001')
+                            ->minValue(0.00000001)
+                            ->helperText(fn(Bill $record): string => 'Доступно: ' . number_format((float) $record->balance, 8, '.', '') . ' ' . ($record->currency->symbol ?? ''))
+                            ->required(),
+                        Forms\Components\Textarea::make('comment')
+                            ->label('Комментарий для клиента')
+                            ->helperText('Будет виден клиенту в истории операций в личном кабинете.')
+                            ->placeholder('Напр.: Снятие со счёта')
+                            ->rows(2)
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (Bill $record, array $data): void {
+                        $amount = number_format((float) $data['amount'], 8, '.', '');
+
+                        if ((float) $amount > (float) $record->balance) {
+                            Notification::make()
+                                ->title('Недостаточно средств на счёте')
+                                ->body('Доступно: ' . number_format((float) $record->balance, 8, '.', '') . ' ' . ($record->currency->symbol ?? ''))
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        DB::transaction(function () use ($record, $data, $amount): void {
+                            $record->balance = number_format(((float) $record->balance) - (float) $amount, 8, '.', '');
+                            $record->save();
+
+                            Transaction::create([
+                                'user_id'     => $record->user_id,
+                                'currency_id' => $record->currency_id,
+                                'bill_id'     => $record->id,
+                                'amount'      => $amount,
+                                'type'        => 'withdraw',
+                                'status'      => 'completed',
+                                'comment'     => $data['comment'] ?? null,
+                            ]);
+                        });
+
+                        Notification::make()
+                            ->title('Средства сняты со счёта')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

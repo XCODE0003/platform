@@ -19,6 +19,8 @@ const PORTFOLIO_CATEGORIES = [
     { key: 'crypto',  label: 'Crypto',  classes: ['crypto'] },
     { key: 'stock',   label: 'Stocks',  classes: ['stock'] },
     { key: 'index',   label: 'Indices', classes: ['index'] },
+    { key: 'currency_index', label: 'Currency indices', classes: ['currency_index'] },
+    { key: 'etf',     label: 'ETFs',    classes: ['etf'] },
 ];
 
 // Human-readable lock term, e.g. "1 year", "6 months", "30 days".

@@ -23,6 +23,11 @@ const isAuth = ref(page.props.auth.user);
         <img class="header-img" src="/images/logo.svg" alt="logo"/>
 
       </Link>
+      <div
+          v-if="isAuth && user?.account_number"
+          class="account-number"
+          title="Account Number"
+      >№{{ user.account_number }}</div>
       <nav class="navbar">
         <ul class="nav-list">
           <li class="list-item">
@@ -87,5 +92,38 @@ const isAuth = ref(page.props.auth.user);
 .dropdown .settings{
   width: unset;
   height: unset;
+}
+
+/* Account number badge — centered in the header on both Trade and Assets */
+@media (min-width: 721px) {
+  .header-content {
+    position: relative;
+  }
+}
+
+.account-number {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  font-family: "SF Pro Display", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.4px;
+  color: var(--White);
+  white-space: nowrap;
+  padding: 5px 14px;
+  border: 1px solid var(--Dark_3);
+  border-radius: 8px;
+  user-select: text;
+}
+
+@media (max-width: 720px) {
+  .account-number {
+    display: none;
+  }
 }
 </style>
