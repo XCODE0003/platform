@@ -35,12 +35,12 @@ const lockTermLabel = computed(() => {
 const modal = useModalStore();
 const toast = useToast();
 
-// 'to-account'   = Portfolio → Trading account  (внутренняя вкладка модалки)
-// 'to-portfolio' = Trading account → Portfolio  (открывается кнопкой 'invest')
+// 'to-account'   = Portfolio -> Trading account  (inner tab of the modal)
+// 'to-portfolio' = Trading account -> Portfolio  (opened by the 'invest' button)
 const mode = ref('to-portfolio');
 
-// Invest modal handles ONLY the 'invest' key (Account → Portfolio). The
-// Portfolio → Account withdrawal has its own dedicated PortfolioWithdrawModal
+// Invest modal handles ONLY the 'invest' key (Account -> Portfolio). The
+// Portfolio -> Account withdrawal has its own dedicated PortfolioWithdrawModal
 // bound to the 'portfolio-withdraw' key; reacting to that key here too made
 // both modals open at once (the double-modal bug on Withdraw).
 const isOpen = computed({
@@ -54,7 +54,7 @@ const isOpen = computed({
 
 watch(() => modal.isOpen('invest'), (v) => { if (v) mode.value = 'to-portfolio'; });
 
-// ── Mode: Portfolio → Account ─────────────────────────────────────────────
+// -- Mode: Portfolio -> Account ---------------------------------------------
 const realBills = computed(() => (props.bills ?? []).filter((b) => !b.demo));
 const selectedCategoryWithdraw = ref(null);     // 'crypto' | 'stock' | 'index'
 const selectedWallet    = ref(null);
@@ -139,7 +139,7 @@ function submitToAccount() {
     });
 }
 
-// ── Mode: Account → Portfolio ─────────────────────────────────────────────
+// -- Mode: Account -> Portfolio ---------------------------------------------
 const selectedBillSrc   = ref(null);
 const selectedCategory  = ref(null);          // 'crypto' | 'stock' | 'index'
 const selectedWalletDst = ref(null);
@@ -209,7 +209,7 @@ function submitToPortfolio() {
     });
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────
+// -- helpers ---------------------------------------------------------------
 function iconFor(obj) {
     const icon = obj?.currency?.icon ?? obj?.currency?.symbol ?? '';
     return icon ? `/images/coin_icons/${String(icon).toLowerCase()}.svg` : null;
@@ -257,15 +257,15 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
             <div class="tabs-nav flex gap6 pb20">
                 <button type="button" class="text_small_14 assets-menu_btn"
                     :class="{ active: mode === 'to-portfolio' }" @click="mode = 'to-portfolio'">
-                    Account → Portfolio
+                    Account &rarr; Portfolio
                 </button>
                 <button type="button" class="text_small_14 assets-menu_btn"
                     :class="{ active: mode === 'to-account' }" @click="mode = 'to-account'">
-                    Portfolio → Account
+                    Portfolio &rarr; Account
                 </button>
             </div>
 
-            <!-- ── Portfolio → Account ── -->
+            <!-- -- Portfolio &rarr; Account -- -->
             <form v-if="mode === 'to-account'" @submit.prevent="submitToAccount" class="transfer-form">
 
                 <!-- From: portfolio category (Crypto / Stocks / Indices) -->
@@ -413,7 +413,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                 </button>
             </form>
 
-            <!-- ── Account → Portfolio ── -->
+            <!-- -- Account &rarr; Portfolio -- -->
             <form v-else @submit.prevent="submitToPortfolio" class="transfer-form">
 
                 <!-- From: trading account (custom dropdown) -->
@@ -425,7 +425,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
                                 <img v-if="iconFor(selectedBillSrc)" :src="iconFor(selectedBillSrc)" width="24" height="24" alt="" />
                                 <div class="select-item-text">
                                     <span class="symbol">{{ selectedBillSrc.name ?? selectedBillSrc.currency?.symbol }}</span>
-                                    <span class="balance">{{ selectedBillSrc.currency?.symbol }} · {{ billBalance.toFixed(8) }}</span>
+                                    <span class="balance">{{ selectedBillSrc.currency?.symbol }} &middot; {{ billBalance.toFixed(8) }}</span>
                                 </div>
                             </template>
                             <span v-else class="placeholder">Choose account</span>
@@ -565,7 +565,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
 <style scoped>
 .transfer-form { display: flex; flex-direction: column; }
 
-/* ── Custom select ──────────────────────────────────────── */
+/* -- Custom select ---------------------------------------- */
 .custom-select { position: relative; }
 
 .custom-select__trigger {
@@ -661,7 +661,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
     color: #fff;
 }
 
-/* Portfolio category rows — light highlighted background so the 3 cases stand out */
+/* Portfolio category rows - light highlighted background so the 3 cases stand out */
 .category-item {
     width: 100%;
     text-align: left;
@@ -694,7 +694,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
     color: rgba(255,255,255,0.4);
 }
 
-/* ── Info box ───────────────────────────────────────────── */
+/* -- Info box --------------------------------------------- */
 .info-box {
     display: flex;
     align-items: center;
@@ -705,7 +705,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* ── Amount row ─────────────────────────────────────────── */
+/* -- Amount row ------------------------------------------- */
 .amount-head {
     display: flex;
     align-items: center;
@@ -726,7 +726,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
 
 .error-msg { margin-top: 4px; font-size: 12px; color: #ef4444; }
 
-/* ── Fee box ────────────────────────────────────────────── */
+/* -- Fee box ---------------------------------------------- */
 .fee-box {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
@@ -742,7 +742,7 @@ watch(isOpen, (v) => { if (!v) resetAll(); });
     align-items: center;
 }
 
-/* ── Fade transition ────────────────────────────────────── */
+/* -- Fade transition -------------------------------------- */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

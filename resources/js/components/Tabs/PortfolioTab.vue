@@ -71,7 +71,7 @@ function profitClass(wallet) {
 
 function profitDisplay(wallet) {
     const p = Number(wallet?.profit_usd);
-    if (!Number.isFinite(p)) return '—';
+    if (!Number.isFinite(p)) return '-';
     const sign = p > 0 ? '+' : '';
     return `${sign}${formatAmount(p, 'USD')} USD`;
 }
@@ -129,7 +129,7 @@ function openPortfolioWithdraw() {
                 <img src="/images/balance_icon-spot.svg" alt="" />
                 <p>Spot balance:</p>
                 <span> USD</span>
-                <span class="color-gray2">≈ BTC</span>
+                <span class="color-gray2">&asymp; BTC</span>
             </div> -->
         </div>
         <div class="portfolio-asset-tabs pt15">
@@ -196,7 +196,7 @@ function openPortfolioWithdraw() {
                 <div class="flex-column gap10">
                     <span class="text_16"> {{ formatAmount(wallet.balance, wallet.currency.symbol) }}</span>
                     <span class="text_small_12 color-gray2">
-                        ≈
+                        &asymp;
                         {{
                             formatAmount(
                                 calculateRate(
@@ -213,7 +213,7 @@ function openPortfolioWithdraw() {
                 <div class="flex-column gap10">
                     <span class="text_16">{{ formatAmount(wallet.pending_balance, wallet.currency.symbol) }}</span>
                     <span class="text_small_12 color-gray2">
-                        ≈
+                        &asymp;
                         {{
                             formatAmount(
                                 wallet.currency.exchange_rate *
@@ -229,7 +229,7 @@ function openPortfolioWithdraw() {
                         <template v-if="wallet.avg_buy_price_usd != null">
                             {{ formatAmount(wallet.avg_buy_price_usd, 'USD') }} USD
                         </template>
-                        <template v-else>—</template>
+                        <template v-else>&mdash;</template>
                     </span>
                     <span class="text_small_12 color-gray2">
                         Invested: {{ formatAmount(wallet.total_invested_usd ?? 0, 'USD') }} USD
@@ -262,7 +262,7 @@ function openPortfolioWithdraw() {
                         ) }}
                     </span>
                     <span class="text_small_12 color-gray2">
-                        ≈
+                        &asymp;
                         {{
                             formatAmount(
                                 calculateRate(

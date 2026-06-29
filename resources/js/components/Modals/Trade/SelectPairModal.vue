@@ -47,7 +47,7 @@ const handleSelectPair = (pair) => {
     isOpen.value = false;
 };
 
-/** Ключ для кэша «иконка не загрузилась» (один символ — один путь к файлу). */
+/** Cache key for "icon failed to load" (one symbol - one file path). */
 function coinIconKey(symbol) {
     return String(symbol ?? '').toUpperCase();
 }
@@ -101,7 +101,7 @@ function hasQuoteInLabel(pair) {
                         type="text"
                         v-model="search"
                         class="clear"
-                        placeholder="Search by ticker or name…"
+                        placeholder="Search by ticker or name&hellip;"
                     />
                 </label>
                 <div v-show="!search.trim()" class="flex items-center gap-1.5 flex-wrap ">
