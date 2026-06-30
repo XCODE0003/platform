@@ -346,6 +346,7 @@ class YFinancePairsSeeder extends Seeder
             ['HINDALCO','Hindalco Industries Limited',  'HINDALCO.NS'],
             ['VEDL',    'Vedanta Limited',              'VEDL.NS'],
             ['GRNG',    'Gränges AB',                   'GRNG.ST'],
+            ['PMETAL',  'Press Metal Aluminium Holdings','8869.KL'],
 
             // ── Gold miners (added; USD listing where liquid) ─────────────────
             ['B',       'Barrick Mining Corporation',   'B'],
